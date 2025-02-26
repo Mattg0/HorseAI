@@ -4,18 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/HorseAIv2.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/core/calculators/musique_calculation.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/core/connectors/mysql_connector.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="Project Initialisiation">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/calculators/musique_calculation.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/calculators/musique_calculation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,6 +25,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "Mattg0"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Mattg0/HorseAI.git",
+    "accountId": "aee67ed6-2c23-4be9-a632-2459e76288ac"
+  }
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
 }</component>
@@ -41,17 +46,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.env_setup.executor&quot;: &quot;Run&quot;,
-    &quot;Python.musique_calculation.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.mysql_connector.executor&quot;: &quot;Run&quot;,
-    &quot;Python.mysql_to_sqlite.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.env_setup.executor": "Run",
+    "Python.musique_calculation.executor": "Debug",
+    "Python.mysql_connector.executor": "Run",
+    "Python.mysql_to_sqlite.executor": "Debug",
+    "Python.test.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Python.mysql_to_sqlite">
     <configuration name="musique_calculation" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
@@ -143,8 +149,8 @@
     </configuration>
     <list>
       <item itemvalue="Python.musique_calculation" />
-      <item itemvalue="Python.mysql_connector" />
       <item itemvalue="Python.mysql_to_sqlite" />
+      <item itemvalue="Python.mysql_connector" />
       <item itemvalue="Python.test" />
     </list>
     <recent_temporary>
@@ -172,7 +178,20 @@
       <option name="presentableId" value="Default" />
       <updated>1740213877566</updated>
     </task>
+    <task id="LOCAL-00001" summary="Project Initialisiation">
+      <option name="closed" value="true" />
+      <created>1740556622361</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1740556622361</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Project Initialisiation" />
+    <option name="LAST_COMMIT_MESSAGE" value="Project Initialisiation" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -184,18 +203,8 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py</url>
-          <line>47</line>
+          <line>52</line>
           <option name="timeStamp" value="7" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py</url>
-          <line>161</line>
-          <option name="timeStamp" value="17" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
-          <line>144</line>
-          <option name="timeStamp" value="26" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
@@ -214,68 +223,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
-          <line>158</line>
+          <line>169</line>
           <option name="timeStamp" value="30" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>116</line>
-          <option name="timeStamp" value="33" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>106</line>
-          <option name="timeStamp" value="34" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>107</line>
-          <option name="timeStamp" value="35" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>110</line>
-          <option name="timeStamp" value="36" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>111</line>
-          <option name="timeStamp" value="37" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>112</line>
-          <option name="timeStamp" value="38" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>115</line>
-          <option name="timeStamp" value="39" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>151</line>
-          <option name="timeStamp" value="41" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>145</line>
-          <option name="timeStamp" value="42" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>129</line>
-          <option name="timeStamp" value="43" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>131</line>
-          <option name="timeStamp" value="44" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/musique_calculation.py</url>
-          <line>130</line>
-          <option name="timeStamp" value="45" />
+          <url>file://$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py</url>
+          <line>45</line>
+          <option name="timeStamp" value="47" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

@@ -93,13 +93,6 @@ class FeatureCalculator:
         # Créer une copie du DataFrame pour éviter de modifier l'original
         result_df = df.copy()
 
-        participant_columns = [
-            'idche', 'cheval', 'vha', 'numero', 'recence', 'poidmont',
-            'gainsAnneeEnCours', 'musiqueche', 'age', 'idJockey',
-            'musiquejoc', 'idEntraineur', 'cotedirect', 'coteprob','nbVictCouple','nbPlaceCouple','TxVictCouple','victoirescheval','placescheval','TxVictCouple',
-            'pourcVictChevalHippo','pourcPlaceChevalHippo','pourcVictJockHippo','pourcPlaceJockHippo'
-        ]
-
         # Itérer sur chaque ligne du DataFrame
         for index, participant_row in df.iterrows():
             # Extraire le participant comme un dictionnaire
@@ -120,27 +113,45 @@ class FeatureCalculator:
             for key, value in hippo_stats.items():
                 result_df.at[index, key] = value
 
-            # Extraire les features de la musique
-            musique_extractor = MusiqueFeatureExtractor()
-            musique_stats = musique_extractor.extract_features(participant['musiqueche'], df.at[index, 'typec'])
+            # Extraire les features de la musique cheval
+            cheval_musique_extractor = MusiqueFeatureExtractor()
+            che_musique_stats = cheval_musique_extractor.extract_features(participant['musiqueche'], df.at[index, 'typec'])
 
             # Correct way to access nested dictionaries
             # Add 'global' features
-            for key, value in musique_stats['global'].items():
-                column_name = f"global_{key}"  # Create prefixed column name
+            for key, value in che_musique_stats['global'].items():
+                column_name = f"che_global_{key}"  # Create prefixed column name
                 result_df.at[index, column_name] = value
 
             # Add 'weighted' features
-            for key, value in musique_stats['weighted'].items():
-                column_name = f"weighted_{key}"  # Create prefixed column name
+            for key, value in che_musique_stats['weighted'].items():
+                column_name = f"che_weighted_{key}"  # Create prefixed column name
                 result_df.at[index, column_name] = value
 
             # Add 'by_type' features if any exist
-            if musique_stats['by_type']:  # Check if the dictionary is not empty
-                for type_key, type_values in musique_stats['by_type'].items():
-                    for stat_key, stat_value in type_values.items():
-                        column_name = f"by_type_{type_key}_{stat_key}"
-                        result_df.at[index, column_name] = stat_value
+            for type_key, type_values in che_musique_stats['by_type'].items():
+                column_name = f"che_bytype_{type_key}"
+                result_df.at[index, column_name] = type_values
+            # Extraire les features de la musique jockey
+            jockey_musique_extractor = MusiqueFeatureExtractor()
+            joc_musique_stats = jockey_musique_extractor.extract_features(participant['musiqueche'],
+                                                                                  df.at[index, 'typec'])
+
+            # Correct way to access nested dictionaries
+            # Add 'global' features
+            for key, value in joc_musique_stats['global'].items():
+                        column_name = f"joc_global_{key}"  # Create prefixed column name
+                        result_df.at[index, column_name] = value
+
+                    # Add 'weighted' features
+            for key, value in joc_musique_stats['weighted'].items():
+                column_name = f"joc_weighted_{key}"  # Create prefixed column name
+                result_df.at[index, column_name] = value
+
+                # Add 'by_type' features if any exist
+            for type_key, type_values in che_musique_stats['by_type'].items():
+                column_name = f"che_bytype_{type_key}"
+                result_df.at[index, column_name] = type_values
 
         return result_df
 

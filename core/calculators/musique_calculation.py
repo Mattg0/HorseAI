@@ -24,8 +24,8 @@ class MusiqueFeatureExtractor:
 
         # Default statistics
         self.default_stats = {
-            'avg_pos': 99.0,
-            'recent_perf': 99.0,
+            'avg_pos': 0.0,
+            'recent_perf': 0.0,
             'consistency': 0.0,
             'trend': 0.0,
             'pct_top3': 0.0,
@@ -33,7 +33,7 @@ class MusiqueFeatureExtractor:
             'dnf_rate': 0.0
         }
 
-    def _parse_performance(self, perf: str) -> Tuple[int, Optional[str]]:
+    def _parse_performance(self, perf: str) -> Tuple[Optional[int], Optional[str]]:
         """
         Parse a single performance entry.
 
@@ -41,45 +41,52 @@ class MusiqueFeatureExtractor:
             perf: Performance string (e.g., "1A", "2M", "DA")
 
         Returns:
-            Tuple of (position, race_type)
+            Tuple of (position, race_type) where position is None for DNF
         """
         perf = perf.strip().upper()
 
         # Check for DNF
         if any(perf.startswith(dnf) for dnf in self.dnf_markers):
-            return 99, None
+            return None, None
 
         # Extract number and letter
         match_num = re.search(r'\d+', perf)
         match_type = re.search(r'[AMPHST]', perf)
 
-        position = int(match_num.group()) if match_num else 99
+        position = int(match_num.group()) if match_num else None
         race_type = match_type.group() if match_type else None
 
         return position, race_type
 
-    def _calculate_stats(self, positions: List[int]) -> Dict[str, float]:
+    def _calculate_stats(self, positions: List[int], total_races: int, dnf_count: int) -> Dict[str, float]:
         """
         Calculate performance statistics from a list of positions.
 
         Args:
-            positions: List of finishing positions
+            positions: List of finishing positions (excluding DNFs)
+            total_races: Total number of races including DNFs
+            dnf_count: Number of DNF races
 
         Returns:
             Dictionary of calculated statistics
         """
         if not positions:
-            return self.default_stats.copy()
+            stats = self.default_stats.copy()
+            stats['dnf_rate'] = 1.0 if total_races > 0 else 0.0
+            stats['total_races'] = total_races
+            return stats
 
         recent_positions = positions[:3]
 
         stats = {
             'avg_pos': float(np.mean(positions)),
-            'recent_perf': float(np.mean(recent_positions)) if recent_positions else 99.0,
+            'recent_perf': float(np.mean(recent_positions)) if recent_positions else 0.0,
             'consistency': float(np.std(positions)) if len(positions) > 1 else 0.0,
             'trend': float(positions[0] - np.mean(positions[1:])) if len(positions) >= 2 else 0.0,
             'pct_top3': float(sum(1 for p in positions if p <= 3) / len(positions)),
-            'nb_courses': len(positions)
+            'nb_courses': len(positions),
+            'total_races': total_races,
+            'dnf_rate': dnf_count / total_races if total_races > 0 else 0.0
         }
 
         return stats
@@ -93,12 +100,12 @@ class MusiqueFeatureExtractor:
             current_race_type: Type of the current race (optional)
 
         Returns:
-            Dictionary containing extracted features
+            Dictionary containing extracted features with by_type containing stats for current race type
         """
         if not musique or pd.isna(musique):
             features = {
                 'global': self.default_stats.copy(),
-                'by_type': {},
+                'by_type': self.default_stats.copy(),
                 'weighted': self.default_stats.copy()
             }
             return features
@@ -116,7 +123,7 @@ class MusiqueFeatureExtractor:
         for perf in reversed(performances):  # Most recent first
             position, race_type = self._parse_performance(perf)
 
-            if position == 99:
+            if position is None:
                 dnf_count += 1
             else:
                 all_positions.append(position)
@@ -126,26 +133,32 @@ class MusiqueFeatureExtractor:
                         positions_by_type[race_type] = []
                     positions_by_type[race_type].append(position)
 
-        # Calculate statistics
-        global_stats = self._calculate_stats(all_positions)
-        global_stats['total_races'] = total_races
-        global_stats['dnf_rate'] = dnf_count / total_races if total_races > 0 else 0.0
+        # Calculate global statistics
+        global_stats = self._calculate_stats(all_positions, total_races, dnf_count)
 
-        type_stats = {
-            race_type: self._calculate_stats(positions)
-            for race_type, positions in positions_by_type.items()
-        }
+        # Calculate type-specific stats for current_race_type if provided
+        type_stats = self.default_stats.copy()
+        if current_race_type and current_race_type in positions_by_type:
+            positions = positions_by_type[current_race_type]
 
-        # Calculate weighted stats if current_race_type is provided
+            # Count DNFs for this race type
+            type_dnf_count = sum(1 for perf in reversed(performances)
+                                 if any(perf.strip().upper().startswith(dnf) for dnf in self.dnf_markers) and
+                                 perf.strip().upper().find(current_race_type) != -1)
+
+            type_total_races = len(positions) + type_dnf_count
+            type_stats = self._calculate_stats(positions, type_total_races, type_dnf_count)
+
+        # Calculate weighted stats
         weighted_stats = self._calculate_weighted_stats(
             global_stats,
-            type_stats.get(current_race_type, self.default_stats.copy()) if current_race_type else None,
+            type_stats,
             current_race_type
         )
 
         features = {
             'global': global_stats,
-            'by_type': type_stats,
+            'by_type': type_stats,  # Now directly contains the stats for current race type
             'weighted': weighted_stats
         }
 
@@ -153,7 +166,7 @@ class MusiqueFeatureExtractor:
 
     def _calculate_weighted_stats(self,
                                   global_stats: Dict[str, float],
-                                  type_stats: Optional[Dict[str, float]],
+                                  type_stats: Dict[str, float],
                                   current_race_type: Optional[str]) -> Dict[str, float]:
         """
         Calculate weighted statistics based on global and race type specific stats.
@@ -166,7 +179,7 @@ class MusiqueFeatureExtractor:
         Returns:
             Dictionary of weighted statistics
         """
-        if not current_race_type or not type_stats:
+        if not current_race_type:
             return global_stats
 
         # Weighting factors
@@ -197,7 +210,12 @@ def main():
 
     # Test cases
     test_cases = [
-        ("(23) 3m 7m 3m 5m 3m Dm 5m 6m 4m 3m 5m Da Da", "M" ),  # Mixed with current type A
+        ("(23) 3m 7m 3m 5m 3m Dm 5m 6m 4m 3m 5m Da Da", "M"),  # Mixed with current type M
+        ("(23) 3m 7m 3m 5m 3m Dm 5m 6m 4m 3m 5m Da Da", "A"),  # Same musique but different current race type
+        ("1A 2A DA 3A 4A", "A"),  # With DNF
+        ("DA NP 1A 2A", "A"),  # With multiple DNFs
+        ("DA DP DI", "A"),  # All DNFs
+        ("1P 2P 3P", "A"),  # No races of current type
     ]
 
     for musique, race_type in test_cases:
@@ -209,7 +227,7 @@ def main():
         print("\nGlobal stats:")
         print(json.dumps(features['global'], indent=2))
 
-        print("\nStats by type:")
+        print("\nBy Type stats (directly for current race type):")
         print(json.dumps(features['by_type'], indent=2))
 
         print("\nWeighted stats:")
