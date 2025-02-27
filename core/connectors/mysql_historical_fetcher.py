@@ -28,7 +28,7 @@ def fetch_race_data(conn=None, close_conn=False):
            cachedate.cotedirect, cachedate.coteprob, cachedate.numero, cachedate.handicapDistance,
            cachedate.handicapPoids, 
            cachedate.poidmont, cachedate.recence, cachedate.gainsAnneeEnCours, 
-           cachedate.musiqueche, cachedate.idJockey, musiquejoc, cachedate.idEntraineur, 
+           cachedate.musiqueche, cachedate.idJockey, musiquejoc, cachedate.idEntraineur,cachedate.proprietaire, 
            cachedate.age, cachedate.nbVictCouple, cachedate.nbPlaceCouple, 
            cachedate.victoirescheval, cachedate.placescheval, cachedate.TxVictCouple,
            cachedate.pourcVictChevalHippo, cachedate.pourcPlaceChevalHippo, 

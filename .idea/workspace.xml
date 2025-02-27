@@ -4,11 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="Project Initialisiation">
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="modular mysql&lt;-&gt;sqlite sync">
+      <change afterPath="$PROJECT_DIR$/model_training/features/couple_embedding.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/model_training/features/course_embedding.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/model_training/features/horse_embedding.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/model_training/features/jockey_embedding.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/model_training/historical/train_model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/calculators/musique_calculation.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/calculators/musique_calculation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -25,18 +28,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Mattg0"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Mattg0&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/Mattg0/HorseAI.git",
-    "accountId": "aee67ed6-2c23-4be9-a632-2459e76288ac"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Mattg0/HorseAI.git&quot;,
+    &quot;accountId&quot;: &quot;aee67ed6-2c23-4be9-a632-2459e76288ac&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
 }</component>
@@ -51,14 +54,37 @@
     "Python.env_setup.executor": "Run",
     "Python.musique_calculation.executor": "Debug",
     "Python.mysql_connector.executor": "Run",
-    "Python.mysql_to_sqlite.executor": "Debug",
+    "Python.mysql_sqlite_sync.executor": "Run",
+    "Python.mysql_to_sqlite.executor": "Run",
     "Python.test.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main"
   }
 }]]></component>
-  <component name="RunManager" selected="Python.mysql_to_sqlite">
+  <component name="RunManager" selected="Python.mysql_sqlite_sync">
+    <configuration name="historical_race_transformer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="HorseAIv2" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/transformers/historical_race_transformer.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="musique_calculation" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
@@ -103,7 +129,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="mysql_to_sqlite" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="mysql_sqlite_sync" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -112,11 +138,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/orchestrators/mysql_sqlite_sync.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -148,14 +174,16 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.mysql_sqlite_sync" />
       <item itemvalue="Python.musique_calculation" />
-      <item itemvalue="Python.mysql_to_sqlite" />
+      <item itemvalue="Python.historical_race_transformer" />
       <item itemvalue="Python.mysql_connector" />
       <item itemvalue="Python.test" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.mysql_to_sqlite" />
+        <item itemvalue="Python.mysql_sqlite_sync" />
+        <item itemvalue="Python.historical_race_transformer" />
         <item itemvalue="Python.musique_calculation" />
         <item itemvalue="Python.mysql_connector" />
         <item itemvalue="Python.test" />
@@ -186,12 +214,30 @@
       <option name="project" value="LOCAL" />
       <updated>1740556622361</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Working MySQL connector!">
+      <option name="closed" value="true" />
+      <created>1740584410696</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1740584410696</updated>
+    </task>
+    <task id="LOCAL-00003" summary="modular mysql&lt;-&gt;sqlite sync">
+      <option name="closed" value="true" />
+      <created>1740650477583</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1740650477583</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Project Initialisiation" />
-    <option name="LAST_COMMIT_MESSAGE" value="Project Initialisiation" />
+    <MESSAGE value="Working MySQL connector!" />
+    <MESSAGE value="modular mysql&lt;-&gt;sqlite sync" />
+    <option name="LAST_COMMIT_MESSAGE" value="modular mysql&lt;-&gt;sqlite sync" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -200,11 +246,6 @@
           <url>file://$PROJECT_DIR$/utils/env_setup.py</url>
           <line>34</line>
           <option name="timeStamp" value="4" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py</url>
-          <line>52</line>
-          <option name="timeStamp" value="7" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
@@ -227,9 +268,14 @@
           <option name="timeStamp" value="30" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/transformers/mysql_to_sqlite.py</url>
-          <line>45</line>
-          <option name="timeStamp" value="47" />
+          <url>file://$PROJECT_DIR$/core/transformers/historical_race_transformer.py</url>
+          <line>84</line>
+          <option name="timeStamp" value="55" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/orchestrators/mysql_sqlite_sync.py</url>
+          <line>25</line>
+          <option name="timeStamp" value="67" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
