@@ -6,7 +6,7 @@ from typing import Dict, List, Union, Optional
 import pickle
 
 
-class JockeyEmbeddingGenerator:
+class JockeyEmbedding:
     """
     Generates embeddings for jockeys based on their performance statistics.
     Can be used both for training and prediction.

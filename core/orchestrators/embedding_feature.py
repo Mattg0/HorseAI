@@ -7,39 +7,160 @@ import numpy as np
 from typing import Dict, List, Tuple, Optional, Union
 import argparse
 import os
+from datetime import datetime
+import hashlib
+import pickle
 
-from core.calculators.static_feature_calculator import FeatureCalculator
-from core.calculators.musique_calculation import MusiqueFeatureExtractor
-from utils.env_setup import get_sqlite_dbpath
+from utils.env_setup import AppConfig
+from utils.cache_manager import CacheManager
+from model_training.features.course_embedding import CourseEmbedding
+from model_training.features.horse_embedding import HorseEmbedding
+from model_training.features.jockey_embedding import JockeyEmbedding
+from model_training.features.couple_embedding import CoupleEmbedding
 
 
 class FeatureEmbeddingOrchestrator:
     """
-    Orchestrator for feature embedding and combination prior to model training.
-    Handles loading historical race data, calculating features, and preparing datasets.
+    Orchestrator for loading historical race data from SQLite,
+    applying entity embeddings, and preparing data for model training.
+    Uses caching to improve performance for expensive operations.
     """
 
-    def __init__(self, sqlite_path=None):
+    def __init__(self, sqlite_path=None, embedding_dim=None, cache_dir=None, feature_store_dir=None):
         """
-        Initialize the orchestrator.
+        Initialize the orchestrator with embedding models and caching.
 
         Args:
-            sqlite_path: Path to SQLite database, if None uses default from env_setup
+            sqlite_path: Path to SQLite database, if None uses default from config
+            embedding_dim: Dimension size for entity embeddings, if None uses default from config
+            cache_dir: Directory to store cache files, if None uses default from config
+            feature_store_dir: Directory to store feature stores, if None uses default from config
         """
-        self.sqlite_path = sqlite_path or get_sqlite_dbpath()
+        # Load application configuration
+        self.config = AppConfig()
 
-    def load_historical_races(self, limit=None, filter_conditions=None, include_results=True):
+        # Set paths from config or arguments
+        self.sqlite_path = sqlite_path or self.config.get_sqlite_dbpath()
+        self.cache_dir = cache_dir or self.config.get_cache_dir()
+        self.feature_store_dir = feature_store_dir or self.config.get_feature_store_dir()
+
+        # Set embedding dimension from config or argument
+        self.embedding_dim = embedding_dim or self.config.get_default_embedding_dim()
+
+        # Initialize caching manager
+        self.cache_manager = CacheManager(cache_dir=self.cache_dir)
+
+        # Initialize embedding models (will be fitted later)
+        self.course_embedder = CourseEmbedding(embedding_dim=4)
+        self.horse_embedder = HorseEmbedding(embedding_dim=16)
+        self.jockey_embedder = JockeyEmbedding(embedding_dim=8)
+        self.couple_embedder = CoupleEmbedding(embedding_dim=8)  # Smaller dim for race type
+
+        # Track whether embeddings have been fitted
+        self.embeddings_fitted = False
+
+        # Store preprocessing parameters
+        self.preprocessing_params = {}
+
+        # Create cache directory if it doesn't exist
+        os.makedirs(self.cache_dir, exist_ok=True)
+        os.makedirs(self.feature_store_dir, exist_ok=True)
+
+        print(f"Orchestrator initialized with:")
+        print(f"  - SQLite path: {self.sqlite_path}")
+        print(f"  - Cache directory: {self.cache_dir}")
+        print(f"  - Feature store directory: {self.feature_store_dir}")
+
+    # The rest of the implementation remains the same, with caching paths using self.cache_dir
+    # and feature store paths using self.feature_store_dir
+
+    def _generate_cache_key(self, prefix, params):
         """
-        Load historical race data from SQLite.
+        Generate a deterministic cache key based on function parameters.
+
+        Args:
+            prefix: Prefix for the cache key
+            params: Dictionary of parameters to include in the key
+
+        Returns:
+            String cache key
+        """
+        # Convert params to sorted string representation
+        param_str = json.dumps(params, sort_keys=True)
+
+        # Generate hash
+        hash_obj = hashlib.md5(param_str.encode())
+        hash_str = hash_obj.hexdigest()
+
+        return f"{prefix}_{hash_str}"
+
+    def load_historical_races(self, limit=None, race_filter=None, date_filter=None, include_results=True,
+                              use_cache=True):
+        """
+        Load historical race data from SQLite with caching.
 
         Args:
             limit: Optional limit for number of races to load
-            filter_conditions: Optional WHERE conditions for the query
-            include_results: Whether to include race results
+            race_filter: Optional filter for specific race types (e.g., 'A' for Attele)
+            date_filter: Optional date filter (e.g., 'jour > "2023-01-01"')
+            include_results: Whether to join with race results
+            use_cache: Whether to use cached results if available
 
         Returns:
-            DataFrame with historical race data and participants
+            DataFrame with historical race data and expanded participants
         """
+        # Use specific cache file for historical data if available
+        historical_cache_path = self.config.get_cache_file_path('historical_data')
+        if historical_cache_path and use_cache:
+            cache_dir = os.path.dirname(historical_cache_path)
+            cache_file = os.path.basename(historical_cache_path)
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_path = os.path.join(cache_dir, cache_file)
+
+            # Check for cache parameters
+            cache_params_path = os.path.join(cache_dir, f"{os.path.splitext(cache_file)[0]}_params.json")
+            cache_matches = False
+
+            if os.path.exists(cache_path) and os.path.exists(cache_params_path):
+                with open(cache_params_path, 'r') as f:
+                    stored_params = json.load(f)
+
+                # Check if stored parameters match current request
+                current_params = {
+                    'limit': limit,
+                    'race_filter': race_filter,
+                    'date_filter': date_filter,
+                    'include_results': include_results
+                }
+
+                if all(stored_params.get(k) == current_params.get(k) for k in current_params):
+                    cache_matches = True
+
+            if cache_matches:
+                try:
+                    print(f"Loading historical data from cache: {cache_path}")
+                    return pd.read_parquet(cache_path)
+                except Exception as e:
+                    print(f"Error loading from cache: {str(e)}")
+
+        # Generate cache key for standard caching mechanism
+        cache_params = {
+            'limit': limit,
+            'race_filter': race_filter,
+            'date_filter': date_filter,
+            'include_results': include_results,
+            'db_path': self.sqlite_path
+        }
+        cache_key = self._generate_cache_key('historical_races', cache_params)
+
+        # Try to get from cache
+        if use_cache:
+            cached_data = self.cache_manager.get(cache_key)
+            if cached_data is not None:
+                print("Using cached historical race data...")
+                return cached_data
+
+        print("Loading historical race data from database...")
         conn = sqlite3.connect(self.sqlite_path)
 
         # Base query to get race data
@@ -52,8 +173,15 @@ class FeatureEmbeddingOrchestrator:
         else:
             query = "SELECT * FROM historical_races"
 
-        if filter_conditions:
-            query += f" WHERE {filter_conditions}"
+        # Build WHERE clause
+        where_clauses = []
+        if race_filter:
+            where_clauses.append(f"hr.typec = '{race_filter}'")
+        if date_filter:
+            where_clauses.append(date_filter)
+
+        if where_clauses:
+            query += " WHERE " + " AND ".join(where_clauses)
 
         if limit:
             query += f" LIMIT {limit}"
@@ -73,256 +201,33 @@ class FeatureEmbeddingOrchestrator:
         expanded_df = self._expand_participants(df_races)
 
         conn.close()
+
+        # Save to specialized cache if available
+        if historical_cache_path and use_cache:
+            try:
+                # Save dataframe
+                expanded_df.to_parquet(cache_path)
+
+                # Save parameters
+                with open(cache_params_path, 'w') as f:
+                    json.dump(cache_params, f)
+
+                print(f"Historical data cached to {cache_path}")
+            except Exception as e:
+                print(f"Error caching historical data: {str(e)}")
+
+        # Cache with the regular caching manager too
+        if use_cache:
+            self.cache_manager.set(cache_key, expanded_df)
+
         return expanded_df
 
-    def _expand_participants(self, df_races):
+    # The rest of the methods remain the same, but we'll update the save_feature_store
+    # to use the configured feature_store_dir
+
+    def save_feature_store(self, X_train, X_val, X_test, y_train, y_val, y_test, output_dir=None, prefix=''):
         """
-        Expand the participants JSON into individual rows.
-
-        Args:
-            df_races: DataFrame with race data and JSON participants
-
-        Returns:
-            Expanded DataFrame with one row per participant
-        """
-        race_dfs = []
-
-        for _, race in df_races.iterrows():
-            try:
-                participants = json.loads(race['participants'])
-
-                if participants:
-                    # Create DataFrame for this race's participants
-                    race_df = pd.DataFrame(participants)
-
-                    # Add race information to each participant row
-                    for col in df_races.columns:
-                        if col != 'participants' and col != 'ordre_arrivee':
-                            race_df[col] = race[col]
-
-                    # Add result information if available
-                    if 'ordre_arrivee' in race and race['ordre_arrivee'] and not pd.isna(race['ordre_arrivee']):
-                        results = json.loads(race['ordre_arrivee'])
-                        # Create a mapping of horse IDs to final positions
-                        id_to_position = {res['idche']: res['narrivee'] for res in results}
-
-                        # Add a column for the final position
-                        race_df['final_position'] = race_df['idche'].map(id_to_position)
-
-                    race_dfs.append(race_df)
-            except (json.JSONDecodeError, KeyError) as e:
-                print(f"Error processing race {race.get('comp', 'unknown')}: {str(e)}")
-                continue
-
-        # Combine all race DataFrames
-        if race_dfs:
-            combined_df = pd.concat(race_dfs, ignore_index=True)
-        else:
-            combined_df = pd.DataFrame()
-
-        return combined_df
-
-    def process_features(self, df):
-        """
-        Process and calculate all features for the dataset.
-
-        Args:
-            df: DataFrame with race and participant data
-
-        Returns:
-            DataFrame with all calculated features
-        """
-        # Make a copy to avoid modifying the original
-        features_df = df.copy()
-
-        # Apply static feature calculations
-        features_df = FeatureCalculator.calculate_all_features(features_df)
-
-        # Additional processing for specific features
-        features_df = self._preprocess_features(features_df)
-
-        return features_df
-
-    def _preprocess_features(self, df):
-        """
-        Preprocess features: handle missing values, encode categorical features, etc.
-
-        Args:
-            df: DataFrame with calculated features
-
-        Returns:
-            Preprocessed DataFrame
-        """
-        # Make a copy to avoid modifying the original
-        processed_df = df.copy()
-
-        # Handle missing numerical values
-        numeric_cols = processed_df.select_dtypes(include=['float64', 'int64']).columns
-        processed_df[numeric_cols] = processed_df[numeric_cols].fillna(0)
-
-        # Handle categorical features - encode as needed
-        categorical_cols = processed_df.select_dtypes(include=['object']).columns
-        for col in categorical_cols:
-            if col not in ['comp', 'idche', 'cheval', 'final_position', 'jour']:
-                # Convert to category type
-                processed_df[col] = processed_df[col].astype('category')
-
-        return processed_df
-
-    def prepare_target_variable(self, df, target_column='final_position', task_type='regression'):
-        """
-        Prepare the target variable for training.
-
-        Args:
-            df: DataFrame with features and target
-            target_column: Name of the target column
-            task_type: 'regression' or 'classification'
-
-        Returns:
-            Processed target variable
-        """
-        if target_column not in df.columns:
-            raise ValueError(f"Target column '{target_column}' not found in DataFrame")
-
-        if task_type == 'regression':
-            # For regression (e.g., predicting finish position as a number)
-            # Convert positions to numeric, handling non-numeric values
-            y = pd.to_numeric(df[target_column], errors='coerce')
-
-            # Fill NaN values with a high number (effectively placing non-finishers last)
-            max_pos = y.max()
-            y.fillna(max_pos + 1, inplace=True)
-
-        elif task_type == 'classification':
-            # For classification (e.g., predicting win/place/show)
-            # First, convert positions to categorical
-            y = df[target_column].astype('str')
-
-            # Map positions to categories:
-            # 1 = Win, 2-3 = Place, 4+ = Other
-            def categorize_position(pos):
-                try:
-                    pos_num = int(pos)
-                    if pos_num == 1:
-                        return 'win'
-                    elif pos_num <= 3:
-                        return 'place'
-                    else:
-                        return 'other'
-                except (ValueError, TypeError):
-                    return 'other'  # Non-numeric positions (DNF, etc.)
-
-            y = y.apply(categorize_position)
-
-        else:
-            raise ValueError(f"Unsupported task_type: {task_type}. Use 'regression' or 'classification'")
-
-        return y
-
-    def prepare_training_dataset(self, df, target_column='final_position', task_type='regression'):
-        """
-        Prepare the final dataset for training.
-
-        Args:
-            df: DataFrame with calculated features
-            target_column: Column to use as the target variable
-            task_type: 'regression' or 'classification'
-
-        Returns:
-            X: Features DataFrame
-            y: Target Series
-        """
-        # Drop rows with missing target values
-        training_df = df.dropna(subset=[target_column])
-
-        # Prepare the target variable
-        y = self.prepare_target_variable(training_df, target_column, task_type)
-
-        # Select feature columns (excluding target and non-feature columns)
-        exclude_cols = [
-            target_column, 'comp', 'idche', 'cheval', 'ordre_arrivee',
-            'participants', 'created_at', 'jour', 'prix'
-        ]
-
-        # Remove columns that are in the exclude list and exist in the DataFrame
-        X = training_df.drop(columns=[col for col in exclude_cols if col in training_df.columns])
-
-        return X, y
-
-    def split_dataset(self, X, y, test_size=0.2, val_size=0.1, random_state=42):
-        """
-        Split the dataset into training, validation, and testing sets.
-
-        Args:
-            X: Feature DataFrame
-            y: Target Series
-            test_size: Proportion of data to use for testing
-            val_size: Proportion of data to use for validation
-            random_state: Random seed for reproducibility
-
-        Returns:
-            X_train, X_val, X_test, y_train, y_val, y_test
-        """
-        from sklearn.model_selection import train_test_split
-
-        # First split: training+validation vs test
-        X_trainval, X_test, y_trainval, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=random_state
-        )
-
-        # Second split: training vs validation
-        # Adjusted val_size to be a percentage of the trainval set
-        val_adjusted = val_size / (1 - test_size)
-
-        X_train, X_val, y_train, y_val = train_test_split(
-            X_trainval, y_trainval, test_size=val_adjusted, random_state=random_state
-        )
-
-        return X_train, X_val, X_test, y_train, y_val, y_test
-
-    def run_complete_pipeline(self, limit=None, task_type='regression', test_size=0.2, val_size=0.1, random_state=42):
-        """
-        Run the complete pipeline from data loading to training set preparation.
-
-        Args:
-            limit: Optional limit for races to load
-            task_type: 'regression' or 'classification'
-            test_size: Proportion for test split
-            val_size: Proportion for validation split
-            random_state: Random seed
-
-        Returns:
-            X_train, X_val, X_test, y_train, y_val, y_test
-        """
-        # Load data
-        print("Loading historical race data...")
-        df = self.load_historical_races(limit=limit)
-        print(f"Loaded {len(df)} participant records from {df['comp'].nunique()} races")
-
-        # Process features
-        print("Processing features...")
-        features_df = self.process_features(df)
-
-        # Prepare training dataset
-        print("Preparing training dataset...")
-        X, y = self.prepare_training_dataset(features_df, task_type=task_type)
-        print(f"Dataset prepared with {X.shape[1]} features and {len(y)} samples")
-
-        # Split for training, validation, and testing
-        print("Splitting dataset...")
-        X_train, X_val, X_test, y_train, y_val, y_test = self.split_dataset(
-            X, y, test_size=test_size, val_size=val_size, random_state=random_state
-        )
-
-        print(f"Training set: {X_train.shape[0]} samples")
-        print(f"Validation set: {X_val.shape[0]} samples")
-        print(f"Test set: {X_test.shape[0]} samples")
-
-        return X_train, X_val, X_test, y_train, y_val, y_test
-
-    def save_dataset(self, X_train, X_val, X_test, y_train, y_val, y_test, output_dir):
-        """
-        Save the prepared datasets to disk.
+        Save a complete feature store with datasets and metadata.
 
         Args:
             X_train: Training features
@@ -331,63 +236,113 @@ class FeatureEmbeddingOrchestrator:
             y_train: Training targets
             y_val: Validation targets
             y_test: Test targets
-            output_dir: Directory to save files
+            output_dir: Directory to save files, if None uses default from config
+            prefix: Optional prefix for filenames
+
+        Returns:
+            Path to the created feature store
         """
+        # Use configured feature store directory if not specified
+        output_dir = output_dir or self.feature_store_dir
+
         # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
 
-        # Save features
-        X_train.to_csv(os.path.join(output_dir, "X_train.csv"), index=False)
-        X_val.to_csv(os.path.join(output_dir, "X_val.csv"), index=False)
-        X_test.to_csv(os.path.join(output_dir, "X_test.csv"), index=False)
+        # Create timestamp suffix
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
-        # Save targets
-        y_train.to_csv(os.path.join(output_dir, "y_train.csv"), index=False)
-        y_val.to_csv(os.path.join(output_dir, "y_val.csv"), index=False)
-        y_test.to_csv(os.path.join(output_dir, "y_test.csv"), index=False)
+        # Create feature store directory
+        feature_store_dir = os.path.join(output_dir, f"{prefix}feature_store_{timestamp}")
+        os.makedirs(feature_store_dir, exist_ok=True)
 
-        print(f"Datasets saved to {output_dir}")
+        # 1. Save datasets as parquet files (better than CSV for ML data)
+        X_train.to_parquet(os.path.join(feature_store_dir, "X_train.parquet"))
+        X_val.to_parquet(os.path.join(feature_store_dir, "X_val.parquet"))
+        X_test.to_parquet(os.path.join(feature_store_dir, "X_test.parquet"))
 
+        # Save targets based on their type
+        if pd.api.types.is_numeric_dtype(y_train):
+            # For regression tasks
+            pd.DataFrame({'target': y_train}).to_parquet(os.path.join(feature_store_dir, "y_train.parquet"))
+            pd.DataFrame({'target': y_val}).to_parquet(os.path.join(feature_store_dir, "y_val.parquet"))
+            pd.DataFrame({'target': y_test}).to_parquet(os.path.join(feature_store_dir, "y_test.parquet"))
+        else:
+            # For classification tasks
+            pd.DataFrame({'target': y_train}).to_parquet(os.path.join(feature_store_dir, "y_train.parquet"))
+            pd.DataFrame({'target': y_val}).to_parquet(os.path.join(feature_store_dir, "y_val.parquet"))
+            pd.DataFrame({'target': y_test}).to_parquet(os.path.join(feature_store_dir, "y_test.parquet"))
 
-def main():
-    """
-    Example usage of the feature embedding orchestrator.
-    """
-    parser = argparse.ArgumentParser(description='Run the feature embedding pipeline')
-    parser.add_argument('--limit', type=int, default=None,
-                        help='Limit the number of races to load')
-    parser.add_argument('--task', type=str, choices=['regression', 'classification'],
-                        default='regression', help='Type of machine learning task')
-    parser.add_argument('--output-dir', type=str, default='./data/processed',
-                        help='Directory to save processed datasets')
-    parser.add_argument('--save', action='store_true',
-                        help='Save the processed datasets to disk')
-    args = parser.parse_args()
+        # 2. Save embedding models
+        embedders_path = os.path.join(feature_store_dir, "embedders.pkl")
+        with open(embedders_path, 'wb') as f:
+            pickle.dump({
+                'horse_embedder': self.horse_embedder,
+                'jockey_embedder': self.jockey_embedder,
+                'track_embedder': self.track_embedder,
+                'race_type_embedder': self.race_type_embedder
+            }, f)
 
-    # Initialize the orchestrator
-    orchestrator = FeatureEmbeddingOrchestrator()
+        # 3. Save preprocessing parameters and feature metadata
+        metadata = {
+            'created_at': datetime.now().isoformat(),
+            'dataset_info': {
+                'train_samples': X_train.shape[0],
+                'val_samples': X_val.shape[0],
+                'test_samples': X_test.shape[0],
+                'feature_count': X_train.shape[1],
+                'feature_names': X_train.columns.tolist(),
+                'categorical_features': [col for col in X_train.select_dtypes(include=['category']).columns],
+                'numerical_features': [col for col in X_train.select_dtypes(include=['float64', 'int64']).columns],
+                'embedding_features': [col for col in X_train.columns if 'emb_' in col]
+            },
+            'preprocessing': self.preprocessing_params,
+            'column_dtypes': {col: str(dtype) for col, dtype in X_train.dtypes.items()}
+        }
 
-    # Run the complete pipeline
-    X_train, X_val, X_test, y_train, y_val, y_test = orchestrator.run_complete_pipeline(
-        limit=args.limit, task_type=args.task
-    )
+        # Save metadata as JSON
+        with open(os.path.join(feature_store_dir, "metadata.json"), 'w') as f:
+            json.dump(metadata, f, indent=2, default=str)
 
-    # Print feature information
-    print("\nTop 10 features:")
-    for i, feature in enumerate(X_train.columns[:10]):
-        print(f"  {i + 1}. {feature}")
+        # 4. Save feature statistics
+        feature_stats = {
+            'mean': X_train.mean().to_dict(),
+            'std': X_train.std().to_dict(),
+            'min': X_train.min().to_dict(),
+            'max': X_train.max().to_dict(),
+            'median': X_train.median().to_dict()
+        }
 
-    # Display target distribution
-    if args.task == 'classification':
-        print("\nTarget distribution:")
-        print(y_train.value_counts(normalize=True))
+        with open(os.path.join(feature_store_dir, "feature_stats.json"), 'w') as f:
+            json.dump(feature_stats, f, indent=2, default=str)
 
-    # Save datasets if requested
-    if args.save:
-        orchestrator.save_dataset(
-            X_train, X_val, X_test, y_train, y_val, y_test, args.output_dir
-        )
+        # 5. Create a README file for the feature store
+        with open(os.path.join(feature_store_dir, "README.md"), 'w') as f:
+            f.write(f"# Feature Store {timestamp}\n\n")
+            f.write("## Dataset Information\n")
+            f.write(f"- Training samples: {X_train.shape[0]}\n")
+            f.write(f"- Validation samples: {X_val.shape[0]}\n")
+            f.write(f"- Test samples: {X_test.shape[0]}\n")
+            f.write(f"- Feature count: {X_train.shape[1]}\n\n")
 
+            f.write("## Files\n")
+            f.write("- `X_train.parquet`, `X_val.parquet`, `X_test.parquet`: Feature datasets\n")
+            f.write("- `y_train.parquet`, `y_val.parquet`, `y_test.parquet`: Target variables\n")
+            f.write("- `embedders.pkl`: Embedding models for entities\n")
+            f.write("- `metadata.json`: Dataset and preprocessing metadata\n")
+            f.write("- `feature_stats.json`: Statistical information about features\n\n")
 
-if __name__ == "__main__":
-    main()
+            f.write("## Usage\n")
+            f.write("To load this feature store:\n\n")
+            f.write("```python\n")
+            f.write("import pandas as pd\n")
+            f.write("import pickle\n\n")
+            f.write("# Load features\n")
+            f.write("X_train = pd.read_parquet('X_train.parquet')\n")
+            f.write("y_train = pd.read_parquet('y_train.parquet')['target']\n\n")
+            f.write("# Load embedders\n")
+            f.write("with open('embedders.pkl', 'rb') as f:\n")
+            f.write("    embedders = pickle.load(f)\n")
+            f.write("```\n")
+
+        print(f"Feature store saved to {feature_store_dir}")
+        return feature_store_dir

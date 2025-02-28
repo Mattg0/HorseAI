@@ -7,7 +7,8 @@ import torch.nn as nn
 import json
 
 
-class HorseEmbeddingGenerator:
+
+class HorseEmbedding:
     """
     Generates embeddings for horses based on their performance features.
     Supports both DataFrame and JSON input formats.

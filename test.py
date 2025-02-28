@@ -1,7 +1,11 @@
-from utils.env_setup import load_config, get_sqlite_dbpath, get_mysql_config
-config = load_config()
+from utils.env_setup import AppConfig
+from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 
-db_path = get_sqlite_dbpath()
-mysql = get_mysql_config('pturf2025')
 
-print(f"Active database path: {mysql.dbname}")
+
+def main():
+    orchestrator= FeatureEmbeddingOrchestrator()
+    return orchestrator
+
+if __name__ == '__main__':
+    main()
