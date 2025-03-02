@@ -6,7 +6,7 @@ from typing import Optional, Dict, Union
 import pandas as pd
 import fastparquet as fp
 
-from utils.env_setup import load_config
+from utils.env_setup import AppConfig
 
 
 class CacheManager:
@@ -15,13 +15,14 @@ class CacheManager:
     Provides paths based on cache type and handles parquet file operations.
     """
 
-    def __init__(self, cache_config):
-        self.config = cache_config
+    def __init__(self):
+        self.config = AppConfig()
+
         self._ensure_base_dir()
 
     def _ensure_base_dir(self):
         """Ensure the base cache directory exists."""
-        os.makedirs(self.config.base_path, exist_ok=True)
+        os.makedirs(self.config.get_cache_dir(), exist_ok=True)
 
     def get_cache_path(self, cache_type: str, ensure_exists: bool = True) -> Path:
         """
@@ -37,7 +38,7 @@ class CacheManager:
         if cache_type not in self.config.types:
             raise ValueError(f"Unknown cache type: {cache_type}. Available types: {list(self.config.types.keys())}")
 
-        cache_path = Path(self.config.base_path) / self.config.types[cache_type]
+        cache_path = Path(self.config.get_cache_file_path()) / self.config.types[cache_type]
 
         if ensure_exists:
             os.makedirs(cache_path, exist_ok=True)
@@ -79,7 +80,7 @@ class CacheManager:
         Returns:
             Path where the file was saved
         """
-        file_path = self.get_cache_file_path(cache_type, filename)
+        file_path = self.get_cache_file_path(cache_type)
 
         # Save DataFrame using fastparquet
         fp.write(file_path, df, compression=compression, **kwargs)

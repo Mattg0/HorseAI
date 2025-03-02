@@ -12,7 +12,7 @@ class JockeyEmbedding:
     Can be used both for training and prediction.
     """
 
-    def __init__(self, embedding_size: int = 8, use_pca: bool = True):
+    def __init__(self, embedding_dim: int = 8, use_pca: bool = True):
         """
         Initialize the jockey embedding generator.
 
@@ -20,10 +20,10 @@ class JockeyEmbedding:
             embedding_size: Size of the embedding vector
             use_pca: Whether to use PCA for dimensionality reduction
         """
-        self.embedding_size = embedding_size
+        self.embedding_dim = embedding_dim
         self.use_pca = use_pca
         self.scaler = StandardScaler()
-        self.pca = PCA(n_components=embedding_size) if use_pca else None
+        self.pca = PCA(n_components=embedding_dim) if use_pca else None
         self.jockey_embeddings = {}  # Cache for jockey embeddings
         self.is_fitted = False
 

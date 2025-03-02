@@ -48,7 +48,7 @@ class FeatureEmbeddingOrchestrator:
         self.embedding_dim = embedding_dim or self.config.get_default_embedding_dim()
 
         # Initialize caching manager
-        self.cache_manager = CacheManager(cache_dir=self.cache_dir)
+        self.cache_manager = CacheManager()
 
         # Initialize embedding models (will be fitted later)
         self.course_embedder = CourseEmbedding(embedding_dim=4)

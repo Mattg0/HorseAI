@@ -10,14 +10,14 @@ class CourseEmbedding:
     This allows for more effective machine learning on race characteristics.
     """
 
-    def __init__(self, embedding_size=16):
+    def __init__(self, embedding_dim=16):
         """
         Initialize the course embedding module.
 
         Args:
             embedding_size: Size of the embedding vector for each race
         """
-        self.embedding_size = embedding_size
+        self.embedding_dim = embedding_dim
 
         # Dictionaries to map categorical features to numerical values
         self.hippo_mapping = {}
