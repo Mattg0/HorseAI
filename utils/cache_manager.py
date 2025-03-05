@@ -35,10 +35,8 @@ class CacheManager:
         Returns:
             Path object for the cache directory
         """
-        if cache_type not in self.config.types:
-            raise ValueError(f"Unknown cache type: {cache_type}. Available types: {list(self.config.types.keys())}")
 
-        cache_path = Path(self.config.get_cache_file_path()) / self.config.types[cache_type]
+        cache_path = Path(self.config.get_cache_file_path(cache_type))
 
         if ensure_exists:
             os.makedirs(cache_path, exist_ok=True)
@@ -65,7 +63,7 @@ class CacheManager:
 
         return cache_dir / filename
 
-    def save_dataframe(self, df: pd.DataFrame, cache_type: str, filename: str,
+    def save_dataframe(self, df: pd.DataFrame, cache_type: str,
                        compression: str = 'SNAPPY', **kwargs) -> Path:
         """
         Save a pandas DataFrame to parquet format in the cache.

@@ -1,33 +1,27 @@
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Union, Optional, Set
+from typing import Dict, List, Union, Optional, Any
 from sklearn.preprocessing import StandardScaler
 import torch
 import torch.nn as nn
 import json
 
 
-
 class HorseEmbedding:
     """
     Generates embeddings for horses based on their performance features.
     Supports both DataFrame and JSON input formats.
-    Includes proprietaire (owner) encoding.
     """
 
-    def __init__(self, embedding_dim=16, proprietaire_emb_dim=4):
+    def __init__(self, embedding_dim=16):
         """
         Initialize the embedding generator.
 
         Args:
             embedding_dim: Dimension of the output embedding vector
-            proprietaire_emb_dim: Dimension for proprietaire embedding
         """
         self.embedding_dim = embedding_dim
-        self.proprietaire_emb_dim = proprietaire_emb_dim
         self.scaler = StandardScaler()
-
-        # Numerical feature columns
         self.feature_columns = [
             # Basic info
             'age',
@@ -45,19 +39,12 @@ class HorseEmbedding:
             'che_weighted_pct_top3', 'che_weighted_dnf_rate'
         ]
 
-        # Owner encoding
-        self.proprietaire_encoding = {}
-        self.next_proprietaire_id = 0
-
-        # Simple embedding network - takes numerical features + proprietaire embedding
+        # Simple embedding network
         self.embedding_network = nn.Sequential(
-            nn.Linear(len(self.feature_columns) + proprietaire_emb_dim, 32),
+            nn.Linear(len(self.feature_columns), 32),
             nn.ReLU(),
             nn.Linear(32, embedding_dim)
         )
-
-        # Simple embedding layer for proprietaire
-        self.proprietaire_embedding = nn.Embedding(1000, proprietaire_emb_dim)  # Start with max 1000 owners
 
     def _json_to_dataframe(self, json_data: Union[str, List[Dict]]) -> pd.DataFrame:
         """
@@ -75,65 +62,6 @@ class HorseEmbedding:
             data = json_data
 
         return pd.DataFrame(data)
-
-    def _encode_proprietaires(self, df: pd.DataFrame) -> None:
-        """
-        Create integer encodings for proprietaire strings.
-
-        Args:
-            df: DataFrame containing proprietaire data
-        """
-        if 'proprietaire' not in df.columns:
-            return
-
-        # Get unique proprietaires
-        unique_proprietaires = set(df['proprietaire'].dropna().unique())
-
-        # Add new proprietaires to encoding
-        for prop in unique_proprietaires:
-            if prop and prop not in self.proprietaire_encoding:
-                self.proprietaire_encoding[prop] = self.next_proprietaire_id
-                self.next_proprietaire_id += 1
-
-                # Resize embedding layer if needed
-                if self.next_proprietaire_id >= self.proprietaire_embedding.num_embeddings:
-                    old_embedding = self.proprietaire_embedding
-                    self.proprietaire_embedding = nn.Embedding(
-                        self.next_proprietaire_id + 1000,  # Add buffer
-                        self.proprietaire_emb_dim
-                    )
-                    if old_embedding.weight.data.shape[0] > 0:
-                        # Copy existing weights
-                        self.proprietaire_embedding.weight.data[:old_embedding.weight.data.shape[0]] = \
-                            old_embedding.weight.data
-
-    def _get_proprietaire_embeddings(self, df: pd.DataFrame) -> torch.Tensor:
-        """
-        Get embeddings for proprietaires in the DataFrame.
-
-        Args:
-            df: DataFrame containing proprietaire column
-
-        Returns:
-            Tensor of proprietaire embeddings
-        """
-        if 'proprietaire' not in df.columns:
-            # Return zeros if no proprietaire column
-            return torch.zeros((len(df), self.proprietaire_emb_dim))
-
-        # Map proprietaires to IDs, using -1 for unknown/missing
-        prop_ids = df['proprietaire'].apply(
-            lambda x: self.proprietaire_encoding.get(x, 0) if pd.notna(x) else 0
-        ).values
-
-        # Convert to tensor
-        prop_ids_tensor = torch.tensor(prop_ids, dtype=torch.long)
-
-        # Get embeddings
-        with torch.no_grad():
-            prop_embeddings = self.proprietaire_embedding(prop_ids_tensor)
-
-        return prop_embeddings
 
     def _preprocess_features(self, data: Union[pd.DataFrame, List[Dict], str]) -> pd.DataFrame:
         """
@@ -195,22 +123,15 @@ class HorseEmbedding:
         if 'idche' not in df.columns:
             raise ValueError("Input data must contain 'idche' column")
 
-        # Encode proprietaires
-        self._encode_proprietaires(df)
-
-        # Preprocess numerical features
+        # Preprocess features
         preprocessed_df = self._preprocess_features(df)
 
-        # Get proprietaire embeddings
-        proprietaire_embeddings = self._get_proprietaire_embeddings(df)
-
-        # Combine numerical features with proprietaire embeddings
+        # Convert to tensor
         features_tensor = torch.tensor(preprocessed_df.values, dtype=torch.float32)
-        combined_features = torch.cat([features_tensor, proprietaire_embeddings], dim=1)
 
         # Generate embeddings
         with torch.no_grad():
-            embeddings = self.embedding_network(combined_features).numpy()
+            embeddings = self.embedding_network(features_tensor).numpy()
 
         # Create mapping from horse ID to embedding
         horse_ids = df['idche'].values
@@ -232,103 +153,168 @@ class HorseEmbedding:
         """
         return embeddings_dict.get(horse_id)
 
-    def get_proprietaire_stats(self) -> Dict[str, Dict[str, float]]:
+
+class EnhancedFeatureCalculator:
+    """
+    Enhanced version of FeatureCalculator that incorporates horse embeddings.
+    Extends the existing FeatureCalculator class.
+    """
+
+    def __init__(self, embedding_dim=16):
         """
-        Get statistics about proprietaires in the embedding space.
-
-        Returns:
-            Dictionary of proprietaire stats
-        """
-        stats = {}
-
-        # Calculate stats if we have enough proprietaires
-        if len(self.proprietaire_encoding) > 1:
-            # Create tensor of all proprietaire IDs
-            prop_ids = torch.tensor(list(self.proprietaire_encoding.values()), dtype=torch.long)
-
-            # Get embeddings
-            with torch.no_grad():
-                prop_embeddings = self.proprietaire_embedding(prop_ids).numpy()
-
-            # Calculate stats for each proprietaire
-            for prop, idx in self.proprietaire_encoding.items():
-                emb = prop_embeddings[prop_ids == idx].reshape(-1)
-                stats[prop] = {
-                    "norm": float(np.linalg.norm(emb)),
-                    "mean": float(np.mean(emb)),
-                    "min": float(np.min(emb)),
-                    "max": float(np.max(emb))
-                }
-
-        return stats
-
-    def save_model(self, path: str) -> None:
-        """
-        Save the embedding model and proprietaire encodings.
+        Initialize the enhanced feature calculator.
 
         Args:
-            path: Path to save the model
+            embedding_dim: Dimension of horse embeddings
         """
-        model_data = {
-            "embedding_network": self.embedding_network.state_dict(),
-            "proprietaire_embedding": self.proprietaire_embedding.state_dict(),
-            "proprietaire_encoding": self.proprietaire_encoding,
-            "next_proprietaire_id": self.next_proprietaire_id,
-            "feature_columns": self.feature_columns,
-            "scaler_mean": self.scaler.mean_.tolist() if hasattr(self.scaler, 'mean_') else None,
-            "scaler_var": self.scaler.var_.tolist() if hasattr(self.scaler, 'var_') else None,
-            "embedding_dim": self.embedding_dim,
-            "proprietaire_emb_dim": self.proprietaire_emb_dim
+        self.horse_embedder = HorseEmbedding(embedding_dim=embedding_dim)
+
+    def calculate_enhanced_features(self,
+                                    data: Union[pd.DataFrame, List[Dict], str]) -> Union[pd.DataFrame, List[Dict]]:
+        """
+        Calculate enhanced features including horse embeddings.
+
+        Args:
+            data: DataFrame, JSON string, or list of dictionaries containing raw participant data
+
+        Returns:
+            DataFrame or list of dictionaries with additional embedding features,
+            matching the input format
+        """
+        return_json = False
+
+        # Convert to DataFrame if input is JSON or list of dicts
+        if isinstance(data, str):
+            df = pd.DataFrame(json.loads(data))
+            return_json = True
+        elif isinstance(data, list) and all(isinstance(item, dict) for item in data):
+            df = pd.DataFrame(data)
+            return_json = True
+        else:
+            df = data.copy()
+
+        # First calculate standard features using original FeatureCalculator
+        from core.calculators.static_feature_calculator import FeatureCalculator
+        result_df = FeatureCalculator.calculate_all_features(df)
+
+        # Generate horse embeddings
+        horse_embeddings = self.horse_embedder.generate_embeddings(result_df)
+
+        # Add embedding components as features
+        for i in range(self.horse_embedder.embedding_dim):
+            col_name = f'horse_emb_{i}'
+            result_df[col_name] = result_df['idche'].apply(
+                lambda x: horse_embeddings.get(int(x), np.zeros(self.horse_embedder.embedding_dim))[i]
+            )
+
+        # Return in the same format as input
+        if return_json:
+            return result_df.to_dict('records')
+        return result_df
+
+
+def process_json_data(json_data: Union[str, List[Dict]], embedding_dim=16) -> Dict[str, Any]:
+    """
+    Process JSON horse data and return embeddings and enhanced features.
+
+    Args:
+        json_data: JSON string or list of dictionaries containing horse data
+        embedding_dim: Dimension of the embeddings
+
+    Returns:
+        Dictionary containing horse embeddings and enhanced features
+    """
+    # Initialize embedding generator
+    embedder = HorseEmbedding(embedding_dim=embedding_dim)
+
+    # Generate embeddings
+    embeddings = embedder.generate_embeddings(json_data)
+
+    # Convert embeddings to serializable format
+    serializable_embeddings = {
+        str(horse_id): emb.tolist() for horse_id, emb in embeddings.items()
+    }
+
+    # Calculate enhanced features
+    calculator = EnhancedFeatureCalculator(embedding_dim=embedding_dim)
+    enhanced_features = calculator.calculate_enhanced_features(json_data)
+
+    return {
+        "embeddings": serializable_embeddings,
+        "enhanced_features": enhanced_features
+    }
+
+
+def main():
+    """
+    Example usage of the horse embedding system with JSON input.
+    """
+    # Sample data in JSON format
+    json_data = [
+        {
+            "idche": 101,
+            "age": 5,
+            "victoirescheval": 3,
+            "placescheval": 8,
+            "coursescheval": 20,
+            "pourcVictChevalHippo": 15.0,
+            "pourcPlaceChevalHippo": 40.0,
+            "ratio_victoires": 0.15,
+            "ratio_places": 0.4,
+            "perf_cheval_hippo": 27.5,
+            "che_global_avg_pos": 4.2,
+            "che_global_recent_perf": 3.0,
+            "che_global_consistency": 2.3,
+            "che_global_trend": 1.2,
+            "che_global_pct_top3": 0.45,
+            "che_global_nb_courses": 18,
+            "che_global_dnf_rate": 0.10,
+            "che_weighted_avg_pos": 3.8,
+            "che_weighted_recent_perf": 2.5,
+            "che_weighted_consistency": 2.1,
+            "che_weighted_pct_top3": 0.4,
+            "che_weighted_dnf_rate": 0.12
+        },
+        {
+            "idche": 102,
+            "age": 7,
+            "victoirescheval": 5,
+            "placescheval": 12,
+            "coursescheval": 44,
+            "pourcVictChevalHippo": 5.56,
+            "pourcPlaceChevalHippo": 16.67,
+            "ratio_victoires": 0.11,
+            "ratio_places": 0.27,
+            "perf_cheval_hippo": 11.11,
+            "che_global_avg_pos": 6.45,
+            "che_global_recent_perf": 2.0,
+            "che_global_consistency": 5.61,
+            "che_global_trend": -2.51,
+            "che_global_pct_top3": 0.32,
+            "che_global_nb_courses": 38,
+            "che_global_dnf_rate": 0.16,
+            "che_weighted_avg_pos": 1.93,
+            "che_weighted_recent_perf": 0.6,
+            "che_weighted_consistency": 1.68,
+            "che_weighted_pct_top3": 0.09,
+            "che_weighted_dnf_rate": 0.16
         }
+    ]
 
-        torch.save(model_data, path)
+    # Process JSON data
+    result = process_json_data(json_data, embedding_dim=8)
 
-    @classmethod
-    def load_model(cls, path: str) -> 'HorseEmbeddingGenerator':
-        """
-        Load a saved embedding model.
+    print("Horse Embeddings:")
+    for horse_id, emb in result["embeddings"].items():
+        print(f"Horse ID {horse_id}: {emb}")
 
-        Args:
-            path: Path to the saved model
+    print("\nEnhanced Features:")
+    for horse in result["enhanced_features"]:
+        print(f"Horse ID {horse['idche']}: Embedding components:", end=" ")
+        for i in range(8):
+            print(f"{horse[f'horse_emb_{i}']:.4f}", end=" ")
+        print()
 
-        Returns:
-            Loaded HorseEmbeddingGenerator instance
-        """
-        model_data = torch.load(path)
 
-        # Create instance with saved dimensions
-        instance = cls(
-            embedding_dim=model_data["embedding_dim"],
-            proprietaire_emb_dim=model_data["proprietaire_emb_dim"]
-        )
-
-        # Restore feature columns
-        instance.feature_columns = model_data["feature_columns"]
-
-        # Restore proprietaire data
-        instance.proprietaire_encoding = model_data["proprietaire_encoding"]
-        instance.next_proprietaire_id = model_data["next_proprietaire_id"]
-
-        # Restore proprietaire embedding with correct size
-        instance.proprietaire_embedding = nn.Embedding(
-            max(1000, instance.next_proprietaire_id + 100),
-            instance.proprietaire_emb_dim
-        )
-        instance.proprietaire_embedding.load_state_dict(model_data["proprietaire_embedding"])
-
-        # Restore network architecture based on shapes
-        input_dim = len(instance.feature_columns) + instance.proprietaire_emb_dim
-        instance.embedding_network = nn.Sequential(
-            nn.Linear(input_dim, 32),
-            nn.ReLU(),
-            nn.Linear(32, instance.embedding_dim)
-        )
-        instance.embedding_network.load_state_dict(model_data["embedding_network"])
-
-        # Restore scaler if available
-        if model_data["scaler_mean"] is not None and model_data["scaler_var"] is not None:
-            instance.scaler.mean_ = np.array(model_data["scaler_mean"])
-            instance.scaler.var_ = np.array(model_data["scaler_var"])
-            instance.scaler.scale_ = np.sqrt(instance.scaler.var_)
-
-        return instance
+if __name__ == "__main__":
+    main()

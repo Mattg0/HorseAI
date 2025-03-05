@@ -24,6 +24,7 @@ class JockeyEmbedding:
         self.use_pca = use_pca
         self.scaler = StandardScaler()
         self.pca = PCA(n_components=embedding_dim) if use_pca else None
+        self.pca = PCA(n_components=embedding_dim) if use_pca else None
         self.jockey_embeddings = {}  # Cache for jockey embeddings
         self.is_fitted = False
 
@@ -107,7 +108,7 @@ class JockeyEmbedding:
             transformed_data = self.pca.transform(scaled_data)
         else:
             # If not using PCA, we'll just take the first embedding_size features
-            transformed_data = scaled_data[:, :self.embedding_size]
+            transformed_data = scaled_data[:, :self.embedding_dim]
 
         # Create embeddings dictionary
         for i, jockey_id in enumerate(jockey_stats['idJockey']):
@@ -154,7 +155,7 @@ class JockeyEmbedding:
         result_df = df.copy()
 
         # Add embedding columns
-        for i in range(self.embedding_size):
+        for i in range(self.embedding_dim):
             col_name = f'jockey_emb_{i}'
             result_df[col_name] = 0.0
 
@@ -163,7 +164,7 @@ class JockeyEmbedding:
             jockey_id = row.get('idJockey')
             if pd.notna(jockey_id):
                 embedding = self.transform(int(jockey_id))
-                for i in range(self.embedding_size):
+                for i in range(self.embedding_dim):
                     result_df.at[idx, f'jockey_emb_{i}'] = embedding[i]
 
         return result_df
@@ -177,7 +178,7 @@ class JockeyEmbedding:
         """
         with open(filepath, 'wb') as f:
             pickle.dump({
-                'embedding_size': self.embedding_size,
+                'embedding_dim': self.embedding_dim,
                 'use_pca': self.use_pca,
                 'scaler': self.scaler,
                 'pca': self.pca,
@@ -187,7 +188,7 @@ class JockeyEmbedding:
             }, f)
 
     @classmethod
-    def load(cls, filepath: str) -> 'JockeyEmbeddingGenerator':
+    def load(cls, filepath: str) -> 'JockeyEmbedding':
         """
         Load a fitted embedding generator from a file.
 
@@ -201,7 +202,7 @@ class JockeyEmbedding:
             data = pickle.load(f)
 
         generator = cls(
-            embedding_size=data['embedding_size'],
+            embedding_dim=data['embedding_dim'],
             use_pca=data['use_pca']
         )
         generator.scaler = data['scaler']

@@ -71,7 +71,7 @@ class CourseEmbedding:
             Numpy array containing the course embedding
         """
         # Initialize the embedding vector
-        embedding = np.zeros(self.embedding_size)
+        embedding = np.zeros(self.embedding_dim)
 
         # Extract course features
         hippo = course.get('hippo', 'N/A')
@@ -136,6 +136,46 @@ class CourseEmbedding:
 
         return embedding
 
+    def trace_embedding_preparation(self):
+        import logging
+
+        # Set up logging
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                            filename='embedding_debug.log')
+
+        try:
+            # Assuming you're using the HorseEmbedding class
+            from model_training.features.horse_embedding import HorseEmbedding
+
+            # Create a sample DataFrame with the minimum required fields
+            import pandas as pd
+            test_df = pd.DataFrame({
+                'idche': [1, 2, 3],
+                'age': [5, 6, 4],
+                'natpis': ['Herbe', 'Sable', None],  # Test with a NULL value
+                # Add other required fields
+            })
+
+            logging.debug(f"Test DataFrame columns: {test_df.columns.tolist()}")
+
+            # Try to create embeddings
+            embedder = HorseEmbedding(embedding_dim=16)
+            logging.debug("Created HorseEmbedding instance")
+
+            # Generate embeddings with explicit error handling
+            try:
+                embeddings = embedder.generate_embeddings(test_df)
+                logging.debug(f"Generated embeddings: {len(embeddings)} items")
+            except Exception as e:
+                logging.error(f"Error generating embeddings: {str(e)}")
+                import traceback
+                logging.error(traceback.format_exc())
+
+        except Exception as e:
+            logging.error(f"Overall error: {str(e)}")
+            import traceback
+            logging.error(traceback.format_exc())
     def transform(self, course_data: pd.DataFrame) -> np.ndarray:
         """
         Transform multiple courses into their embedding representations.
@@ -146,7 +186,7 @@ class CourseEmbedding:
         Returns:
             Numpy array containing course embeddings
         """
-        embeddings = np.zeros((len(course_data), self.embedding_size))
+        embeddings = np.zeros((len(course_data), self.embedding_dim))
 
         for i, (_, course) in enumerate(course_data.iterrows()):
             embeddings[i] = self.transform_course(course.to_dict())
@@ -161,7 +201,7 @@ class CourseEmbedding:
             filepath: Path to save the model
         """
         model_data = {
-            'embedding_size': self.embedding_size,
+            'embedding_dim': self.embedding_dim,
             'hippo_mapping': self.hippo_mapping,
             'track_type_mapping': self.track_type_mapping,
             'meteo_mapping': self.meteo_mapping,
@@ -191,7 +231,7 @@ class CourseEmbedding:
         with open(filepath, 'r') as f:
             model_data = json.load(f)
 
-        model = cls(embedding_size=model_data['embedding_size'])
+        model = cls(embedding_dim=model_data['embedding_dim'])
         model.hippo_mapping = model_data['hippo_mapping']
         model.track_type_mapping = model_data['track_type_mapping']
         model.meteo_mapping = model_data['meteo_mapping']
