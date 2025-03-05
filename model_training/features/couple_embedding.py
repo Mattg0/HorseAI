@@ -1,3 +1,5 @@
+# model_training/features/couple_embedding.py
+
 import numpy as np
 import pandas as pd
 import torch
@@ -86,14 +88,27 @@ class CoupleEmbedding:
         self.couple_to_id = {}  # Maps (horse_id, jockey_id) to unique couple_id
         self.id_to_couple = {}  # Maps unique couple_id to (horse_id, jockey_id)
         self.next_id = 0  # Counter for generating new IDs
+        self._reserved_id_for_unknown = -1  # Special ID for missing/unknown couples
 
         # Model will be initialized during training
         self.model = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        # Performance stats for couples
+        self.couple_stats = {}  # Maps couple_id to performance statistics
+
+        # Training history
+        self.history = None
+
+    @property
+    def is_fitted(self) -> bool:
+        """Check if the model has been fitted."""
+        return self.model is not None
+
     def create_couple_id(self, horse_id: int, jockey_id: int) -> int:
         """
         Create or retrieve a unique ID for a horse/jockey combination.
+        Handles missing or invalid inputs by returning a reserved ID.
 
         Args:
             horse_id: The horse identifier
@@ -102,8 +117,19 @@ class CoupleEmbedding:
         Returns:
             Unique integer ID for this horse/jockey combination
         """
-        couple = (horse_id, jockey_id)
+        # Handle missing or invalid values
+        if pd.isna(horse_id) or pd.isna(jockey_id):
+            return self._reserved_id_for_unknown
 
+        # Convert to integers if needed
+        try:
+            horse_id = int(horse_id)
+            jockey_id = int(jockey_id)
+        except (ValueError, TypeError):
+            return self._reserved_id_for_unknown
+
+        # Create or retrieve ID
+        couple = (horse_id, jockey_id)
         if couple not in self.couple_to_id:
             self.couple_to_id[couple] = self.next_id
             self.id_to_couple[self.next_id] = couple
@@ -111,7 +137,7 @@ class CoupleEmbedding:
 
         return self.couple_to_id[couple]
 
-    def get_couple_from_id(self, couple_id: int) -> Tuple[int, int]:
+    def get_couple_from_id(self, couple_id: int) -> Optional[Tuple[int, int]]:
         """
         Get the horse and jockey IDs from a couple_id.
 
@@ -119,10 +145,14 @@ class CoupleEmbedding:
             couple_id: Unique ID for a horse/jockey combination
 
         Returns:
-            Tuple of (horse_id, jockey_id)
+            Tuple of (horse_id, jockey_id) or None if not found
         """
+        if couple_id == self._reserved_id_for_unknown:
+            return None
+
         if couple_id not in self.id_to_couple:
-            raise KeyError(f"Couple ID {couple_id} not found in mapping")
+            logger.warning(f"Couple ID {couple_id} not found in mapping")
+            return None
 
         return self.id_to_couple[couple_id]
 
@@ -136,20 +166,67 @@ class CoupleEmbedding:
         Returns:
             DataFrame with an additional 'couple_id' column
         """
-        df = df.copy()
-        df['couple_id'] = df.apply(
+        result_df = df.copy()
+
+        # Check for required columns
+        required_cols = ['idche', 'idJockey']
+        for col in required_cols:
+            if col not in result_df.columns:
+                raise ValueError(f"Required column '{col}' not found in DataFrame")
+
+        # Convert ID columns to numeric if they aren't already
+        for col in required_cols:
+            if not pd.api.types.is_numeric_dtype(result_df[col]):
+                result_df[col] = pd.to_numeric(result_df[col], errors='coerce')
+
+        # Create couple_ids
+        result_df['couple_id'] = result_df.apply(
             lambda row: self.create_couple_id(row['idche'], row['idJockey']),
             axis=1
         )
-        return df
 
-    def prepare_training_data(self, df: pd.DataFrame, target_col: str = 'cl') -> Tuple:
+        return result_df
+
+    def update_couple_stats(self, df: pd.DataFrame) -> None:
+        """
+        Update performance statistics for each couple.
+
+        Args:
+            df: DataFrame with race results including 'couple_id' and result columns
+        """
+        # Ensure df has couple_ids
+        if 'couple_id' not in df.columns:
+            df = self.create_couple_ids_from_df(df)
+
+        # Calculate stats for each couple
+        couple_groups = df.groupby('couple_id')
+
+        for couple_id, group in couple_groups:
+            races_total = len(group)
+
+            # Calculate performance metrics
+            wins = sum(1 for pos in group['cl'] if pd.notnull(pos) and pos == 1)
+            places = sum(1 for pos in group['cl'] if pd.notnull(pos) and pos <= 3)
+
+            # Store stats
+            self.couple_stats[couple_id] = {
+                'races_total': races_total,
+                'wins': wins,
+                'places': places,
+                'win_rate': wins / races_total if races_total > 0 else 0,
+                'place_rate': places / races_total if races_total > 0 else 0,
+                'avg_position': group['cl'].mean() if pd.api.types.is_numeric_dtype(group['cl']) else None
+            }
+
+    def prepare_training_data(self, df: pd.DataFrame, target_col: str = 'cl',
+                              target_type: str = 'classification') -> Tuple:
         """
         Prepare data for training the embedding model.
 
         Args:
             df: DataFrame with race data
             target_col: Name of the column to use as target variable
+            target_type: 'classification', 'regression', or 'ranking'
 
         Returns:
             Tuple of (couple_ids, targets) ready for training
@@ -158,39 +235,76 @@ class CoupleEmbedding:
         if 'couple_id' not in df.columns:
             df = self.create_couple_ids_from_df(df)
 
-        # Convert finishing position to a binary target (1 for top 3, 0 otherwise)
-        # Assuming 'cl' is the finishing position
-        if target_col == 'cl':
-            df['target'] = df[target_col].apply(
+        # Drop rows with missing target values
+        df_clean = df.dropna(subset=[target_col])
+
+        # Handle different target types
+        if target_type == 'classification':
+            # Binary classification (1 for top 3, 0 otherwise)
+            df_clean['target'] = df_clean[target_col].apply(
+                lambda x: 1.0 if pd.notnull(x) and (
+                        isinstance(x, (int, float)) and x <= 3 or
+                        isinstance(x, str) and x.isdigit() and int(x) <= 3
+                ) else 0.0
+            )
+        elif target_type == 'regression':
+            # Regression (predict finish position)
+            df_clean['target'] = pd.to_numeric(df_clean[target_col], errors='coerce')
+
+            # Normalize target to 0-1 range for easier training
+            max_pos = df_clean['target'].max()
+            df_clean['target'] = 1.0 - (df_clean['target'] - 1) / max_pos
+            df_clean['target'] = df_clean['target'].clip(0, 1)
+        elif target_type == 'ranking':
+            # For pairwise ranking, create pairs within each race
+            # This is more complex and would be implemented separately
+            # For now, fallback to classification
+            logger.warning("Ranking target_type not fully implemented, using classification instead")
+            df_clean['target'] = df_clean[target_col].apply(
                 lambda x: 1.0 if pd.notnull(x) and x <= 3 else 0.0
             )
         else:
-            df['target'] = df[target_col]
+            raise ValueError(f"Unsupported target_type: {target_type}")
 
-        couple_ids = torch.tensor(df['couple_id'].values, dtype=torch.long)
-        targets = torch.tensor(df['target'].values, dtype=torch.float)
+        couple_ids = torch.tensor(df_clean['couple_id'].values, dtype=torch.long)
+        targets = torch.tensor(df_clean['target'].values, dtype=torch.float)
 
         return couple_ids, targets
 
-    def train(self, df: pd.DataFrame, target_col: str = 'cl',
-              validation_split: float = 0.2) -> Dict:
+    def train(self, df: pd.DataFrame, target_col: str = 'cl', target_type: str = 'classification',
+              validation_split: float = 0.2, random_state: int = 42) -> Dict:
         """
         Train the embedding model on historical data.
 
         Args:
             df: DataFrame with race data
             target_col: Name of the column to use as target variable
+            target_type: 'classification', 'regression', or 'ranking'
             validation_split: Fraction of data to use for validation
+            random_state: Random seed for reproducibility
 
         Returns:
             Dictionary with training history
         """
+        # Set seed for reproducibility
+        torch.manual_seed(random_state)
+        np.random.seed(random_state)
+
+        # Update couple statistics
+        if target_col == 'cl':
+            self.update_couple_stats(df)
+
         # Prepare data
-        couple_ids, targets = self.prepare_training_data(df, target_col)
+        couple_ids, targets = self.prepare_training_data(df, target_col, target_type)
+
+        # Check if we have enough data
+        if len(couple_ids) < 10:
+            logger.warning(f"Not enough data for training (only {len(couple_ids)} samples). Need at least 10.")
+            return {'train_loss': [], 'valid_loss': []}
 
         # Initialize model
         self.model = CoupleEmbeddingModel(
-            num_couples=self.next_id,
+            num_couples=max(self.next_id, 10),  # Ensure we have at least 10 slots
             embedding_dim=self.embedding_dim
         ).to(self.device)
 
@@ -212,12 +326,12 @@ class CoupleEmbedding:
 
         train_loader = DataLoader(
             train_dataset,
-            batch_size=self.batch_size,
+            batch_size=min(self.batch_size, len(train_dataset)),
             shuffle=True
         )
         valid_loader = DataLoader(
             valid_dataset,
-            batch_size=self.batch_size,
+            batch_size=min(self.batch_size, len(valid_dataset)),
             shuffle=False
         )
 
@@ -226,12 +340,13 @@ class CoupleEmbedding:
         criterion = nn.BCELoss()
 
         # Training loop
-        history = {'train_loss': [], 'valid_loss': []}
+        history = {'train_loss': [], 'valid_loss': [], 'train_acc': [], 'valid_acc': []}
 
         for epoch in range(self.epochs):
             # Training
             self.model.train()
             train_loss = 0.0
+            train_correct = 0
 
             for batch_couple_ids, batch_targets in train_loader:
                 batch_couple_ids = batch_couple_ids.to(self.device)
@@ -245,12 +360,22 @@ class CoupleEmbedding:
 
                 train_loss += loss.item() * batch_couple_ids.size(0)
 
+                # Calculate accuracy for classification
+                if target_type == 'classification':
+                    pred_class = (predictions.squeeze() >= 0.5).float()
+                    train_correct += (pred_class == batch_targets).sum().item()
+
             train_loss /= len(train_loader.dataset)
             history['train_loss'].append(train_loss)
+
+            if target_type == 'classification':
+                train_acc = train_correct / len(train_loader.dataset)
+                history['train_acc'].append(train_acc)
 
             # Validation
             self.model.eval()
             valid_loss = 0.0
+            valid_correct = 0
 
             with torch.no_grad():
                 for batch_couple_ids, batch_targets in valid_loader:
@@ -262,13 +387,30 @@ class CoupleEmbedding:
 
                     valid_loss += loss.item() * batch_couple_ids.size(0)
 
+                    # Calculate accuracy for classification
+                    if target_type == 'classification':
+                        pred_class = (predictions.squeeze() >= 0.5).float()
+                        valid_correct += (pred_class == batch_targets).sum().item()
+
                 valid_loss /= len(valid_loader.dataset)
                 history['valid_loss'].append(valid_loss)
 
-            logger.info(f"Epoch {epoch + 1}/{self.epochs} - "
-                        f"Train Loss: {train_loss:.4f} - "
-                        f"Valid Loss: {valid_loss:.4f}")
+                if target_type == 'classification':
+                    valid_acc = valid_correct / len(valid_loader.dataset)
+                    history['valid_acc'].append(valid_acc)
 
+                    logger.info(f"Epoch {epoch + 1}/{self.epochs} - "
+                                f"Train Loss: {train_loss:.4f} - "
+                                f"Valid Loss: {valid_loss:.4f} - "
+                                f"Train Acc: {train_acc:.4f} - "
+                                f"Valid Acc: {valid_acc:.4f}")
+                else:
+                    logger.info(f"Epoch {epoch + 1}/{self.epochs} - "
+                                f"Train Loss: {train_loss:.4f} - "
+                                f"Valid Loss: {valid_loss:.4f}")
+
+        # Store history for later analysis
+        self.history = history
         return history
 
     def get_embedding(self, horse_id: int, jockey_id: int) -> np.ndarray:
@@ -282,10 +424,17 @@ class CoupleEmbedding:
         Returns:
             Numpy array containing the embedding vector
         """
-        if self.model is None:
+        if not self.is_fitted:
             raise ValueError("Model has not been trained yet")
 
+        # Handle missing or invalid values
+        if pd.isna(horse_id) or pd.isna(jockey_id):
+            return np.zeros(self.embedding_dim)
+
         couple_id = self.create_couple_id(horse_id, jockey_id)
+        if couple_id == self._reserved_id_for_unknown:
+            return np.zeros(self.embedding_dim)
+
         couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self.device)
 
         self.model.eval()
@@ -301,7 +450,7 @@ class CoupleEmbedding:
         Returns:
             Dictionary mapping (horse_id, jockey_id) to embedding vectors
         """
-        if self.model is None:
+        if not self.is_fitted:
             raise ValueError("Model has not been trained yet")
 
         embeddings = {}
@@ -315,17 +464,18 @@ class CoupleEmbedding:
 
         return embeddings
 
-    def transform_df(self, df: pd.DataFrame) -> pd.DataFrame:
+    def transform_df(self, df: pd.DataFrame, max_dim: Optional[int] = None) -> pd.DataFrame:
         """
         Add embedding features to a DataFrame.
 
         Args:
             df: DataFrame containing 'idche' and 'idJockey' columns
+            max_dim: Maximum embedding dimensions to include (default: use all)
 
         Returns:
             DataFrame with additional embedding columns
         """
-        if self.model is None:
+        if not self.is_fitted:
             raise ValueError("Model has not been trained yet")
 
         # Create a copy to avoid modifying the original
@@ -344,12 +494,18 @@ class CoupleEmbedding:
 
         with torch.no_grad():
             for couple_id in unique_couple_ids:
-                couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self.device)
-                _, embedding = self.model(couple_tensor)
-                embeddings[couple_id] = embedding.cpu().numpy()[0]
+                if couple_id == self._reserved_id_for_unknown:
+                    embeddings[couple_id] = np.zeros(self.embedding_dim)
+                else:
+                    couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self.device)
+                    _, embedding = self.model(couple_tensor)
+                    embeddings[couple_id] = embedding.cpu().numpy()[0]
+
+        # Determine embedding dimensions to use
+        dims_to_use = min(self.embedding_dim, max_dim if max_dim is not None else self.embedding_dim)
 
         # Add embedding columns to DataFrame
-        for i in range(self.embedding_dim):
+        for i in range(dims_to_use):
             col_name = f'couple_emb_{i}'
             result_df[col_name] = result_df['couple_id'].map(
                 lambda x: embeddings[x][i] if x in embeddings else 0.0
@@ -369,6 +525,8 @@ class CoupleEmbedding:
             'id_to_couple': self.id_to_couple,
             'next_id': self.next_id,
             'embedding_dim': self.embedding_dim,
+            'couple_stats': self.couple_stats,
+            'history': self.history
         }
 
         # Save mappings
@@ -376,7 +534,7 @@ class CoupleEmbedding:
             pickle.dump(save_dict, f)
 
         # Save model if trained
-        if self.model is not None:
+        if self.is_fitted:
             torch.save(self.model.state_dict(), f"{filepath}_model.pt")
 
         logger.info(f"Saved model and mappings to {filepath}")
@@ -389,25 +547,62 @@ class CoupleEmbedding:
             filepath: Path to load the model and mappings from
         """
         # Load mappings
-        with open(f"{filepath}_mappings.pkl", 'rb') as f:
-            load_dict = pickle.load(f)
+        try:
+            with open(f"{filepath}_mappings.pkl", 'rb') as f:
+                load_dict = pickle.load(f)
 
-        self.couple_to_id = load_dict['couple_to_id']
-        self.id_to_couple = load_dict['id_to_couple']
-        self.next_id = load_dict['next_id']
-        self.embedding_dim = load_dict['embedding_dim']
+            self.couple_to_id = load_dict['couple_to_id']
+            self.id_to_couple = load_dict['id_to_couple']
+            self.next_id = load_dict['next_id']
+            self.embedding_dim = load_dict['embedding_dim']
 
-        # Initialize and load model
-        model_path = f"{filepath}_model.pt"
-        if os.path.exists(model_path):
-            self.model = CoupleEmbeddingModel(
-                num_couples=self.next_id,
-                embedding_dim=self.embedding_dim
-            ).to(self.device)
+            # Load optional fields if they exist
+            self.couple_stats = load_dict.get('couple_stats', {})
+            self.history = load_dict.get('history', None)
 
-            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
-            self.model.eval()
+            # Initialize and load model
+            model_path = f"{filepath}_model.pt"
+            if os.path.exists(model_path):
+                self.model = CoupleEmbeddingModel(
+                    num_couples=max(self.next_id, 10),
+                    embedding_dim=self.embedding_dim
+                ).to(self.device)
 
-            logger.info(f"Loaded model and mappings from {filepath}")
-        else:
-            logger.warning(f"Model file not found at {model_path}. Only mappings loaded.")
+                self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+                self.model.eval()
+
+                logger.info(f"Loaded model and mappings from {filepath}")
+            else:
+                logger.warning(f"Model file not found at {model_path}. Only mappings loaded.")
+
+        except Exception as e:
+            logger.error(f"Error loading model from {filepath}: {str(e)}")
+            raise
+
+
+# Example usage
+if __name__ == "__main__":
+    # Create sample data
+    data = {
+        'idche': [101, 102, 101, 103, 102, 101],
+        'idJockey': [201, 202, 201, 203, 201, 202],
+        'cl': [1, 3, 2, 5, 4, 1],  # Finishing positions
+    }
+
+    df = pd.DataFrame(data)
+
+    # Initialize and train
+    embedder = CoupleEmbedding(embedding_dim=16, epochs=5)
+    embedder.train(df)
+
+    # Get embeddings
+    result_df = embedder.transform_df(df)
+
+    print("Sample couple IDs:")
+    print(df['idche'].head(3), df['idJockey'].head(3))
+
+    print("\nEmbedding columns added:")
+    print([col for col in result_df.columns if 'emb' in col])
+
+    print("\nSample embedding values:")
+    print(result_df[[col for col in result_df.columns if 'emb' in col]].head(2))
