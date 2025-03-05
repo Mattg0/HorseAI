@@ -29,22 +29,34 @@ class HorseEmbedding:
             'victoirescheval', 'placescheval', 'coursescheval',
             'pourcVictChevalHippo', 'pourcPlaceChevalHippo',
             # Derived ratios
-            'ratio_victoires', 'ratio_places', 'perf_cheval_hippo',
+            'ratio_victoires', 'ratio_places', 'gains_par_course', 'perf_cheval_hippo',
             # Global performance metrics from musique
             'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency',
             'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses',
-            'che_global_dnf_rate',
+            'che_global_total_races', 'che_global_dnf_rate',
             # Weighted performance metrics
             'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency',
-            'che_weighted_pct_top3', 'che_weighted_dnf_rate'
+            'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races',
+            'che_weighted_dnf_rate', 'che_weighted_trend',
+            # By type metrics
+            'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency',
+            'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses',
+            'che_bytype_dnf_rate'
         ]
 
+        # Proprietaire encoding
+        self.proprietaire_to_id = {}
+        self.next_proprietaire_id = 0
+
+        # Initialize proprietaire embedding layer (will be used if proprietaire info is available)
+        self.proprietaire_embedding_dim = 4  # Dimension for proprietaire embeddings
+        self.proprietaire_embedding = nn.Embedding(1000, self.proprietaire_embedding_dim)
+
         # Simple embedding network
-        self.embedding_network = nn.Sequential(
-            nn.Linear(len(self.feature_columns), 32),
-            nn.ReLU(),
-            nn.Linear(32, embedding_dim)
-        )
+        # We'll initialize it during the first call to generate_embeddings
+        # to determine the correct input dimension based on available features
+        self.embedding_network = None
+        self.initialized = False
 
     def _json_to_dataframe(self, json_data: Union[str, List[Dict]]) -> pd.DataFrame:
         """
@@ -103,6 +115,62 @@ class HorseEmbedding:
 
         return pd.DataFrame(scaled_features, columns=self.feature_columns)
 
+    def _process_proprietaires(self, df: pd.DataFrame) -> Optional[torch.Tensor]:
+        """
+        Process proprietaire information if available.
+
+        Args:
+            df: DataFrame with horse data
+
+        Returns:
+            Tensor of proprietaire embeddings or None if not available
+        """
+        if 'proprietaire' not in df.columns:
+            return None
+
+        # Encode proprietaires
+        proprietaire_ids = []
+
+        for prop in df['proprietaire'].fillna('unknown'):
+            if prop not in self.proprietaire_to_id:
+                self.proprietaire_to_id[prop] = self.next_proprietaire_id
+                self.next_proprietaire_id += 1
+
+                # Resize embedding layer if needed
+                if self.next_proprietaire_id >= self.proprietaire_embedding.num_embeddings:
+                    old_embedding = self.proprietaire_embedding
+                    self.proprietaire_embedding = nn.Embedding(
+                        self.next_proprietaire_id + 1000,  # Add buffer
+                        self.proprietaire_embedding_dim
+                    )
+                    # Copy existing weights if any
+                    if hasattr(old_embedding, 'weight'):
+                        with torch.no_grad():
+                            self.proprietaire_embedding.weight[:old_embedding.weight.shape[0]] = old_embedding.weight
+
+            proprietaire_ids.append(self.proprietaire_to_id[prop])
+
+        # Convert to tensor and get embeddings
+        proprietaire_id_tensor = torch.tensor(proprietaire_ids, dtype=torch.long)
+        with torch.no_grad():
+            proprietaire_embeddings = self.proprietaire_embedding(proprietaire_id_tensor)
+
+        return proprietaire_embeddings
+
+    def _initialize_network(self, input_dim: int):
+        """
+        Initialize the embedding network with the correct input dimension.
+
+        Args:
+            input_dim: Input dimension for the network
+        """
+        self.embedding_network = nn.Sequential(
+            nn.Linear(input_dim, 32),
+            nn.ReLU(),
+            nn.Linear(32, self.embedding_dim)
+        )
+        self.initialized = True
+
     def generate_embeddings(self, data: Union[pd.DataFrame, List[Dict], str]) -> Dict[int, np.ndarray]:
         """
         Generate embeddings for all horses in the input data.
@@ -126,12 +194,26 @@ class HorseEmbedding:
         # Preprocess features
         preprocessed_df = self._preprocess_features(df)
 
-        # Convert to tensor
+        # Process proprietaire information if available
+        proprietaire_embeddings = self._process_proprietaires(df)
+
+        # Convert features to tensor
         features_tensor = torch.tensor(preprocessed_df.values, dtype=torch.float32)
+
+        # Determine input dimension and initialize network if needed
+        if proprietaire_embeddings is not None:
+            input_features = torch.cat([features_tensor, proprietaire_embeddings], dim=1)
+            input_dim = features_tensor.shape[1] + self.proprietaire_embedding_dim
+        else:
+            input_features = features_tensor
+            input_dim = features_tensor.shape[1]
+
+        if not self.initialized:
+            self._initialize_network(input_dim)
 
         # Generate embeddings
         with torch.no_grad():
-            embeddings = self.embedding_network(features_tensor).numpy()
+            embeddings = self.embedding_network(input_features).numpy()
 
         # Create mapping from horse ID to embedding
         horse_ids = df['idche'].values
@@ -254,6 +336,7 @@ def main():
         {
             "idche": 101,
             "age": 5,
+            "proprietaire": "Ecurie Smith",
             "victoirescheval": 3,
             "placescheval": 8,
             "coursescheval": 20,
@@ -278,6 +361,7 @@ def main():
         {
             "idche": 102,
             "age": 7,
+            "proprietaire": "Haras Johnson",
             "victoirescheval": 5,
             "placescheval": 12,
             "coursescheval": 44,
