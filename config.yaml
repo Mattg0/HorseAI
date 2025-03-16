@@ -1,0 +1,52 @@
+# Root directory - uncomment the appropriate line for your environment
+base:
+  rootdir: '/Users/mattg0/Docs/HorseAIv2/'
+  # Active database configuration
+  active_db: "dev"  # Can be "full", "2years", or "5years"
+
+# Database configurations
+databases:
+  - name: "full"
+    type: "sqlite"
+    path: "data/hippique.db"
+    description: "Full historical database"
+  - name: "2years"
+    type: "sqlite"
+    path: "data/hippique2.db"
+    description: "Last 2 years of data"
+  - name: "5years"
+    type: "sqlite"
+    path: "data/hippique5.db"
+    description: "Last 5 years of data"
+  - name: "dev"
+    type: "sqlite"
+    path: "data/test_lite.db"
+    description: "Dev DB"
+  - name: "mysql"
+    type: "mysql"
+    host: "localhost"
+    user: "turfai"
+    password: "welcome123"
+    dbname: "pturf2024"
+    description: "MySQL datasource"
+
+cache:
+  base_path: 'cache'
+  types:
+    historical_data: "historical_data.parquet"
+    processed_data: "processed_data.parquet"
+    features: "features.parquet"
+    models: "models.parquet"
+    predictions: "predictions.parquet"
+
+features:
+  features_dir: './data/feature_store'
+  embedding_dim: 8
+  default_task_type: 'regression'
+
+models:
+  model_dir: './models'
+
+
+
+

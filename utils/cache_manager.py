@@ -17,7 +17,6 @@ class CacheManager:
 
     def __init__(self):
         self.config = AppConfig()
-
         self._ensure_base_dir()
 
     def _ensure_base_dir(self):
@@ -35,21 +34,19 @@ class CacheManager:
         Returns:
             Path object for the cache directory
         """
-
-        cache_path = Path(self.config.get_cache_file_path(cache_type))
+        cache_path = Path(self.config.get_cache_dir()) / cache_type
 
         if ensure_exists:
             os.makedirs(cache_path, exist_ok=True)
 
         return cache_path
 
-    def get_cache_file_path(self, cache_type: str, filename: str, ensure_dir_exists: bool = True) -> Path:
+    def get_cache_file_path(self, cache_type: str, ensure_dir_exists: bool = True) -> Path:
         """
-        Get a path for a specific cache file.
+        Get the file path for a specific cache type based on config.
 
         Args:
             cache_type: Type of cache
-            filename: Name of the cache file
             ensure_dir_exists: Create directory if it doesn't exist
 
         Returns:
@@ -57,21 +54,18 @@ class CacheManager:
         """
         cache_dir = self.get_cache_path(cache_type, ensure_dir_exists)
 
-        # Add .parquet extension if not present and not another extension
-        if not filename.endswith('.parquet') and '.' not in filename:
-            filename = f"{filename}.parquet"
+        # Use cache_type as the filename
+        filename = f"{cache_type}.parquet"
 
         return cache_dir / filename
 
-    def save_dataframe(self, df: pd.DataFrame, cache_type: str,
-                       compression: str = 'SNAPPY', **kwargs) -> Path:
+    def save_dataframe(self, df: pd.DataFrame, cache_type: str, compression: str = 'SNAPPY', **kwargs) -> Path:
         """
         Save a pandas DataFrame to parquet format in the cache.
 
         Args:
             df: DataFrame to save
-            cache_type: Type of cache
-            filename: Name to save the file as
+            cache_type: Type of cache (used as both directory and filename)
             compression: Compression algorithm (default: SNAPPY)
             **kwargs: Additional arguments for fastparquet.write
 
@@ -85,18 +79,17 @@ class CacheManager:
 
         return file_path
 
-    def load_dataframe(self, cache_type: str, filename: str) -> Optional[pd.DataFrame]:
+    def load_dataframe(self, cache_type: str) -> Optional[pd.DataFrame]:
         """
         Load a pandas DataFrame from parquet format in the cache.
 
         Args:
-            cache_type: Type of cache
-            filename: Name of the file to load
+            cache_type: Type of cache (used as both directory and filename)
 
         Returns:
             DataFrame if file exists, None otherwise
         """
-        file_path = self.get_cache_file_path(cache_type, filename, ensure_dir_exists=False)
+        file_path = self.get_cache_file_path(cache_type, ensure_dir_exists=False)
 
         if not file_path.exists():
             return None
@@ -104,18 +97,17 @@ class CacheManager:
         # Load DataFrame using fastparquet
         return fp.ParquetFile(file_path).to_pandas()
 
-    def file_exists(self, cache_type: str, filename: str) -> bool:
+    def file_exists(self, cache_type: str) -> bool:
         """
-        Check if a file exists in the cache.
+        Check if a cache file exists.
 
         Args:
-            cache_type: Type of cache
-            filename: Name of the file
+            cache_type: Type of cache (used as both directory and filename)
 
         Returns:
             True if file exists, False otherwise
         """
-        file_path = self.get_cache_file_path(cache_type, filename, ensure_dir_exists=False)
+        file_path = self.get_cache_file_path(cache_type, ensure_dir_exists=False)
         return file_path.exists()
 
     def clear_cache(self, cache_type: Optional[str] = None):
@@ -126,12 +118,11 @@ class CacheManager:
             cache_type: Type of cache to clear, or None to clear all caches
         """
         if cache_type is None:
-            # Clear all caches
-            for type_name in self.config.types:
-                cache_path = self.get_cache_path(type_name, ensure_exists=False)
-                if cache_path.exists():
-                    shutil.rmtree(cache_path)
-                    os.makedirs(cache_path, exist_ok=True)
+            # Clear all caches - this removes the entire cache directory
+            cache_dir = Path(self.config.get_cache_dir())
+            if cache_dir.exists():
+                shutil.rmtree(cache_dir)
+                os.makedirs(cache_dir, exist_ok=True)
         else:
             # Clear specific cache
             cache_path = self.get_cache_path(cache_type, ensure_exists=False)
@@ -166,36 +157,29 @@ def get_cache_manager() -> CacheManager:
     global _cache_manager
 
     if _cache_manager is None:
-        config = load_config()
-        _cache_manager = CacheManager(config.cache)
+        _cache_manager = CacheManager()
 
     return _cache_manager
 
 
-def get_cache_path(cache_type: str, filename: Optional[str] = None) -> Path:
+def get_cache_path(cache_type: str) -> Path:
     """
     Helper function to get a cache path.
 
     Args:
         cache_type: Type of cache
-        filename: Optional filename within the cache directory
 
     Returns:
         Path to cache directory or file
     """
-    manager = get_cache_manager()
-
-    if filename:
-        return manager.get_cache_file_path(cache_type, filename)
-    else:
-        return manager.get_cache_path(cache_type)
+    return get_cache_manager().get_cache_path(cache_type)
 
 
-def save_df_cache(df: pd.DataFrame, cache_type: str, filename: str, **kwargs) -> Path:
+def save_df_cache(df: pd.DataFrame, cache_type: str, **kwargs) -> Path:
     """Helper function to save a DataFrame to cache."""
-    return get_cache_manager().save_dataframe(df, cache_type, filename, **kwargs)
+    return get_cache_manager().save_dataframe(df, cache_type, **kwargs)
 
 
-def load_df_cache(cache_type: str, filename: str) -> Optional[pd.DataFrame]:
+def load_df_cache(cache_type: str) -> Optional[pd.DataFrame]:
     """Helper function to load a DataFrame from cache."""
-    return get_cache_manager().load_dataframe(cache_type, filename)
+    return get_cache_manager().load_dataframe(cache_type)

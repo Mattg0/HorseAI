@@ -119,7 +119,7 @@ class FeatureEmbeddingOrchestrator:
         # Try to get from cache
         if use_cache:
             try:
-                cached_data = self.cache_manager.load_dataframe('historical_data', cache_key)
+                cached_data = self.cache_manager.load_dataframe(cache_key)
                 if cached_data is not None:
                     print("Using cached historical race data...")
                     return cached_data
@@ -171,7 +171,7 @@ class FeatureEmbeddingOrchestrator:
         # Cache the result
         if use_cache:
             try:
-                self.cache_manager.save_dataframe(expanded_df, 'historical_data', cache_key)
+                self.cache_manager.save_dataframe(expanded_df, cache_key)
             except Exception as e:
                 print(f"Warning: Could not save to cache: {str(e)}")
 
@@ -339,7 +339,7 @@ class FeatureEmbeddingOrchestrator:
         # Try to get from cache
         if use_cache:
             try:
-                cached_df = self.cache_manager.load_dataframe('features', cache_key)
+                cached_df = self.cache_manager.load_dataframe(cache_key)
                 if cached_df is not None and isinstance(cached_df, pd.DataFrame):
                     print("Using cached embedded features...")
                     return cached_df
@@ -439,7 +439,7 @@ class FeatureEmbeddingOrchestrator:
         # Cache the transformed DataFrame
         if use_cache:
             try:
-                self.cache_manager.save_dataframe(embedded_df, 'features', cache_key)
+                self.cache_manager.save_dataframe(embedded_df, cache_key)
             except Exception as e:
                 print(f"Warning: Could not cache embedded features: {str(e)}")
 

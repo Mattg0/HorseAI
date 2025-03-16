@@ -4,6 +4,46 @@ from utils.env_setup import AppConfig
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 
 
+def test_cache_manager():
+    """Test the refactored CacheManager functionality."""
+    from utils.cache_manager import CacheManager
+    import pandas as pd
+
+    # Create a test DataFrame
+    test_df = pd.DataFrame({
+        'id': [1, 2, 3],
+        'value': ['a', 'b', 'c']
+    })
+
+    # Initialize cache manager
+    cache_manager = CacheManager()
+
+    # Test cache type
+    cache_type = "test_cache"
+
+    # Clear any existing cache
+    cache_manager.clear_cache(cache_type)
+
+    # Test saving
+    print(f"Saving DataFrame to cache type '{cache_type}'...")
+    cache_path = cache_manager.save_dataframe(test_df, cache_type)
+    print(f"Saved to: {cache_path}")
+
+    # Test loading
+    print(f"Loading DataFrame from cache type '{cache_type}'...")
+    loaded_df = cache_manager.load_dataframe(cache_type)
+
+    if loaded_df is not None:
+        print("Successfully loaded cached data:")
+        print(loaded_df)
+        return True
+    else:
+        print("Failed to load cached data")
+        return False
+
+
+# In the main function, add this test
+
 def main():
     parser = argparse.ArgumentParser(description="Test the FeatureEmbeddingOrchestrator")
     parser.add_argument('--limit', type=int, default=10, help='Limit the number of races to process')
@@ -71,7 +111,12 @@ def main():
     except Exception as e:
         print(f"Error splitting dataset: {str(e)}")
         return
-
+    if args.test_cache:
+        print("\n=== Testing refactored CacheManager ===")
+        if test_cache_manager():
+            print("Cache Manager refactoring successful!")
+        else:
+            print("Cache Manager refactoring failed.")
     # Save feature store if requested
     if args.save:
         print("\n=== Saving feature store ===")
@@ -83,6 +128,7 @@ def main():
             print(f"Successfully saved feature store to {feature_store_path}")
         except Exception as e:
             print(f"Error saving feature store: {str(e)}")
+
 
     print("\nOrchestrator test completed successfully!")
     return orchestrator
