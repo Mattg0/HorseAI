@@ -33,32 +33,73 @@ class CourseEmbedding:
         self.wind_mean = 0
         self.wind_std = 1
 
-    def fit(self, course_data: pd.DataFrame):
+    def fit(self, course_data):
         """
         Fit the embedding model to the course data.
 
         Args:
             course_data: DataFrame containing course information
         """
-        # Create mappings for categorical variables
-        self.hippo_mapping = {hippo: idx for idx, hippo in enumerate(course_data['hippo'].unique())}
-        self.track_type_mapping = {track: idx for idx, track in enumerate(course_data['natpis'].unique())}
-        self.meteo_mapping = {meteo: idx for idx, meteo in enumerate(course_data['meteo'].unique())}
-        self.race_type_mapping = {race_type: idx for idx, race_type in enumerate(course_data['typec'].unique())}
+        # Create a copy to avoid modifying the original
+        course_data = course_data.copy()
 
-        # Calculate normalization parameters for numerical features
-        self.dist_mean = course_data['dist'].mean()
-        self.dist_std = course_data['dist'].std() if course_data['dist'].std() > 0 else 1
+        # Convert categorical columns to string before filling NA
+        for col in ['hippo', 'natpis', 'meteo', 'typec']:
+            if col in course_data.columns:
+                # Check if column is categorical
+                if pd.api.types.is_categorical_dtype(course_data[col]):
+                    course_data[col] = course_data[col].astype(str)
+
+        # Create mappings for categorical variables with safety checks
+        if 'hippo' in course_data.columns:
+            self.hippo_mapping = {hippo: idx for idx, hippo in
+                                  enumerate(course_data['hippo'].fillna('UNKNOWN').unique())}
+        else:
+            self.hippo_mapping = {'UNKNOWN': 0}
+
+        if 'natpis' in course_data.columns:
+            self.track_type_mapping = {track: idx for idx, track in
+                                       enumerate(course_data['natpis'].fillna('UNKNOWN').unique())}
+        else:
+            self.track_type_mapping = {'UNKNOWN': 0}
+
+        if 'meteo' in course_data.columns:
+            self.meteo_mapping = {meteo: idx for idx, meteo in
+                                  enumerate(course_data['meteo'].fillna('UNKNOWN').unique())}
+        else:
+            self.meteo_mapping = {'UNKNOWN': 0}
+
+        if 'typec' in course_data.columns:
+            self.race_type_mapping = {race_type: idx for idx, race_type in
+                                      enumerate(course_data['typec'].fillna('UNKNOWN').unique())}
+        else:
+            self.race_type_mapping = {'UNKNOWN': 0}
+
+        # Calculate normalization parameters for numerical features with safety checks
+        if 'dist' in course_data.columns:
+            self.dist_mean = course_data['dist'].mean()
+            self.dist_std = course_data['dist'].std() if course_data['dist'].std() > 0 else 1
+        else:
+            self.dist_mean = 0
+            self.dist_std = 1
 
         # Handle temperature, ensuring it's numeric first
-        numeric_temp = pd.to_numeric(course_data['temperature'], errors='coerce')
-        self.temp_mean = numeric_temp.mean()
-        self.temp_std = numeric_temp.std() if numeric_temp.std() > 0 else 1
+        if 'temperature' in course_data.columns:
+            numeric_temp = pd.to_numeric(course_data['temperature'], errors='coerce')
+            self.temp_mean = numeric_temp.mean()
+            self.temp_std = numeric_temp.std() if numeric_temp.std() > 0 else 1
+        else:
+            self.temp_mean = 0
+            self.temp_std = 1
 
         # Handle wind force, ensuring it's numeric first
-        numeric_wind = pd.to_numeric(course_data['forceVent'], errors='coerce')
-        self.wind_mean = numeric_wind.mean()
-        self.wind_std = numeric_wind.std() if numeric_wind.std() > 0 else 1
+        if 'forceVent' in course_data.columns:
+            numeric_wind = pd.to_numeric(course_data['forceVent'], errors='coerce')
+            self.wind_mean = numeric_wind.mean()
+            self.wind_std = numeric_wind.std() if numeric_wind.std() > 0 else 1
+        else:
+            self.wind_mean = 0
+            self.wind_std = 1
 
     def transform_course(self, course: Dict) -> np.ndarray:
         """
@@ -73,28 +114,36 @@ class CourseEmbedding:
         # Initialize the embedding vector
         embedding = np.zeros(self.embedding_dim)
 
-        # Extract course features
-        hippo = course.get('hippo', 'N/A')
-        track_type = course.get('natpis', 'N/A')
-        dist = course.get('dist', self.dist_mean)
-        meteo = course.get('meteo', 'N/A')
-        temp = course.get('temperature', self.temp_mean)
-        wind_force = course.get('forceVent', self.wind_mean)
-        race_type = course.get('typec', 'N/A')
+        # Extract course features with safe defaults
+        hippo = course.get('hippo', 'UNKNOWN')
+        if pd.isna(hippo): hippo = 'UNKNOWN'
 
-        # Convert distance to numeric if it's not
+        track_type = course.get('natpis', 'UNKNOWN')
+        if pd.isna(track_type): track_type = 'UNKNOWN'
+
+        dist = course.get('dist', self.dist_mean)
+
+        meteo = course.get('meteo', 'UNKNOWN')
+        if pd.isna(meteo): meteo = 'UNKNOWN'
+
+        temp = course.get('temperature', self.temp_mean)
+
+        wind_force = course.get('forceVent', self.wind_mean)
+
+        race_type = course.get('typec', 'UNKNOWN')
+        if pd.isna(race_type): race_type = 'UNKNOWN'
+
+        # Convert numerical values safely
         try:
             dist = float(dist)
         except (ValueError, TypeError):
             dist = self.dist_mean
 
-        # Convert temperature to numeric if it's not
         try:
             temp = float(temp)
         except (ValueError, TypeError):
             temp = self.temp_mean
 
-        # Convert wind force to numeric if it's not
         try:
             wind_force = float(wind_force)
         except (ValueError, TypeError):
@@ -109,7 +158,7 @@ class CourseEmbedding:
         # First section: track characteristics (hippo, track type)
         embedding[0] = self.hippo_mapping.get(hippo, len(self.hippo_mapping)) / (len(self.hippo_mapping) + 1)
         embedding[1] = self.track_type_mapping.get(track_type, len(self.track_type_mapping)) / (
-                    len(self.track_type_mapping) + 1)
+                len(self.track_type_mapping) + 1)
         embedding[2] = normalized_dist
 
         # Second section: weather conditions
@@ -119,7 +168,7 @@ class CourseEmbedding:
 
         # Third section: race type
         embedding[6] = self.race_type_mapping.get(race_type, len(self.race_type_mapping)) / (
-                    len(self.race_type_mapping) + 1)
+                len(self.race_type_mapping) + 1)
 
         # Additional values can be derived from combinations of the above
         # For example, interaction between distance and track type
@@ -260,6 +309,7 @@ class RaceRepresentation:
             course_embedding_model: Trained course embedding model
         """
         self.course_embedding = course_embedding_model
+
 
     def create_race_representation(self, course_info: Dict, participants: List[Dict]) -> Dict:
         """

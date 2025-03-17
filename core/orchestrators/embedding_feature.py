@@ -52,7 +52,7 @@ class FeatureEmbeddingOrchestrator:
         # Initialize embedding models (will be fitted later)
         self.horse_embedder = HorseEmbedding(embedding_dim=self.embedding_dim)
         self.jockey_embedder = JockeyEmbedding(embedding_dim=self.embedding_dim)
-        self.course_embedder = CourseEmbedding(embedding_dim=self.embedding_dim)
+        self.course_embedder = CourseEmbedding(embedding_dim=10)
         self.couple_embedder = CoupleEmbedding(embedding_dim=self.embedding_dim)
 
         # Track whether embeddings have been fitted
@@ -61,6 +61,10 @@ class FeatureEmbeddingOrchestrator:
         # Store preprocessing parameters
         self.preprocessing_params = {}
 
+        self.target_info = {
+            'column': 'final_position',
+            'type': 'regression'  # Options: 'regression', 'classification', 'ranking'
+        }
         # Create cache directory if it doesn't exist
         os.makedirs(self.cache_dir, exist_ok=True)
         os.makedirs(self.feature_store_dir, exist_ok=True)
@@ -70,6 +74,11 @@ class FeatureEmbeddingOrchestrator:
         print(f"  - Cache directory: {self.cache_dir}")
         print(f"  - Feature store directory: {self.feature_store_dir}")
         print(f"  - Embedding dimension: {self.embedding_dim}")
+
+    def log_info(self, message):
+            """Simple logging method for backward compatibility."""
+            if hasattr(self, 'verbose') and self.verbose:
+             print(message)
 
     def _generate_cache_key(self, prefix, params):
         """
@@ -273,15 +282,19 @@ class FeatureEmbeddingOrchestrator:
                 df['idche'] = pd.to_numeric(df['idche'], errors='coerce').fillna(-1).astype(int)
 
                 # Course data for horse-track interaction
-                course_info = df[['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature']].drop_duplicates('comp')
+                course_info = df[['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature','natpis']].drop_duplicates('comp')
 
                 # Fit the course embedder for use with horses
                 if len(course_info) > 5:
                     self.course_embedder.fit(course_info)
 
+
+
                 print("Course embeddings prepared")
             except Exception as e:
                 print(f"Warning: Could not prepare Course embeddings: {str(e)}")
+                import traceback
+                traceback.print_exc()
 
         # Handle jockey embeddings
         if 'idJockey' in df.columns:
@@ -412,12 +425,13 @@ class FeatureEmbeddingOrchestrator:
                 print(f"Warning: Could not apply couple embeddings: {str(e)}")
 
         # Apply course embeddings if we have enough race data
+
         if 'comp' in embedded_df.columns:
             try:
                 # Get unique courses
-                courses = embedded_df[['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature']].drop_duplicates(
-                    'comp')
 
+                courses = embedded_df[['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature','natpis']].drop_duplicates(
+                    'comp')
                 if len(courses) > 0:
                     # Transform courses
                     course_embeddings = self.course_embedder.transform(courses)
@@ -428,11 +442,14 @@ class FeatureEmbeddingOrchestrator:
                         course_embedding_dict[course['comp']] = course_embeddings[i]
 
                     # Add course embedding columns
+
+
                     for i in range(min(self.embedding_dim, course_embeddings.shape[1])):
                         embedded_df[f'course_emb_{i}'] = embedded_df['comp'].map(
                             lambda x: course_embedding_dict.get(x, np.zeros(self.embedding_dim))[
                                 i] if x in course_embedding_dict else 0
                         )
+
 
                     print("Added course embeddings")
             except Exception as e:
@@ -1376,3 +1393,4 @@ class FeatureEmbeddingOrchestrator:
             return X_sequences, X_static, y
         else:
             raise ValueError("No valid sequences could be created. Check data quality and sequence_length.")
+

@@ -85,8 +85,23 @@ class CacheManager:
         """
         file_path = self.get_cache_file_path(cache_type)
 
+        # Create a copy to avoid modifying the original
+        df_to_save = df.copy()
+
+        # Handle problematic columns
+        problematic_columns = ['reunion', 'reun']  # Add other columns as needed
+        for col in problematic_columns:
+            if col in df_to_save.columns:
+                # Convert to string to avoid type conversion issues
+                df_to_save[col] = df_to_save[col].astype(str)
+
         # Save DataFrame using fastparquet
-        fp.write(file_path, df, compression=compression, **kwargs)
+        try:
+            fp.write(file_path, df_to_save, compression=compression, **kwargs)
+        except Exception as e:
+            print(f"Warning: Error saving to cache: {str(e)}. Using original dataframe.")
+            # If conversion fails, try with original dataframe
+            fp.write(file_path, df, compression=compression, **kwargs)
 
         return file_path
 
