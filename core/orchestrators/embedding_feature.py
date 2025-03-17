@@ -255,7 +255,8 @@ class FeatureEmbeddingOrchestrator:
         # Try to get from cache
         if use_cache:
             try:
-                cached_embeddings = self.cache_manager.load_dataframe('features', cache_key)
+                # FIX: Use cache_key directly as the cache_type
+                cached_embeddings = self.cache_manager.load_dataframe(cache_key)
                 if isinstance(cached_embeddings, dict) and 'embeddings_fitted' in cached_embeddings:
                     print("Using cached embedding models...")
                     self.embeddings_fitted = True
@@ -309,7 +310,8 @@ class FeatureEmbeddingOrchestrator:
         if use_cache:
             try:
                 embeddings_status = {'embeddings_fitted': True}
-                self.cache_manager.save_dataframe(embeddings_status, 'features', cache_key)
+                # FIX: Pass the cache_key directly as the cache_type
+                self.cache_manager.save_dataframe(embeddings_status, cache_key)
             except Exception as e:
                 print(f"Warning: Could not cache embedding status: {str(e)}")
 
@@ -467,7 +469,8 @@ class FeatureEmbeddingOrchestrator:
         # Try to get from cache
         if use_cache:
             try:
-                cached_df = self.cache_manager.load_dataframe('features', cache_key)
+                # FIX: Use cache_key directly as the cache_type, remove 'features' parameter
+                cached_df = self.cache_manager.load_dataframe(cache_key)
                 if cached_df is not None:
                     print("Using cached prepared features...")
                     return cached_df
@@ -509,7 +512,8 @@ class FeatureEmbeddingOrchestrator:
         # Cache the result
         if use_cache:
             try:
-                self.cache_manager.save_dataframe(processed_df, 'features', cache_key)
+                # FIX: Pass cache_key directly as the cache_type, remove 'features' parameter
+                self.cache_manager.save_dataframe(processed_df, cache_key)
             except Exception as e:
                 print(f"Warning: Could not cache prepared features: {str(e)}")
 

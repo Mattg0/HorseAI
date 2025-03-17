@@ -1,8 +1,7 @@
-# utils/cache_manager.py
 import os
 import shutil
 from pathlib import Path
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, Any
 import pandas as pd
 import fastparquet as fp
 
@@ -54,14 +53,26 @@ class CacheManager:
         """
         cache_dir = self.get_cache_path(cache_type, ensure_dir_exists)
 
-        # Use cache_type as the filename
-        filename = f"{cache_type}.parquet"
+        # Get filename from config if available
+        try:
+            # Try to get the filename from config.cache.types mapping
+            filename = self.config._config.cache.types.get(cache_type)
+            if not filename:
+                # If not found in the config, use cache_type as the filename
+                filename = f"{cache_type}.parquet"
+        except (AttributeError, KeyError):
+            # Fallback if there's an issue with the config
+            filename = f"{cache_type}.parquet"
 
         return cache_dir / filename
 
-    def save_dataframe(self, df: pd.DataFrame, cache_type: str, compression: str = 'SNAPPY', **kwargs) -> Path:
+    def save_dataframe(self, df: pd.DataFrame, cache_type: str, *args,
+                       compression: str = 'SNAPPY', **kwargs) -> Path:
         """
         Save a pandas DataFrame to parquet format in the cache.
+
+        This method accepts additional positional and keyword arguments which are ignored,
+        to maintain compatibility with existing code that might pass extra arguments.
 
         Args:
             df: DataFrame to save
@@ -79,9 +90,12 @@ class CacheManager:
 
         return file_path
 
-    def load_dataframe(self, cache_type: str) -> Optional[pd.DataFrame]:
+    def load_dataframe(self, cache_type: str, *args, **kwargs) -> Optional[pd.DataFrame]:
         """
         Load a pandas DataFrame from parquet format in the cache.
+
+        This method accepts additional positional and keyword arguments which are ignored,
+        to maintain compatibility with existing code that might pass extra arguments.
 
         Args:
             cache_type: Type of cache (used as both directory and filename)

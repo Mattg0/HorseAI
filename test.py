@@ -111,12 +111,6 @@ def main():
     except Exception as e:
         print(f"Error splitting dataset: {str(e)}")
         return
-    if args.test_cache:
-        print("\n=== Testing refactored CacheManager ===")
-        if test_cache_manager():
-            print("Cache Manager refactoring successful!")
-        else:
-            print("Cache Manager refactoring failed.")
     # Save feature store if requested
     if args.save:
         print("\n=== Saving feature store ===")

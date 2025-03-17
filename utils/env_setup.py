@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Dict, Optional, Any, List, Union
 from pydantic import BaseModel, Field
 import yaml
@@ -167,8 +168,8 @@ class AppConfig:
         Returns:
             Path to the cache directory
         """
-        # This is just an example - adapt to your actual config structure
-        cache_dir = self._config.get('cache', {}).get('base_dir', 'cache')
+        # Access the cache base_path directly from the Pydantic model
+        cache_dir = self._config.cache.base_path
 
         # Ensure it's an absolute path
         if not os.path.isabs(cache_dir):
@@ -176,23 +177,31 @@ class AppConfig:
 
         return cache_dir
 
-    def get_cache_file_path(self, cache_type: str) -> str:
+    def get_cache_file_path(self, cache_type: str, ensure_dir_exists: bool = True) -> Path:
         """
-        Get the path to a specific cache file
+        Get the file path for a specific cache type based on config.
 
         Args:
-            cache_type: The type of cache (e.g., 'historical_data')
+            cache_type: Type of cache
+            ensure_dir_exists: Create directory if it doesn't exist
 
         Returns:
-            Full path to the cache file
-
-        Raises:
-            KeyError: If the cache type is not defined in the configuration
+            Path object for the cache file
         """
-        if cache_type not in self._config.cache.types:
-            raise KeyError(f"Cache type '{cache_type}' not defined in configuration")
+        cache_dir = self.get_cache_path(cache_type, ensure_dir_exists)
 
-        return os.path.join(self._config.cache.base_path, self._config.cache.types[cache_type])
+        # Get filename from config if available
+        try:
+            # Try to get the filename from config.cache.types mapping
+            filename = self.config._config.cache.types.get(cache_type)
+            if not filename:
+                # If not found in the config, use cache_type as the filename
+                filename = f"{cache_type}.parquet"
+        except (AttributeError, KeyError):
+            # Fallback if there's an issue with the config
+            filename = f"{cache_type}.parquet"
+
+        return cache_dir / filename
 
     def get_feature_store_dir(self) -> str:
         """
