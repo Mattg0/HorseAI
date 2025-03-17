@@ -9,7 +9,7 @@ import hashlib
 import pickle
 from typing import Dict, List, Tuple, Optional, Union
 from datetime import datetime
-
+from sklearn.preprocessing import StandardScaler
 from utils.env_setup import AppConfig
 from utils.cache_manager import CacheManager
 from model_training.features.horse_embedding import HorseEmbedding
@@ -845,19 +845,21 @@ class FeatureEmbeddingOrchestrator:
         except Exception as e:
             print(f"Could not calculate feature correlations: {str(e)}")
 
-    def save_feature_store(self, X_train, X_val, X_test, y_train, y_val, y_test, output_dir=None, prefix=''):
+    def save_feature_store(self, X_train, X_val, X_test, y_train, y_val, y_test,
+                           output_dir=None, prefix='', include_embedders=True):
         """
         Save a complete feature store with datasets and metadata.
 
         Args:
-            X_train: Training features
-            X_val: Validation features
-            X_test: Test features
-            y_train: Training targets
-            y_val: Validation targets
-            y_test: Test targets
-            output_dir: Directory to save files, if None uses default from config
-            prefix: Optional prefix for filenames
+            X_train: Training features DataFrame
+            X_val: Validation features DataFrame
+            X_test: Test features DataFrame
+            y_train: Training targets Series
+            y_val: Validation targets Series
+            y_test: Test targets Series
+            output_dir: Directory to save files (uses configured feature_store_dir if None)
+            prefix: Optional prefix for the feature store directory name
+            include_embedders: Whether to save embedding models
 
         Returns:
             Path to the created feature store
@@ -868,104 +870,152 @@ class FeatureEmbeddingOrchestrator:
         # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
 
-        # Create timestamp suffix
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        # Create timestamp for unique naming
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Create feature store directory
         feature_store_dir = os.path.join(output_dir, f"{prefix}feature_store_{timestamp}")
         os.makedirs(feature_store_dir, exist_ok=True)
 
-        # 1. Save datasets as parquet files (better than CSV for ML data)
-        X_train.to_parquet(os.path.join(feature_store_dir, "X_train.parquet"))
-        X_val.to_parquet(os.path.join(feature_store_dir, "X_val.parquet"))
-        X_test.to_parquet(os.path.join(feature_store_dir, "X_test.parquet"))
+        self.log_info(f"Saving feature store to {feature_store_dir}")
 
-        # Save targets based on their type
-        if pd.api.types.is_numeric_dtype(y_train):
-            # For regression tasks
-            pd.DataFrame({'target': y_train}).to_parquet(os.path.join(feature_store_dir, "y_train.parquet"))
-            pd.DataFrame({'target': y_val}).to_parquet(os.path.join(feature_store_dir, "y_val.parquet"))
-            pd.DataFrame({'target': y_test}).to_parquet(os.path.join(feature_store_dir, "y_test.parquet"))
-        else:
-            # For classification tasks
-            pd.DataFrame({'target': y_train}).to_parquet(os.path.join(feature_store_dir, "y_train.parquet"))
-            pd.DataFrame({'target': y_val}).to_parquet(os.path.join(feature_store_dir, "y_val.parquet"))
-            pd.DataFrame({'target': y_test}).to_parquet(os.path.join(feature_store_dir, "y_test.parquet"))
+        try:
+            # 1. Save datasets as parquet files
+            X_train.to_parquet(os.path.join(feature_store_dir, "X_train.parquet"), index=False)
+            X_val.to_parquet(os.path.join(feature_store_dir, "X_val.parquet"), index=False)
+            X_test.to_parquet(os.path.join(feature_store_dir, "X_test.parquet"), index=False)
 
-        # 2. Save embedding models
-        embedders_path = os.path.join(feature_store_dir, "embedders.pkl")
-        with open(embedders_path, 'wb') as f:
-            pickle.dump({
-                'horse_embedder': self.horse_embedder,
-                'jockey_embedder': self.jockey_embedder,
-                'course_embedder': self.course_embedder,
-                'couple_embedder': self.couple_embedder
-            }, f)
+            # Save targets based on their type (always as DataFrames with 'target' column)
+            pd.DataFrame({'target': y_train}).to_parquet(os.path.join(feature_store_dir, "y_train.parquet"),
+                                                         index=False)
+            pd.DataFrame({'target': y_val}).to_parquet(os.path.join(feature_store_dir, "y_val.parquet"), index=False)
+            pd.DataFrame({'target': y_test}).to_parquet(os.path.join(feature_store_dir, "y_test.parquet"), index=False)
 
-        # 3. Save preprocessing parameters and feature metadata
-        metadata = {
-            'created_at': datetime.now().isoformat(),
-            'dataset_info': {
-                'train_samples': X_train.shape[0],
-                'val_samples': X_val.shape[0],
-                'test_samples': X_test.shape[0],
-                'feature_count': X_train.shape[1],
-                'feature_names': X_train.columns.tolist(),
-                'categorical_features': [col for col in X_train.select_dtypes(include=['category']).columns],
-                'numerical_features': [col for col in X_train.select_dtypes(include=['float64', 'int64']).columns],
-                'embedding_features': [col for col in X_train.columns if 'emb_' in col]
-            },
-            'preprocessing': self.preprocessing_params,
-            'column_dtypes': {col: str(dtype) for col, dtype in X_train.dtypes.items()}
-        }
+            # 2. Save embedding models if requested
+            if include_embedders:
+                embedders_path = os.path.join(feature_store_dir, "embedders.pkl")
+                with open(embedders_path, 'wb') as f:
+                    pickle.dump(self.embedders, f)
 
-        # Save metadata as JSON
-        with open(os.path.join(feature_store_dir, "metadata.json"), 'w') as f:
-            json.dump(metadata, f, indent=2, default=str)
+            # 3. Prepare metadata - with safer handling of categorical columns
+            categorical_features = []
+            for col in X_train.select_dtypes(include=['category']).columns:
+                categorical_features.append(col)
+                # Convert category to string to avoid serialization issues
+                X_train[col] = X_train[col].astype(str)
+                X_val[col] = X_val[col].astype(str)
+                X_test[col] = X_test[col].astype(str)
 
-        # 4. Save feature statistics
-        feature_stats = {
-            'mean': X_train.mean().to_dict(),
-            'std': X_train.std().to_dict(),
-            'min': X_train.min().to_dict(),
-            'max': X_train.max().to_dict(),
-            'median': X_train.median().to_dict()
-        }
+            # Handle dtypes safely
+            safe_dtypes = {}
+            for col, dtype in X_train.dtypes.items():
+                safe_dtypes[col] = str(dtype)
 
-        with open(os.path.join(feature_store_dir, "feature_stats.json"), 'w') as f:
-            json.dump(feature_stats, f, indent=2, default=str)
+            metadata = {
+                'created_at': datetime.now().isoformat(),
+                'dataset_info': {
+                    'train_samples': X_train.shape[0],
+                    'val_samples': X_val.shape[0],
+                    'test_samples': X_test.shape[0],
+                    'feature_count': X_train.shape[1],
+                    'feature_names': X_train.columns.tolist(),
+                    'categorical_features': categorical_features,
+                    'numerical_features': [col for col in X_train.select_dtypes(include=['float64', 'int64']).columns],
+                    'embedding_features': [col for col in X_train.columns if '_emb_' in col]
+                },
+                'preprocessing': {
+                    # Convert any non-serializable objects to strings
+                    key: (
+                        str(value) if not isinstance(value, (dict, list, str, int, float, bool, type(None))) else value)
+                    for key, value in self.preprocessing_params.items()
+                },
+                'target_info': self.target_info,
+                'embedding_status': self.embedding_status,
+                'embedding_dim': self.embedding_dim,
+                'column_dtypes': safe_dtypes
+            }
 
-        # 5. Create a README file for the feature store
-        with open(os.path.join(feature_store_dir, "README.md"), 'w') as f:
-            f.write(f"# Feature Store {timestamp}\n\n")
-            f.write("## Dataset Information\n")
-            f.write(f"- Training samples: {X_train.shape[0]}\n")
-            f.write(f"- Validation samples: {X_val.shape[0]}\n")
-            f.write(f"- Test samples: {X_test.shape[0]}\n")
-            f.write(f"- Feature count: {X_train.shape[1]}\n\n")
+            # Save metadata as JSON with safe serialization
+            with open(os.path.join(feature_store_dir, "metadata.json"), 'w') as f:
+                json.dump(metadata, f, indent=2, default=str)
 
-            f.write("## Files\n")
-            f.write("- `X_train.parquet`, `X_val.parquet`, `X_test.parquet`: Feature datasets\n")
-            f.write("- `y_train.parquet`, `y_val.parquet`, `y_test.parquet`: Target variables\n")
-            f.write("- `embedders.pkl`: Embedding models for entities\n")
-            f.write("- `metadata.json`: Dataset and preprocessing metadata\n")
-            f.write("- `feature_stats.json`: Statistical information about features\n\n")
+            # 4. Save feature statistics
+            # Only include numerical columns that can be safely serialized
+            numerical_cols = X_train.select_dtypes(include=['float64', 'int64']).columns
+            feature_stats = {}
 
-            f.write("## Usage\n")
-            f.write("To load this feature store:\n\n")
-            f.write("```python\n")
-            f.write("import pandas as pd\n")
-            f.write("import pickle\n\n")
-            f.write("# Load features\n")
-            f.write("X_train = pd.read_parquet('X_train.parquet')\n")
-            f.write("y_train = pd.read_parquet('y_train.parquet')['target']\n\n")
-            f.write("# Load embedders\n")
-            f.write("with open('embedders.pkl', 'rb') as f:\n")
-            f.write("    embedders = pickle.load(f)\n")
-            f.write("```\n")
+            if len(numerical_cols) > 0:
+                feature_stats = {
+                    'mean': X_train[numerical_cols].mean().to_dict(),
+                    'std': X_train[numerical_cols].std().to_dict(),
+                    'min': X_train[numerical_cols].min().to_dict(),
+                    'max': X_train[numerical_cols].max().to_dict()
+                }
 
-        print(f"Feature store saved to {feature_store_dir}")
-        return feature_store_dir
+            with open(os.path.join(feature_store_dir, "feature_stats.json"), 'w') as f:
+                json.dump(feature_stats, f, indent=2, default=str)
+
+            # 5. Create a README file for the feature store
+            with open(os.path.join(feature_store_dir, "README.md"), 'w') as f:
+                f.write(f"# Feature Store {timestamp}\n\n")
+                f.write("## Dataset Information\n")
+                f.write(f"- Training samples: {X_train.shape[0]}\n")
+                f.write(f"- Validation samples: {X_val.shape[0]}\n")
+                f.write(f"- Test samples: {X_test.shape[0]}\n")
+                f.write(f"- Feature count: {X_train.shape[1]}\n\n")
+
+                f.write("## Embedding Features\n")
+                embedding_cols = [col for col in X_train.columns if '_emb_' in col]
+                for col_type in ['horse_emb_', 'jockey_emb_', 'couple_emb_', 'course_emb_']:
+                    type_cols = [col for col in embedding_cols if col.startswith(col_type)]
+                    if type_cols:
+                        f.write(f"- {col_type.replace('_emb_', '')} embeddings: {len(type_cols)} dimensions\n")
+                f.write("\n")
+
+                f.write("## Files\n")
+                f.write("- `X_train.parquet`, `X_val.parquet`, `X_test.parquet`: Feature datasets\n")
+                f.write("- `y_train.parquet`, `y_val.parquet`, `y_test.parquet`: Target variables\n")
+                f.write("- `embedders.pkl`: Embedding models (if included)\n")
+                f.write("- `metadata.json`: Dataset and preprocessing metadata\n")
+                f.write("- `feature_stats.json`: Statistical information about features\n\n")
+
+                f.write("## Usage\n")
+                f.write("To load this feature store:\n\n")
+                f.write("```python\n")
+                f.write("import pandas as pd\n")
+                f.write("import pickle\n\n")
+                f.write("# Load features\n")
+                f.write("X_train = pd.read_parquet('X_train.parquet')\n")
+                f.write("y_train = pd.read_parquet('y_train.parquet')['target']\n\n")
+                f.write("# Load embedders\n")
+                f.write("with open('embedders.pkl', 'rb') as f:\n")
+                f.write("    embedders = pickle.load(f)\n")
+                f.write("```\n")
+
+            self.log_info(f"Feature store saved successfully to {feature_store_dir}")
+            return feature_store_dir
+
+        except Exception as e:
+            error_msg = f"Error saving feature store: {str(e)}"
+            self.log_info(error_msg)
+
+            # Create simplified feature store without problematic metadata
+            try:
+                self.log_info("Attempting to save feature store with minimal metadata...")
+
+                # Save a simplified README
+                with open(os.path.join(feature_store_dir, "README.md"), 'w') as f:
+                    f.write(f"# Feature Store {timestamp}\n\n")
+                    f.write("## Error\n")
+                    f.write(f"An error occurred while saving complete metadata: {str(e)}\n\n")
+                    f.write("Basic feature files were saved, but complete metadata could not be generated.\n")
+
+                self.log_info(f"Saved feature store with minimal metadata to {feature_store_dir}")
+                return feature_store_dir
+
+            except Exception as e2:
+                self.log_info(f"Failed to save even minimal feature store: {str(e2)}")
+                raise
 
     def load_feature_store(self, feature_store_path=None, store_name=None):
         """
@@ -976,7 +1026,7 @@ class FeatureEmbeddingOrchestrator:
             store_name: Name of a specific feature store in the default directory
 
         Returns:
-            Tuple of (X_train, X_val, X_test, y_train, y_val, y_test, embedders, metadata)
+            Tuple of (X_train, X_val, X_test, y_train, y_val, y_test, metadata)
         """
         # Determine the feature store path
         if feature_store_path is None:
@@ -987,7 +1037,7 @@ class FeatureEmbeddingOrchestrator:
                     raise ValueError("No feature stores found in the default directory. Please specify a path or name.")
                 # Use the most recent one
                 feature_store_path = os.path.join(self.feature_store_dir, stores[0])
-                print(f"Using most recent feature store: {stores[0]}")
+                self.log_info(f"Using most recent feature store: {stores[0]}")
             else:
                 # Find the store by name
                 stores = self._list_feature_stores()
@@ -996,42 +1046,78 @@ class FeatureEmbeddingOrchestrator:
                     raise ValueError(f"No feature stores matching '{store_name}' found.")
                 feature_store_path = os.path.join(self.feature_store_dir, matched_stores[0])
 
-        print(f"Loading feature store from {feature_store_path}...")
+        self.log_info(f"Loading feature store from {feature_store_path}")
 
-        # Load features
-        X_train = pd.read_parquet(os.path.join(feature_store_path, "X_train.parquet"))
-        X_val = pd.read_parquet(os.path.join(feature_store_path, "X_val.parquet"))
-        X_test = pd.read_parquet(os.path.join(feature_store_path, "X_test.parquet"))
+        try:
+            # Load features
+            X_train = pd.read_parquet(os.path.join(feature_store_path, "X_train.parquet"))
+            X_val = pd.read_parquet(os.path.join(feature_store_path, "X_val.parquet"))
+            X_test = pd.read_parquet(os.path.join(feature_store_path, "X_test.parquet"))
 
-        # Load targets
-        y_train = pd.read_parquet(os.path.join(feature_store_path, "y_train.parquet"))['target']
-        y_val = pd.read_parquet(os.path.join(feature_store_path, "y_val.parquet"))['target']
-        y_test = pd.read_parquet(os.path.join(feature_store_path, "y_test.parquet"))['target']
+            # Load targets
+            y_train_df = pd.read_parquet(os.path.join(feature_store_path, "y_train.parquet"))
+            y_val_df = pd.read_parquet(os.path.join(feature_store_path, "y_val.parquet"))
+            y_test_df = pd.read_parquet(os.path.join(feature_store_path, "y_test.parquet"))
 
-        # Load embedders
-        with open(os.path.join(feature_store_path, "embedders.pkl"), 'rb') as f:
-            embedders = pickle.load(f)
+            # Extract target series
+            y_train = y_train_df['target']
+            y_val = y_val_df['target']
+            y_test = y_test_df['target']
 
-        # Load metadata
-        with open(os.path.join(feature_store_path, "metadata.json"), 'r') as f:
-            metadata = json.load(f)
+            # Load metadata
+            metadata = {}
+            metadata_path = os.path.join(feature_store_path, "metadata.json")
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
 
-        # Update the orchestrator with the loaded embedders
-        self.horse_embedder = embedders.get('horse_embedder', self.horse_embedder)
-        self.jockey_embedder = embedders.get('jockey_embedder', self.jockey_embedder)
-        self.course_embedder = embedders.get('course_embedder', self.course_embedder)
-        self.couple_embedder = embedders.get('couple_embedder', self.couple_embedder)
-        self.embeddings_fitted = True
+            # Restore categorical columns if indicated in metadata
+            if 'dataset_info' in metadata and 'categorical_features' in metadata['dataset_info']:
+                for col in metadata['dataset_info']['categorical_features']:
+                    if col in X_train.columns:
+                        # Convert strings back to category type
+                        X_train[col] = X_train[col].astype('category')
+                        X_val[col] = X_val[col].astype('category')
+                        X_test[col] = X_test[col].astype('category')
 
-        # Update preprocessing parameters
-        if 'preprocessing' in metadata:
-            self.preprocessing_params = metadata['preprocessing']
+            # Update preprocessing parameters if available
+            if 'preprocessing' in metadata:
+                self.preprocessing_params.update(metadata['preprocessing'])
 
-        if hasattr(self.horse_embedder, 'embedding_dim'):
-            self.embedding_dim = self.horse_embedder.embedding_dim
+            # Update target info if available
+            if 'target_info' in metadata:
+                self.target_info = metadata['target_info']
 
-        print("Feature store loaded successfully.")
-        return X_train, X_val, X_test, y_train, y_val, y_test, embedders, metadata
+            # Update embedding status if available
+            if 'embedding_status' in metadata:
+                self.embedding_status = metadata['embedding_status']
+
+            # Update embedding dimension if available
+            if 'embedding_dim' in metadata:
+                self.embedding_dim = metadata['embedding_dim']
+
+            # Try to load embedders if available
+            embedders = None
+            embedders_path = os.path.join(feature_store_path, "embedders.pkl")
+            if os.path.exists(embedders_path):
+                try:
+                    with open(embedders_path, 'rb') as f:
+                        embedders = pickle.load(f)
+
+                    # Update orchestrator with loaded embedders
+                    if embedders:
+                        self.embedders = embedders
+                        self.log_info("Loaded embedders from feature store")
+                except Exception as e:
+                    self.log_info(f"Failed to load embedders: {str(e)}")
+
+            self.log_info("Feature store loaded successfully")
+            return X_train, X_val, X_test, y_train, y_val, y_test, metadata
+
+        except Exception as e:
+            error_msg = f"Error loading feature store: {str(e)}"
+            self.log_info(error_msg)
+            raise ValueError(error_msg)
 
     def _list_feature_stores(self):
         """
@@ -1053,6 +1139,98 @@ class FeatureEmbeddingOrchestrator:
 
         return stores
 
+    def load_lstm_feature_store(self, feature_store_path=None, store_name=None):
+        """
+        Load a previously saved LSTM feature store with sequence data.
+
+        Args:
+            feature_store_path: Path to the LSTM feature store directory
+            store_name: Name of a specific LSTM feature store in the default directory
+
+        Returns:
+            Tuple of (X_seq_train, X_seq_val, X_seq_test, X_static_train, X_static_val, X_static_test,
+                     y_train, y_val, y_test, metadata)
+        """
+        # Set the LSTM feature stores directory
+        lstm_feature_dir = os.path.join(self.feature_store_dir, 'lstm')
+
+        # Determine the feature store path
+        if feature_store_path is None:
+            if store_name is None:
+                # List available feature stores
+                if not os.path.exists(lstm_feature_dir):
+                    raise ValueError("No LSTM feature stores directory found. Please specify a path or name.")
+
+                stores = [d for d in os.listdir(lstm_feature_dir)
+                          if os.path.isdir(os.path.join(lstm_feature_dir, d))
+                          and d.startswith('lstm_feature_store_')]
+
+                if not stores:
+                    raise ValueError(
+                        "No LSTM feature stores found in the default directory. Please specify a path or name.")
+
+                # Sort by timestamp (most recent first)
+                stores.sort(reverse=True)
+
+                # Use the most recent one
+                feature_store_path = os.path.join(lstm_feature_dir, stores[0])
+                self.log_info(f"Using most recent LSTM feature store: {stores[0]}")
+            else:
+                # Find the store by name
+                if not os.path.exists(lstm_feature_dir):
+                    raise ValueError("No LSTM feature stores directory found. Please specify a path.")
+
+                stores = [d for d in os.listdir(lstm_feature_dir)
+                          if os.path.isdir(os.path.join(lstm_feature_dir, d))
+                          and d.startswith('lstm_feature_store_')]
+
+                matched_stores = [s for s in stores if store_name in s]
+                if not matched_stores:
+                    raise ValueError(f"No LSTM feature stores matching '{store_name}' found.")
+
+                feature_store_path = os.path.join(lstm_feature_dir, matched_stores[0])
+
+        self.log_info(f"Loading LSTM feature store from {feature_store_path}")
+
+        try:
+            # Load sequence features
+            X_seq_train = np.load(os.path.join(feature_store_path, "X_seq_train.npy"))
+            X_seq_val = np.load(os.path.join(feature_store_path, "X_seq_val.npy"))
+            X_seq_test = np.load(os.path.join(feature_store_path, "X_seq_test.npy"))
+
+            # Load static features
+            X_static_train = np.load(os.path.join(feature_store_path, "X_static_train.npy"))
+            X_static_val = np.load(os.path.join(feature_store_path, "X_static_val.npy"))
+            X_static_test = np.load(os.path.join(feature_store_path, "X_static_test.npy"))
+
+            # Load targets
+            y_train = np.load(os.path.join(feature_store_path, "y_train.npy"))
+            y_val = np.load(os.path.join(feature_store_path, "y_val.npy"))
+            y_test = np.load(os.path.join(feature_store_path, "y_test.npy"))
+
+            # Load metadata
+            metadata = {}
+            metadata_path = os.path.join(feature_store_path, "metadata.json")
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+
+            # Update sequence parameters if available
+            if 'sequence_length' in metadata:
+                self.preprocessing_params['sequence_length'] = metadata['sequence_length']
+
+            if 'feature_columns' in metadata:
+                self.preprocessing_params['feature_columns'] = metadata['feature_columns']
+
+            self.log_info("LSTM feature store loaded successfully")
+            return (X_seq_train, X_seq_val, X_seq_test,
+                    X_static_train, X_static_val, X_static_test,
+                    y_train, y_val, y_test, metadata)
+
+        except Exception as e:
+            error_msg = f"Error loading LSTM feature store: {str(e)}"
+            self.log_info(error_msg)
+            raise ValueError(error_msg)
     def clear_cache(self):
         """
         Clear all cached data.
@@ -1063,3 +1241,138 @@ class FeatureEmbeddingOrchestrator:
             print("Cache cleared successfully.")
         except Exception as e:
             print(f"Warning: Could not clear cache: {str(e)}")
+
+    def prepare_sequence_data(self, df: pd.DataFrame, sequence_length=5, step_size=1,
+                              feature_columns=None, ignore_columns=None, group_by='idche') -> Tuple:
+        """
+        Prepare sequential data for LSTM training by grouping by horse ID and creating sequences.
+
+        Args:
+            df: DataFrame with race and participant data
+            sequence_length: Number of races to include in each sequence
+            step_size: Step size for sliding window
+            feature_columns: Specific columns to use as features (None=auto-select)
+            ignore_columns: Columns to exclude from features
+            group_by: Column to group by for sequence creation (default: 'idche')
+
+        Returns:
+            Tuple of (X_sequences, static_features, targets)
+        """
+        self.log_info(f"Preparing sequence data with length={sequence_length}, group_by={group_by}")
+
+        # Default columns to exclude
+        default_ignore = [
+            'comp', 'cheval', 'ordre_arrivee', 'participants', 'created_at', 'jour',
+            'prix', 'reun', 'final_position', 'quinte', 'proprietaire',
+            'musiqueche', 'musiquejoc', 'cl', 'narrivee'
+        ]
+
+        # Combine with additional exclusions
+        ignore_list = default_ignore + (ignore_columns or [])
+
+        # Select feature columns
+        if feature_columns is None:
+            # Auto-select all columns except those in ignore_list and the target
+            feature_columns = [col for col in df.columns if
+                               col not in ignore_list and col != self.target_info['column']]
+
+        # Ensure target column exists
+        target_column = self.target_info['column']
+        if target_column not in df.columns:
+            raise ValueError(f"Target column '{target_column}' not found in DataFrame")
+
+        # Sort by date if available
+        if 'jour' in df.columns:
+            df = df.sort_values(['idche', 'jour'])
+
+        # Convert all features to numeric (required for LSTM)
+        for col in feature_columns:
+            if not pd.api.types.is_numeric_dtype(df[col]):
+                try:
+                    df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+                except:
+                    self.log_info(f"Warning: Could not convert {col} to numeric, using one-hot encoding")
+                    # Use one-hot encoding for categorical features
+                    if df[col].dtype.name == 'category' or df[col].dtype == 'object':
+                        one_hot = pd.get_dummies(df[col], prefix=col, dummy_na=True)
+                        df = pd.concat([df, one_hot], axis=1)
+                        # Remove original column
+                        feature_columns.remove(col)
+                        # Add new one-hot columns
+                        feature_columns.extend(one_hot.columns.tolist())
+
+        # Normalize features
+        scaler = StandardScaler()
+        df[feature_columns] = scaler.fit_transform(df[feature_columns])
+
+        # Store the scaler for later use
+        self.preprocessing_params['sequence_scaler'] = scaler
+        self.preprocessing_params['feature_columns'] = feature_columns
+
+        # Group by horse ID or other specified column
+        groups = df.groupby(group_by)
+
+        # Initialize lists to store results
+        sequences = []
+        targets = []
+        static_features = []  # For non-sequential features
+
+        # Identify static features (features that don't change for a horse)
+        static_feature_candidates = ['age', 'handicapPoids', 'gainsCarriere']
+        static_feature_cols = [col for col in static_feature_candidates if col in feature_columns]
+
+        # Identify embedding features
+        embedding_cols = [col for col in feature_columns if '_emb_' in col]
+
+        # Create sequences
+        sequence_count = 0
+        for _, group in groups:
+            if len(group) < sequence_length + 1:  # Need at least sequence_length+1 races
+                continue
+
+            # Sort by date if available
+            if 'jour' in group.columns:
+                group = group.sort_values('jour')
+
+            # Extract features and targets
+            features = group[feature_columns].values
+            target_values = group[target_column].values
+
+            # Create sequences with sliding window
+            for i in range(0, len(group) - sequence_length, step_size):
+                if i + sequence_length < len(group):
+                    # Extract sequence
+                    seq = features[i:i + sequence_length]
+
+                    # Extract static features (from last race in sequence)
+                    if static_feature_cols or embedding_cols:
+                        static_feat_idx = min(i + sequence_length, len(group) - 1)
+                        static_feat = np.concatenate([
+                            group.iloc[static_feat_idx][static_feature_cols].values,
+                            group.iloc[static_feat_idx][embedding_cols].values
+                        ])
+                    else:
+                        static_feat = np.array([])
+
+                    # Extract target (next race after sequence)
+                    target = target_values[i + sequence_length]
+
+                    # Add to result lists
+                    sequences.append(seq)
+                    static_features.append(static_feat)
+                    targets.append(target)
+                    sequence_count += 1
+
+        self.log_info(f"Created {sequence_count} sequences from {len(groups)} {group_by} entities")
+
+        # Convert to numpy arrays
+        if sequences:
+            X_sequences = np.array(sequences)
+            X_static = np.array(static_features)
+            y = np.array(targets)
+
+            self.log_info(
+                f"Sequence shape: {X_sequences.shape}, Static shape: {X_static.shape}, Target shape: {y.shape}")
+            return X_sequences, X_static, y
+        else:
+            raise ValueError("No valid sequences could be created. Check data quality and sequence_length.")
