@@ -20,18 +20,26 @@ class CourseEmbedding:
         self.embedding_dim = embedding_dim
 
         # Dictionaries to map categorical features to numerical values
-        self.hippo_mapping = {}
-        self.track_type_mapping = {}
-        self.meteo_mapping = {}
-        self.race_type_mapping = {}
+        self.feature_mappings = {
+            'hippo': {'UNKNOWN': 0},
+            'natpis': {'UNKNOWN': 0},
+            'meteo': {'UNKNOWN': 0},
+            'typec': {'UNKNOWN': 0},
+            'directionVent': {'UNKNOWN': 0},
+            'nebulosite': {'UNKNOWN': 0},
+            'corde': {'UNKNOWN': 0},
+            'pistegp': {'UNKNOWN': 0}
+        }
 
         # Numerical features normalization parameters
-        self.dist_mean = 0
-        self.dist_std = 1
-        self.temp_mean = 0
-        self.temp_std = 1
-        self.wind_mean = 0
-        self.wind_std = 1
+        self.numeric_params = {
+            'dist': {'mean': 0, 'std': 1},
+            'temperature': {'mean': 0, 'std': 1},
+            'forceVent': {'mean': 0, 'std': 1}
+        }
+
+        # Flag to track which features were available during fitting
+        self.available_features = {}
 
     def fit(self, course_data):
         """
@@ -43,63 +51,74 @@ class CourseEmbedding:
         # Create a copy to avoid modifying the original
         course_data = course_data.copy()
 
-        # Convert categorical columns to string before filling NA
-        for col in ['hippo', 'natpis', 'meteo', 'typec']:
-            if col in course_data.columns:
-                # Check if column is categorical
-                if pd.api.types.is_categorical_dtype(course_data[col]):
-                    course_data[col] = course_data[col].astype(str)
+        # Track which features are available
+        all_features = list(self.feature_mappings.keys()) + list(self.numeric_params.keys())
+        course_columns = course_data.columns
+        for feature in all_features:
+            self.available_features[feature] = feature in course_columns
 
-        # Create mappings for categorical variables with safety checks
-        if 'hippo' in course_data.columns:
-            self.hippo_mapping = {hippo: idx for idx, hippo in
-                                  enumerate(course_data['hippo'].fillna('UNKNOWN').unique())}
-        else:
-            self.hippo_mapping = {'UNKNOWN': 0}
+        available_features = [f for f, avail in self.available_features.items() if avail]
+        print(f"Course features available for embedding: {available_features}")
 
-        if 'natpis' in course_data.columns:
-            self.track_type_mapping = {track: idx for idx, track in
-                                       enumerate(course_data['natpis'].fillna('UNKNOWN').unique())}
-        else:
-            self.track_type_mapping = {'UNKNOWN': 0}
+        if not available_features:
+            print("WARNING: No course features available for embedding. Using default values.")
+            return
 
-        if 'meteo' in course_data.columns:
-            self.meteo_mapping = {meteo: idx for idx, meteo in
-                                  enumerate(course_data['meteo'].fillna('UNKNOWN').unique())}
-        else:
-            self.meteo_mapping = {'UNKNOWN': 0}
+        # Handle categorical features
+        for feature, mapping in self.feature_mappings.items():
+            if feature in course_data.columns:
+                # Convert to string and handle empty/NA values
+                series = course_data[feature].astype(str)
+                series = series.replace('', 'UNKNOWN').replace('nan', 'UNKNOWN')
 
-        if 'typec' in course_data.columns:
-            self.race_type_mapping = {race_type: idx for idx, race_type in
-                                      enumerate(course_data['typec'].fillna('UNKNOWN').unique())}
-        else:
-            self.race_type_mapping = {'UNKNOWN': 0}
+                # Create mapping
+                unique_values = series.fillna('UNKNOWN').unique()
+                mapping.update({val: idx + 1 for idx, val in enumerate(unique_values) if val != 'UNKNOWN'})
+                print(f"Mapped {len(mapping) - 1} unique values for {feature}")
 
-        # Calculate normalization parameters for numerical features with safety checks
-        if 'dist' in course_data.columns:
-            self.dist_mean = course_data['dist'].mean()
-            self.dist_std = course_data['dist'].std() if course_data['dist'].std() > 0 else 1
-        else:
-            self.dist_mean = 0
-            self.dist_std = 1
+        # Handle numerical features
+        for feature, params in self.numeric_params.items():
+            if feature in course_data.columns:
+                # Convert to numeric, handling errors
+                numeric_values = pd.to_numeric(course_data[feature], errors='coerce')
 
-        # Handle temperature, ensuring it's numeric first
-        if 'temperature' in course_data.columns:
-            numeric_temp = pd.to_numeric(course_data['temperature'], errors='coerce')
-            self.temp_mean = numeric_temp.mean()
-            self.temp_std = numeric_temp.std() if numeric_temp.std() > 0 else 1
-        else:
-            self.temp_mean = 0
-            self.temp_std = 1
+                # Check if we have enough valid values
+                valid_count = numeric_values.notna().sum()
+                if valid_count > 10:  # Arbitrary threshold for statistical significance
+                    params['mean'] = numeric_values.mean()
+                    params['std'] = numeric_values.std() if numeric_values.std() > 0 else 1
+                    print(f"Calculated stats for {feature}: mean={params['mean']:.2f}, std={params['std']:.2f}")
+                else:
+                    print(f"Not enough valid values for {feature} ({valid_count}). Using defaults.")
 
-        # Handle wind force, ensuring it's numeric first
-        if 'forceVent' in course_data.columns:
-            numeric_wind = pd.to_numeric(course_data['forceVent'], errors='coerce')
-            self.wind_mean = numeric_wind.mean()
-            self.wind_std = numeric_wind.std() if numeric_wind.std() > 0 else 1
-        else:
-            self.wind_mean = 0
-            self.wind_std = 1
+        print("Course embedding fitted successfully")
+
+    def _get_normalized_value(self, feature, value):
+        """Helper to safely normalize a numeric value."""
+        if pd.isna(value) or value == '':
+            return 0.0
+
+        params = self.numeric_params.get(feature, {'mean': 0, 'std': 1})
+
+        try:
+            numeric_val = float(value)
+            return (numeric_val - params['mean']) / params['std']
+        except (ValueError, TypeError):
+            return 0.0
+
+    def _get_categorical_value(self, feature, value):
+        """Helper to safely get embedding value for a categorical feature."""
+        if pd.isna(value) or value == '':
+            value = 'UNKNOWN'
+        elif not isinstance(value, str):
+            value = str(value)
+
+        mapping = self.feature_mappings.get(feature, {'UNKNOWN': 0})
+        idx = mapping.get(value, mapping.get('UNKNOWN', 0))
+
+        # Normalize to 0-1 range
+        divisor = max(len(mapping), 1)
+        return idx / divisor
 
     def transform_course(self, course: Dict) -> np.ndarray:
         """
@@ -114,74 +133,56 @@ class CourseEmbedding:
         # Initialize the embedding vector
         embedding = np.zeros(self.embedding_dim)
 
-        # Extract course features with safe defaults
-        hippo = course.get('hippo', 'UNKNOWN')
-        if pd.isna(hippo): hippo = 'UNKNOWN'
+        # Map all features to positions in the embedding
+        feature_positions = {
+            'hippo': 0,
+            'natpis': 1,
+            'dist': 2,
+            'meteo': 3,
+            'temperature': 4,
+            'forceVent': 5,
+            'typec': 6,
+            'directionVent': 7,
+            'nebulosite': 8,
+            'corde': 9,
+            'pistegp': 10
+        }
 
-        track_type = course.get('natpis', 'UNKNOWN')
-        if pd.isna(track_type): track_type = 'UNKNOWN'
+        # Process categorical features
+        for feature, position in feature_positions.items():
+            if position >= self.embedding_dim:
+                continue  # Skip if beyond embedding dimension
 
-        dist = course.get('dist', self.dist_mean)
+            if feature in self.numeric_params:
+                # Numeric feature
+                value = course.get(feature, self.numeric_params[feature]['mean'])
+                embedding[position] = self._get_normalized_value(feature, value)
+            else:
+                # Categorical feature
+                value = course.get(feature, 'UNKNOWN')
+                embedding[position] = self._get_categorical_value(feature, value)
 
-        meteo = course.get('meteo', 'UNKNOWN')
-        if pd.isna(meteo): meteo = 'UNKNOWN'
+        # Fill remaining dimensions with interactions if space allows
+        if self.embedding_dim > 11:
+            # Track type × distance interaction
+            embedding[11] = embedding[1] * embedding[2]
 
-        temp = course.get('temperature', self.temp_mean)
+            # Weather × track type interaction
+            if self.embedding_dim > 12:
+                embedding[12] = embedding[3] * embedding[1]
 
-        wind_force = course.get('forceVent', self.wind_mean)
+            # Complex interactions
+            if self.embedding_dim > 13:
+                embedding[13] = embedding[2] * embedding[4] * embedding[6]  # Dist × temp × race type
 
-        race_type = course.get('typec', 'UNKNOWN')
-        if pd.isna(race_type): race_type = 'UNKNOWN'
+            if self.embedding_dim > 14:
+                # Track × rail position interaction
+                embedding[14] = embedding[0] * embedding[9]  # Hippo × corde
 
-        # Convert numerical values safely
-        try:
-            dist = float(dist)
-        except (ValueError, TypeError):
-            dist = self.dist_mean
-
-        try:
-            temp = float(temp)
-        except (ValueError, TypeError):
-            temp = self.temp_mean
-
-        try:
-            wind_force = float(wind_force)
-        except (ValueError, TypeError):
-            wind_force = self.wind_mean
-
-        # Normalize numerical features
-        normalized_dist = (dist - self.dist_mean) / self.dist_std
-        normalized_temp = (temp - self.temp_mean) / self.temp_std
-        normalized_wind = (wind_force - self.wind_mean) / self.wind_std
-
-        # Set embedding values - using a simple but effective approach
-        # First section: track characteristics (hippo, track type)
-        embedding[0] = self.hippo_mapping.get(hippo, len(self.hippo_mapping)) / (len(self.hippo_mapping) + 1)
-        embedding[1] = self.track_type_mapping.get(track_type, len(self.track_type_mapping)) / (
-                len(self.track_type_mapping) + 1)
-        embedding[2] = normalized_dist
-
-        # Second section: weather conditions
-        embedding[3] = self.meteo_mapping.get(meteo, len(self.meteo_mapping)) / (len(self.meteo_mapping) + 1)
-        embedding[4] = normalized_temp
-        embedding[5] = normalized_wind
-
-        # Third section: race type
-        embedding[6] = self.race_type_mapping.get(race_type, len(self.race_type_mapping)) / (
-                len(self.race_type_mapping) + 1)
-
-        # Additional values can be derived from combinations of the above
-        # For example, interaction between distance and track type
-        embedding[7] = embedding[1] * embedding[2]  # Track type × distance interaction
-
-        # Interaction between weather and track
-        embedding[8] = embedding[3] * embedding[1]  # Weather × track type interaction
-
-        # Complex interactions
-        embedding[9] = embedding[2] * embedding[4] * embedding[6]  # Dist × temp × race type
-
-        # More embedding dimensions can be filled with other features and interactions
-        # The remaining dimensions can be left as zeros or filled with more complex interactions
+            if self.embedding_dim > 15:
+                # Weather complex interaction
+                embedding[15] = embedding[3] * embedding[4] * embedding[7] * embedding[
+                    8]  # Meteo × temp × wind direction × nebulosite
 
         return embedding
 

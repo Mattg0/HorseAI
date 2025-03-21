@@ -209,7 +209,7 @@ class AppConfig:
         """
         return self._config.features.features_dir
 
-    def get_model_dir(self) -> str:
+    def get_model_paths(self) -> str:
         """
         Get model directory path
         """

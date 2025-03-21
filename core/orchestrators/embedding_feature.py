@@ -20,12 +20,13 @@ from model_training.features.couple_embedding import CoupleEmbedding
 
 class FeatureEmbeddingOrchestrator:
     """
-    Orchestrator for loading historical race data from SQLite,
-    applying entity embeddings, and preparing data for model training.
-    Uses caching to improve performance for expensive operations.
+    Orchestrator for loading historical race data, applying entity embeddings,
+    and preparing data for model training. Consolidates data preparation functionality
+    from both embedding and model training components.
     """
 
-    def __init__(self, sqlite_path=None, embedding_dim=None, cache_dir=None, feature_store_dir=None):
+    def __init__(self, sqlite_path=None, embedding_dim=None, cache_dir=None, feature_store_dir=None,
+                 sequence_length=5, verbose=False):
         """
         Initialize the orchestrator with embedding models and caching.
 
@@ -34,17 +35,25 @@ class FeatureEmbeddingOrchestrator:
             embedding_dim: Dimension size for entity embeddings, if None uses default from config
             cache_dir: Directory to store cache files, if None uses default from config
             feature_store_dir: Directory to store feature stores, if None uses default from config
+            sequence_length: Default sequence length for LSTM data preparation
+            verbose: Whether to print verbose output
         """
         # Load application configuration
         self.config = AppConfig()
 
         # Set paths from config or arguments
-        self.sqlite_path = sqlite_path or self.config.get_sqlite_dbpath()
+        self.sqlite_path = sqlite_path or self.config.get_active_db_path()
         self.cache_dir = cache_dir or self.config.get_cache_dir()
         self.feature_store_dir = feature_store_dir or self.config.get_feature_store_dir()
 
         # Set embedding dimension from config or argument
         self.embedding_dim = embedding_dim or self.config.get_default_embedding_dim()
+
+        # Set sequence length for LSTM data
+        self.sequence_length = sequence_length
+
+        # Set verbosity
+        self.verbose = verbose
 
         # Initialize caching manager
         self.cache_manager = CacheManager()
@@ -59,26 +68,31 @@ class FeatureEmbeddingOrchestrator:
         self.embeddings_fitted = False
 
         # Store preprocessing parameters
-        self.preprocessing_params = {}
+        self.preprocessing_params = {
+            'sequence_length': sequence_length
+        }
 
         self.target_info = {
             'column': 'final_position',
             'type': 'regression'  # Options: 'regression', 'classification', 'ranking'
         }
+
         # Create cache directory if it doesn't exist
         os.makedirs(self.cache_dir, exist_ok=True)
         os.makedirs(self.feature_store_dir, exist_ok=True)
 
-        print(f"Orchestrator initialized with:")
-        print(f"  - SQLite path: {self.sqlite_path}")
-        print(f"  - Cache directory: {self.cache_dir}")
-        print(f"  - Feature store directory: {self.feature_store_dir}")
-        print(f"  - Embedding dimension: {self.embedding_dim}")
+        if self.verbose:
+            print(f"Orchestrator initialized with:")
+            print(f"  - SQLite path: {self.sqlite_path}")
+            print(f"  - Cache directory: {self.cache_dir}")
+            print(f"  - Feature store directory: {self.feature_store_dir}")
+            print(f"  - Embedding dimension: {self.embedding_dim}")
+            print(f"  - Sequence length: {self.sequence_length}")
 
     def log_info(self, message):
-            """Simple logging method for backward compatibility."""
-            if hasattr(self, 'verbose') and self.verbose:
-             print(message)
+        """Simple logging method for backward compatibility."""
+        if hasattr(self, 'verbose') and self.verbose:
+            print(message)
 
     def _generate_cache_key(self, prefix, params):
         """
@@ -282,13 +296,12 @@ class FeatureEmbeddingOrchestrator:
                 df['idche'] = pd.to_numeric(df['idche'], errors='coerce').fillna(-1).astype(int)
 
                 # Course data for horse-track interaction
-                course_info = df[['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature','natpis']].drop_duplicates('comp')
+                course_info = df[['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature', 'natpis']].drop_duplicates(
+                    'comp')
 
                 # Fit the course embedder for use with horses
                 if len(course_info) > 5:
                     self.course_embedder.fit(course_info)
-
-
 
                 print("Course embeddings prepared")
             except Exception as e:
@@ -329,140 +342,6 @@ class FeatureEmbeddingOrchestrator:
                 print(f"Warning: Could not cache embedding status: {str(e)}")
 
         return self
-
-    def apply_embeddings(self, df, use_cache=True):
-        """
-        Apply fitted embeddings to the data with caching.
-
-        Args:
-            df: DataFrame with race and participant data
-            use_cache: Whether to use cached transformations
-
-        Returns:
-            DataFrame with embedded features added
-        """
-        # Generate cache key
-        cache_params = {
-            'data_shape': df.shape,
-            'data_columns': sorted(df.columns.tolist()),
-            'embedding_dim': self.embedding_dim,
-            'horse_count': df['idche'].nunique() if 'idche' in df.columns else 0,
-            'jockey_count': df['idJockey'].nunique() if 'idJockey' in df.columns else 0
-        }
-        cache_key = self._generate_cache_key('embedded_features', cache_params)
-
-        # Try to get from cache
-        if use_cache:
-            try:
-                cached_df = self.cache_manager.load_dataframe(cache_key)
-                if cached_df is not None and isinstance(cached_df, pd.DataFrame):
-                    print("Using cached embedded features...")
-                    return cached_df
-            except Exception as e:
-                print(f"Warning: Could not load embedded features from cache: {str(e)}")
-
-        if not self.embeddings_fitted:
-            print("Embeddings not fitted yet. Fitting now...")
-            self.fit_embeddings(df, use_cache=use_cache)
-
-        print("Applying entity embeddings...")
-
-        # Make a copy to avoid modifying the original
-        embedded_df = df.copy()
-
-        # Convert ID columns to integer type
-        id_columns = ['idche', 'idJockey', 'idEntraineur']
-        for col in id_columns:
-            if col in embedded_df.columns:
-                embedded_df[col] = pd.to_numeric(embedded_df[col], errors='coerce').fillna(-1).astype(int)
-
-        # Apply horse embeddings
-        if 'idche' in embedded_df.columns:
-            try:
-                # Generate horse embeddings
-                embeddings_dict = self.horse_embedder.generate_embeddings(embedded_df)
-
-                # Add embedding vectors as features
-                for i in range(min(self.embedding_dim, 16)):  # Horse embedder uses at most 16 dimensions
-                    embedded_df[f'horse_emb_{i}'] = embedded_df['idche'].map(
-                        lambda x: embeddings_dict.get(x, np.zeros(16))[i] if pd.notnull(x) else 0
-                    )
-
-                print("Added horse embeddings")
-            except Exception as e:
-                print(f"Warning: Could not apply horse embeddings: {str(e)}")
-
-        # Apply jockey embeddings
-        if 'idJockey' in embedded_df.columns:
-            try:
-                # Transform through batch process
-                jockey_features = self.jockey_embedder.transform_batch(embedded_df)
-
-                # Add jockey embedding columns
-                for i in range(self.embedding_dim):
-                    col_name = f'jockey_emb_{i}'
-                    if col_name in jockey_features.columns:
-                        embedded_df[col_name] = jockey_features[col_name]
-
-                print("Added jockey embeddings")
-            except Exception as e:
-                print(f"Warning: Could not apply jockey embeddings: {str(e)}")
-
-        # Apply couple embeddings
-        if 'idche' in embedded_df.columns and 'idJockey' in embedded_df.columns:
-            try:
-                # Add embeddings for horse-jockey combinations
-                couple_features = self.couple_embedder.transform_df(embedded_df)
-
-                # Add couple embedding columns
-                for i in range(min(self.embedding_dim, 8)):  # Use at most 8 dimensions for couples
-                    col_name = f'couple_emb_{i}'
-                    if col_name in couple_features.columns:
-                        embedded_df[col_name] = couple_features[col_name]
-
-                print("Added couple embeddings")
-            except Exception as e:
-                print(f"Warning: Could not apply couple embeddings: {str(e)}")
-
-        # Apply course embeddings if we have enough race data
-
-        if 'comp' in embedded_df.columns:
-            try:
-                # Get unique courses
-
-                courses = embedded_df[['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature','natpis']].drop_duplicates(
-                    'comp')
-                if len(courses) > 0:
-                    # Transform courses
-                    course_embeddings = self.course_embedder.transform(courses)
-
-                    # Create a mapping from comp to embedding
-                    course_embedding_dict = {}
-                    for i, (_, course) in enumerate(courses.iterrows()):
-                        course_embedding_dict[course['comp']] = course_embeddings[i]
-
-                    # Add course embedding columns
-
-
-                    for i in range(min(self.embedding_dim, course_embeddings.shape[1])):
-                        embedded_df[f'course_emb_{i}'] = embedded_df['comp'].map(
-                            lambda x: course_embedding_dict.get(x, np.zeros(self.embedding_dim))[
-                                i] if x in course_embedding_dict else 0
-                        )
-
-
-                    print("Added course embeddings")
-            except Exception as e:
-                print(f"Warning: Could not apply course embeddings: {str(e)}")
-
-        # Cache the transformed DataFrame
-        if use_cache:
-            try:
-                self.cache_manager.save_dataframe(embedded_df, cache_key)
-            except Exception as e:
-                print(f"Warning: Could not cache embedded features: {str(e)}")
-
-        return embedded_df
 
     def prepare_features(self, df, use_cache=True):
         """
@@ -613,6 +492,241 @@ class FeatureEmbeddingOrchestrator:
 
         return y
 
+    def drop_embedded_raw_features(self, df, keep_identifiers=False):
+        """
+        Drop raw features that have already been converted to embeddings.
+
+        Args:
+            df: DataFrame with feature columns
+            keep_identifiers: Whether to keep ID columns (idche, idJockey, etc.) which may be
+                          needed for further processing
+
+        Returns:
+            DataFrame with raw embedded features removed
+        """
+        # Make a copy to avoid modifying the input
+        clean_df = df.copy()
+
+        # 1. Check which types of embeddings exist in the dataframe
+        has_horse_embeddings = any(col.startswith('horse_emb_') for col in clean_df.columns)
+        has_jockey_embeddings = any(col.startswith('jockey_emb_') for col in clean_df.columns)
+        has_couple_embeddings = any(col.startswith('couple_emb_') for col in clean_df.columns)
+        has_course_embeddings = any(col.startswith('course_emb_') for col in clean_df.columns)
+
+        # 2. Create lists of raw features to drop for each embedding type
+        columns_to_drop = []
+
+        # Horse-related raw features
+        if has_horse_embeddings:
+            horse_raw_features = [
+                # Performance statistics
+                'victoirescheval', 'placescheval', 'coursescheval', 'gainsCarriere',
+                'pourcVictChevalHippo', 'pourcPlaceChevalHippo',
+                # Derived ratios
+                'ratio_victoires', 'ratio_places', 'gains_par_course', 'perf_cheval_hippo',
+                # Musique-derived features
+                'musiqueche'
+            ]
+
+            # Add all che_* columns (global, weighted, bytype)
+            che_columns = [col for col in clean_df.columns if
+                           col.startswith(('che_global_', 'che_weighted_', 'che_bytype_'))]
+            horse_raw_features.extend(che_columns)
+
+            columns_to_drop.extend(horse_raw_features)
+
+        # Jockey-related raw features
+        if has_jockey_embeddings:
+            jockey_raw_features = [
+                'pourcVictJockHippo', 'pourcPlaceJockHippo',
+                'musiquejoc'
+            ]
+
+            # Add all joc_* columns
+            joc_columns = [col for col in clean_df.columns if
+                           col.startswith(('joc_global_', 'joc_weighted_', 'joc_bytype_'))]
+            jockey_raw_features.extend(joc_columns)
+
+            columns_to_drop.extend(jockey_raw_features)
+
+        # Couple-related raw features
+        if has_couple_embeddings:
+            couple_raw_features = [
+                'nbVictCouple', 'nbPlaceCouple', 'nbCourseCouple', 'TxVictCouple',
+                'efficacite_couple', 'regularite_couple', 'progression_couple'
+            ]
+            columns_to_drop.extend(couple_raw_features)
+
+        # Course-related raw features
+        if has_course_embeddings:
+            # These are already captured in course embeddings but might be kept as direct features
+            # based on your model requirements. If you're certain they're redundant, uncomment:
+            # course_raw_features = ['hippo', 'natpis', 'dist', 'meteo', 'temperature', 'forceVent', 'directionVent']
+            # columns_to_drop.extend(course_raw_features)
+            pass
+
+        # 3. Handle identifiers
+        identifiers = ['idche', 'idJockey', 'idEntraineur', 'proprietaire', 'comp', 'couple_id']
+
+        if not keep_identifiers:
+            columns_to_drop.extend(identifiers)
+
+        # 4. Add other metadata columns that should generally be excluded from training
+        metadata_columns = [
+            'cheval', 'ordre_arrivee', 'participants', 'created_at', 'jour',
+            'prix', 'reun', 'quinte', 'cl', 'narrivee'
+        ]
+        columns_to_drop.extend(metadata_columns)
+
+        # 5. Only drop columns that actually exist in the dataframe
+        columns_to_drop = [col for col in columns_to_drop if col in clean_df.columns]
+
+        # 6. Drop the columns and save the list for reference
+        clean_df = clean_df.drop(columns=columns_to_drop)
+
+        # Save the list of dropped columns for reference
+        self.preprocessing_params['dropped_raw_features'] = columns_to_drop
+
+        self.log_info(f"Dropped {len(columns_to_drop)} raw feature columns that were already embedded")
+
+        return clean_df
+
+    def apply_embeddings(self, df, use_cache=True, clean_after_embedding=True, keep_identifiers=False):
+        """
+        Apply fitted embeddings to the data with caching.
+
+        Args:
+            df: DataFrame with race and participant data
+            use_cache: Whether to use cached transformations
+            clean_after_embedding: Whether to drop raw features after embedding
+            keep_identifiers: Whether to keep identifier columns even when cleaning
+
+        Returns:
+            DataFrame with embedded features added (and raw features optionally removed)
+        """
+        # Generate cache key
+        cache_params = {
+            'data_shape': df.shape,
+            'data_columns': sorted(df.columns.tolist()),
+            'embedding_dim': self.embedding_dim,
+            'horse_count': df['idche'].nunique() if 'idche' in df.columns else 0,
+            'jockey_count': df['idJockey'].nunique() if 'idJockey' in df.columns else 0,
+            'clean_after_embedding': clean_after_embedding
+        }
+        cache_key = self._generate_cache_key('embedded_features', cache_params)
+
+        # Try to get from cache
+        if use_cache:
+            try:
+                cached_df = self.cache_manager.load_dataframe(cache_key)
+                if cached_df is not None and isinstance(cached_df, pd.DataFrame):
+                    self.log_info("Using cached embedded features...")
+                    return cached_df
+            except Exception as e:
+                self.log_info(f"Warning: Could not load embedded features from cache: {str(e)}")
+
+        if not self.embeddings_fitted:
+            self.log_info("Embeddings not fitted yet. Fitting now...")
+            self.fit_embeddings(df, use_cache=use_cache)
+
+        self.log_info("Applying entity embeddings...")
+
+        # Make a copy to avoid modifying the original
+        embedded_df = df.copy()
+
+        # Convert ID columns to integer type
+        id_columns = ['idche', 'idJockey', 'idEntraineur']
+        for col in id_columns:
+            if col in embedded_df.columns:
+                embedded_df[col] = pd.to_numeric(embedded_df[col], errors='coerce').fillna(-1).astype(int)
+
+        # Apply horse embeddings
+        if 'idche' in embedded_df.columns:
+            try:
+                # Generate horse embeddings
+                embeddings_dict = self.horse_embedder.generate_embeddings(embedded_df)
+
+                # Add embedding vectors as features
+                for i in range(min(self.embedding_dim, 16)):  # Horse embedder uses at most 16 dimensions
+                    embedded_df[f'horse_emb_{i}'] = embedded_df['idche'].map(
+                        lambda x: embeddings_dict.get(x, np.zeros(16))[i] if pd.notnull(x) else 0
+                    )
+
+                self.log_info("Added horse embeddings")
+            except Exception as e:
+                self.log_info(f"Warning: Could not apply horse embeddings: {str(e)}")
+
+        # Apply jockey embeddings
+        if 'idJockey' in embedded_df.columns:
+            try:
+                # Transform through batch process
+                jockey_features = self.jockey_embedder.transform_batch(embedded_df)
+
+                # Add jockey embedding columns
+                for i in range(self.embedding_dim):
+                    col_name = f'jockey_emb_{i}'
+                    if col_name in jockey_features.columns:
+                        embedded_df[col_name] = jockey_features[col_name]
+
+                self.log_info("Added jockey embeddings")
+            except Exception as e:
+                self.log_info(f"Warning: Could not apply jockey embeddings: {str(e)}")
+
+        # Apply couple embeddings
+        if 'idche' in embedded_df.columns and 'idJockey' in embedded_df.columns:
+            try:
+                # Add embeddings for horse-jockey combinations
+                couple_features = self.couple_embedder.transform_df(embedded_df)
+
+                # Add couple embedding columns
+                for i in range(min(self.embedding_dim, 8)):  # Use at most 8 dimensions for couples
+                    col_name = f'couple_emb_{i}'
+                    if col_name in couple_features.columns:
+                        embedded_df[col_name] = couple_features[col_name]
+
+                self.log_info("Added couple embeddings")
+            except Exception as e:
+                self.log_info(f"Warning: Could not apply couple embeddings: {str(e)}")
+
+        # Apply course embeddings if we have enough race data
+        if 'comp' in embedded_df.columns:
+            try:
+                # Get unique courses
+                courses = embedded_df[
+                    ['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature', 'natpis']].drop_duplicates('comp')
+                if len(courses) > 0:
+                    # Transform courses
+                    course_embeddings = self.course_embedder.transform(courses)
+
+                    # Create a mapping from comp to embedding
+                    course_embedding_dict = {}
+                    for i, (_, course) in enumerate(courses.iterrows()):
+                        course_embedding_dict[course['comp']] = course_embeddings[i]
+
+                    # Add course embedding columns
+                    for i in range(min(self.embedding_dim, course_embeddings.shape[1])):
+                        embedded_df[f'course_emb_{i}'] = embedded_df['comp'].map(
+                            lambda x: course_embedding_dict.get(x, np.zeros(self.embedding_dim))[i]
+                            if x in course_embedding_dict else 0
+                        )
+
+                    self.log_info("Added course embeddings")
+            except Exception as e:
+                self.log_info(f"Warning: Could not apply course embeddings: {str(e)}")
+
+        # Clean embedded data if requested
+        if clean_after_embedding:
+            embedded_df = self.drop_embedded_raw_features(embedded_df, keep_identifiers=keep_identifiers)
+
+        # Cache the transformed DataFrame
+        if use_cache:
+            try:
+                self.cache_manager.save_dataframe(embedded_df, cache_key)
+            except Exception as e:
+                self.log_info(f"Warning: Could not cache embedded features: {str(e)}")
+
+        return embedded_df
+
     def prepare_training_dataset(self, df, target_column='final_position', task_type=None, race_group_split=False):
         """
         Prepare the final dataset for training.
@@ -635,6 +749,13 @@ class FeatureEmbeddingOrchestrator:
         # Drop rows with missing target values
         training_df = df.dropna(subset=[target_column])
 
+        # Ensure raw features have been dropped (in case it wasn't done after embedding)
+        if any(col.startswith(('horse_emb_', 'jockey_emb_', 'couple_emb_', 'course_emb_')) for col in
+               training_df.columns):
+            # Keep identifiers at this stage if we need them for grouping
+            keep_ids = race_group_split
+            training_df = self.drop_embedded_raw_features(training_df, keep_identifiers=keep_ids)
+
         # Prepare the target variable
         if task_type == 'ranking':
             y, ranked_df = self.prepare_target_variable(training_df, target_column, task_type)
@@ -642,22 +763,21 @@ class FeatureEmbeddingOrchestrator:
         else:
             y = self.prepare_target_variable(training_df, target_column, task_type)
 
-        # Select feature columns (excluding target and non-feature columns)
-        exclude_cols = [
-            target_column, 'rank', 'comp', 'idche', 'cheval', 'ordre_arrivee', 'idJockey', 'idEntraineur',
-            'participants', 'created_at', 'jour', 'prix', 'reun', 'final_position', 'quinte',
-            'proprietaire', 'musiqueche', 'musiquejoc'
-        ]
+        # Select feature columns (excluding target and identifier columns)
+        exclude_cols = [target_column]
 
-        # Store excluded columns for reference
-        self.preprocessing_params['excluded_columns'] = exclude_cols
+        # Always exclude these columns, even if we kept identifiers earlier
+        exclude_cols.extend(['comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id'])
 
-        # Remove columns that are in the exclude list and exist in the DataFrame
-        feature_cols = [col for col in training_df.columns if col not in exclude_cols or col not in training_df.columns]
-        X = training_df[feature_cols]
+        # Select all remaining columns for training
+        feature_cols = [col for col in training_df.columns if col not in exclude_cols]
+        X_raw = training_df[feature_cols]
+
+        # Clean the feature dataframe for training
+        X = self.clean_feature_dataframe(X_raw)
 
         # Store feature columns for consistency in inference
-        self.preprocessing_params['feature_columns'] = feature_cols
+        self.preprocessing_params['feature_columns'] = X.columns.tolist()
 
         # Return groups for group-based splitting if requested
         if race_group_split:
@@ -720,24 +840,133 @@ class FeatureEmbeddingOrchestrator:
 
         return X_train, X_val, X_test, y_train, y_val, y_test
 
+    def _check_feature_correlation(self, X, y, top_n=10):
+        """
+        Check correlation between features and target.
+
+        Args:
+            X: Feature DataFrame
+            y: Target Series
+            top_n: Number of top correlated features to display
+        """
+        # Only proceed if y is numeric
+        if not pd.api.types.is_numeric_dtype(y):
+            self.log_info("Cannot calculate correlations: target is not numeric")
+            return
+
+        try:
+            # Clean the feature dataframe
+            self.log_info("Cleaning feature dataframe for correlation analysis...")
+            corr_df = self.clean_feature_dataframe(X)
+
+            # Add target to the correlation DataFrame
+            corr_df['target'] = y
+
+            # Calculate correlation with target
+            self.log_info("Calculating correlations with target...")
+            correlations = corr_df.corr()['target'].sort_values(ascending=False)
+
+            # Print top features (excluding target itself)
+            self.log_info("\nTop correlated features:")
+            for i, (feature, corr) in enumerate(correlations[1:top_n + 1].items()):
+                self.log_info(f"  {i + 1}. {feature}: {corr:.4f}")
+
+            # Store feature importances
+            self.preprocessing_params['feature_importances'] = correlations.to_dict()
+
+        except Exception as e:
+            self.log_info(f"Could not calculate feature correlations: {str(e)}")
+            if self.verbose:
+                import traceback
+                self.log_info(traceback.format_exc())
+
+    def clean_feature_dataframe(self, df):
+        """
+        Clean a dataframe to ensure all features can be used for numerical operations.
+
+        Args:
+            df: DataFrame with features
+
+        Returns:
+            Cleaned DataFrame with properly handled features
+        """
+        # Make a copy to avoid modifying the original
+        cleaned_df = df.copy()
+
+        # List of columns with known empty string issues
+        problematic_columns = ['poidmont', 'directionVent', 'nebulosite']
+
+        for col in cleaned_df.columns:
+            # Handle empty strings
+            if cleaned_df[col].dtype == 'object':
+                # Check if column has empty strings
+                empty_count = (cleaned_df[col] == '').sum()
+                if empty_count > 0:
+                    self.log_info(f"Handling empty strings in column '{col}': {empty_count} empties")
+
+                    # Option 1: Convert empty strings to NaN, then fill with appropriate value
+                    cleaned_df[col] = cleaned_df[col].replace('', np.nan)
+
+                    # For known problematic columns, use domain-specific defaults
+                    if col == 'poidmont':
+                        # Weight carried - use median or mean of non-empty values
+                        median_value = pd.to_numeric(cleaned_df[col], errors='coerce').median()
+                        cleaned_df[col] = pd.to_numeric(cleaned_df[col], errors='coerce').fillna(median_value)
+
+                    elif col == 'directionVent':
+                        # Wind direction - categorical, so use most common value or '0'
+                        # Convert to categorical then to numeric code
+                        cleaned_df[col] = cleaned_df[col].fillna('unknown')
+                        # Create new column with categorical encoding
+                        cleaned_df[f'{col}_code'] = cleaned_df[col].astype('category').cat.codes
+                        # Drop original string column
+                        cleaned_df = cleaned_df.drop(columns=[col])
+
+                    elif col == 'nebulosite':
+                        # Cloud cover - categorical, similar approach
+                        cleaned_df[col] = cleaned_df[col].fillna('unknown')
+                        cleaned_df[f'{col}_code'] = cleaned_df[col].astype('category').cat.codes
+                        cleaned_df = cleaned_df.drop(columns=[col])
+
+                    else:
+                        # For other columns, convert to numeric and fill NaN with 0
+                        cleaned_df[col] = pd.to_numeric(cleaned_df[col], errors='coerce').fillna(0)
+
+            # Handle other non-numeric columns
+            elif not pd.api.types.is_numeric_dtype(cleaned_df[col]):
+                # If categorical, convert to category codes
+                if pd.api.types.is_categorical_dtype(cleaned_df[col]):
+                    self.log_info(f"Converting categorical column '{col}' to codes")
+                    cleaned_df[col] = cleaned_df[col].cat.codes
+                # For other types, try converting to numeric or drop
+                else:
+                    try:
+                        self.log_info(f"Attempting to convert column '{col}' to numeric")
+                        cleaned_df[col] = pd.to_numeric(cleaned_df[col], errors='coerce')
+
+                        # If conversion resulted in all NaNs, drop the column
+                        if cleaned_df[col].isna().all():
+                            self.log_info(f"Dropping column '{col}' - all values are NaN after conversion")
+                            cleaned_df = cleaned_df.drop(columns=[col])
+                    except:
+                        self.log_info(f"Cannot convert column '{col}' to numeric - dropping")
+                        cleaned_df = cleaned_df.drop(columns=[col])
+
+        # Fill any remaining NaN values
+        cleaned_df = cleaned_df.fillna(0)
+
+        return cleaned_df
+
     def run_pipeline(self, limit=None, race_filter=None, date_filter=None,
                      task_type=None, test_size=0.2, val_size=0.1,
                      race_group_split=False, random_state=42, embedding_dim=None,
-                     use_cache=True):
+                     use_cache=True, clean_embeddings=True):
         """
         Run the complete pipeline from data loading to training set preparation.
 
         Args:
-            limit: Optional limit for races to load
-            race_filter: Optional filter for specific race types
-            date_filter: Optional date filter
-            task_type: 'regression', 'classification', or 'ranking', if None uses default from config
-            test_size: Proportion for test split
-            val_size: Proportion for validation split
-            race_group_split: Whether to split by race groups
-            random_state: Random seed
-            embedding_dim: Override default embedding dimension
-            use_cache: Whether to use cached results when available
+            # Your existing arguments...
+            clean_embeddings: Whether to drop raw features after embedding
 
         Returns:
             X_train, X_val, X_test, y_train, y_val, y_test
@@ -761,19 +990,20 @@ class FeatureEmbeddingOrchestrator:
             'val_size': val_size,
             'race_group_split': race_group_split,
             'random_state': random_state,
-            'embedding_dim': self.embedding_dim
+            'embedding_dim': self.embedding_dim,
+            'clean_embeddings': clean_embeddings
         }
         pipeline_key = self._generate_cache_key('pipeline_run', pipeline_params)
 
         # Try to get from cache
         if use_cache:
             try:
-                cached_result = self.cache_manager.load_dataframe('pipeline_run', pipeline_key)
+                cached_result = self.cache_manager.load_dataframe(pipeline_key)
                 if cached_result is not None:
-                    print("Using cached pipeline results...")
+                    self.log_info("Using cached pipeline results...")
                     return cached_result
             except Exception as e:
-                print(f"Warning: Could not load pipeline results from cache: {str(e)}")
+                self.log_info(f"Warning: Could not load pipeline results from cache: {str(e)}")
 
         # Load data
         df = self.load_historical_races(
@@ -782,7 +1012,7 @@ class FeatureEmbeddingOrchestrator:
             date_filter=date_filter,
             use_cache=use_cache
         )
-        print(f"Loaded {len(df)} participant records from {df['comp'].nunique()} races")
+        self.log_info(f"Loaded {len(df)} participant records from {df['comp'].nunique()} races")
 
         # Store pipeline parameters
         self.preprocessing_params.update({
@@ -791,31 +1021,42 @@ class FeatureEmbeddingOrchestrator:
             'race_count': df['comp'].nunique()
         })
 
-        # Prepare features with embeddings
+        # Prepare features with embeddings and optional cleaning
         features_df = self.prepare_features(df, use_cache=use_cache)
 
+        # Apply embeddings if not already applied
+        if not any(col.startswith(('horse_emb_', 'jockey_emb_')) for col in features_df.columns):
+            features_df = self.apply_embeddings(features_df,
+                                                use_cache=use_cache,
+                                                clean_after_embedding=clean_embeddings,
+                                                keep_identifiers=race_group_split)
+        elif clean_embeddings:
+            # If embeddings already exist but we want to clean
+            features_df = self.drop_embedded_raw_features(features_df,
+                                                          keep_identifiers=race_group_split)
+
         # Prepare training dataset
-        print("Preparing training dataset...")
+        self.log_info("Preparing training dataset...")
         if race_group_split:
             X, y, groups = self.prepare_training_dataset(
                 features_df, task_type=task_type, race_group_split=True
             )
-            print(
+            self.log_info(
                 f"Dataset prepared with {X.shape[1]} features and {len(y)} samples across {len(groups.unique())} races")
         else:
             X, y = self.prepare_training_dataset(features_df, task_type=task_type)
             groups = None
-            print(f"Dataset prepared with {X.shape[1]} features and {len(y)} samples")
+            self.log_info(f"Dataset prepared with {X.shape[1]} features and {len(y)} samples")
 
         # Split for training, validation, and testing
-        print("Splitting dataset...")
+        self.log_info("Splitting dataset...")
         X_train, X_val, X_test, y_train, y_val, y_test = self.split_dataset(
             X, y, test_size=test_size, val_size=val_size, random_state=random_state, groups=groups
         )
 
-        print(f"Training set: {X_train.shape[0]} samples")
-        print(f"Validation set: {X_val.shape[0]} samples")
-        print(f"Test set: {X_test.shape[0]} samples")
+        self.log_info(f"Training set: {X_train.shape[0]} samples")
+        self.log_info(f"Validation set: {X_val.shape[0]} samples")
+        self.log_info(f"Test set: {X_test.shape[0]} samples")
 
         # Get feature importance if applicable
         self._check_feature_correlation(X_train, y_train)
@@ -824,573 +1065,263 @@ class FeatureEmbeddingOrchestrator:
         if use_cache:
             try:
                 result = (X_train, X_val, X_test, y_train, y_val, y_test)
-                self.cache_manager.save_dataframe(result, 'pipeline_run', pipeline_key)
+                self.cache_manager.save_dataframe(result, pipeline_key)
             except Exception as e:
-                print(f"Warning: Could not cache pipeline results: {str(e)}")
+                self.log_info(f"Warning: Could not cache pipeline results: {str(e)}")
 
         return X_train, X_val, X_test, y_train, y_val, y_test
 
-    def _check_feature_correlation(self, X, y, top_n=10):
+    # CONSOLIDATED METHODS FROM train_model.py
+
+    def load_or_prepare_data(self, use_cache=True, limit=None, race_filter=None, date_filter=None):
         """
-        Check correlation between features and target.
+        Load or prepare data for training models.
 
         Args:
-            X: Feature DataFrame
-            y: Target Series
-            top_n: Number of top correlated features to display
-        """
-        # Only proceed if y is numeric
-        if not pd.api.types.is_numeric_dtype(y):
-            return
-
-        try:
-            # Create a dataframe with features and target
-            corr_df = X.copy()
-            corr_df['target'] = y
-
-            # Calculate correlation with target
-            correlations = corr_df.corr()['target'].sort_values(ascending=False)
-
-            # Print top features (excluding target itself)
-            print("\nTop correlated features:")
-            for i, (feature, corr) in enumerate(correlations[1:top_n + 1].items()):
-                print(f"  {i + 1}. {feature}: {corr:.4f}")
-
-            # Store feature importances
-            self.preprocessing_params['feature_importances'] = correlations.to_dict()
-
-        except Exception as e:
-            print(f"Could not calculate feature correlations: {str(e)}")
-
-    def save_feature_store(self, X_train, X_val, X_test, y_train, y_val, y_test,
-                           output_dir=None, prefix='', include_embedders=True):
-        """
-        Save a complete feature store with datasets and metadata.
-
-        Args:
-            X_train: Training features DataFrame
-            X_val: Validation features DataFrame
-            X_test: Test features DataFrame
-            y_train: Training targets Series
-            y_val: Validation targets Series
-            y_test: Test targets Series
-            output_dir: Directory to save files (uses configured feature_store_dir if None)
-            prefix: Optional prefix for the feature store directory name
-            include_embedders: Whether to save embedding models
+            use_cache: Whether to use cached data if available
+            limit: Maximum number of races to load
+            race_filter: Filter by race type
+            date_filter: SQL-style date filter
 
         Returns:
-            Path to the created feature store
+            Tuple of (processed_features_df, static_features_df)
         """
-        # Use configured feature store directory if not specified
-        output_dir = output_dir or self.feature_store_dir
+        # Generate cache key for consistent results
+        cache_params = {
+            'limit': limit,
+            'race_filter': race_filter,
+            'date_filter': date_filter,
+            'embedding_dim': self.embedding_dim
+        }
+        cache_key = self._generate_cache_key('training_data', cache_params)
 
-        # Create output directory if it doesn't exist
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Create timestamp for unique naming
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        # Create feature store directory
-        feature_store_dir = os.path.join(output_dir, f"{prefix}feature_store_{timestamp}")
-        os.makedirs(feature_store_dir, exist_ok=True)
-
-        self.log_info(f"Saving feature store to {feature_store_dir}")
-
-        try:
-            # 1. Save datasets as parquet files
-            X_train.to_parquet(os.path.join(feature_store_dir, "X_train.parquet"), index=False)
-            X_val.to_parquet(os.path.join(feature_store_dir, "X_val.parquet"), index=False)
-            X_test.to_parquet(os.path.join(feature_store_dir, "X_test.parquet"), index=False)
-
-            # Save targets based on their type (always as DataFrames with 'target' column)
-            pd.DataFrame({'target': y_train}).to_parquet(os.path.join(feature_store_dir, "y_train.parquet"),
-                                                         index=False)
-            pd.DataFrame({'target': y_val}).to_parquet(os.path.join(feature_store_dir, "y_val.parquet"), index=False)
-            pd.DataFrame({'target': y_test}).to_parquet(os.path.join(feature_store_dir, "y_test.parquet"), index=False)
-
-            # 2. Save embedding models if requested
-            if include_embedders:
-                embedders_path = os.path.join(feature_store_dir, "embedders.pkl")
-                with open(embedders_path, 'wb') as f:
-                    pickle.dump(self.embedders, f)
-
-            # 3. Prepare metadata - with safer handling of categorical columns
-            categorical_features = []
-            for col in X_train.select_dtypes(include=['category']).columns:
-                categorical_features.append(col)
-                # Convert category to string to avoid serialization issues
-                X_train[col] = X_train[col].astype(str)
-                X_val[col] = X_val[col].astype(str)
-                X_test[col] = X_test[col].astype(str)
-
-            # Handle dtypes safely
-            safe_dtypes = {}
-            for col, dtype in X_train.dtypes.items():
-                safe_dtypes[col] = str(dtype)
-
-            metadata = {
-                'created_at': datetime.now().isoformat(),
-                'dataset_info': {
-                    'train_samples': X_train.shape[0],
-                    'val_samples': X_val.shape[0],
-                    'test_samples': X_test.shape[0],
-                    'feature_count': X_train.shape[1],
-                    'feature_names': X_train.columns.tolist(),
-                    'categorical_features': categorical_features,
-                    'numerical_features': [col for col in X_train.select_dtypes(include=['float64', 'int64']).columns],
-                    'embedding_features': [col for col in X_train.columns if '_emb_' in col]
-                },
-                'preprocessing': {
-                    # Convert any non-serializable objects to strings
-                    key: (
-                        str(value) if not isinstance(value, (dict, list, str, int, float, bool, type(None))) else value)
-                    for key, value in self.preprocessing_params.items()
-                },
-                'target_info': self.target_info,
-                'embedding_status': self.embedding_status,
-                'embedding_dim': self.embedding_dim,
-                'column_dtypes': safe_dtypes
-            }
-
-            # Save metadata as JSON with safe serialization
-            with open(os.path.join(feature_store_dir, "metadata.json"), 'w') as f:
-                json.dump(metadata, f, indent=2, default=str)
-
-            # 4. Save feature statistics
-            # Only include numerical columns that can be safely serialized
-            numerical_cols = X_train.select_dtypes(include=['float64', 'int64']).columns
-            feature_stats = {}
-
-            if len(numerical_cols) > 0:
-                feature_stats = {
-                    'mean': X_train[numerical_cols].mean().to_dict(),
-                    'std': X_train[numerical_cols].std().to_dict(),
-                    'min': X_train[numerical_cols].min().to_dict(),
-                    'max': X_train[numerical_cols].max().to_dict()
-                }
-
-            with open(os.path.join(feature_store_dir, "feature_stats.json"), 'w') as f:
-                json.dump(feature_stats, f, indent=2, default=str)
-
-            # 5. Create a README file for the feature store
-            with open(os.path.join(feature_store_dir, "README.md"), 'w') as f:
-                f.write(f"# Feature Store {timestamp}\n\n")
-                f.write("## Dataset Information\n")
-                f.write(f"- Training samples: {X_train.shape[0]}\n")
-                f.write(f"- Validation samples: {X_val.shape[0]}\n")
-                f.write(f"- Test samples: {X_test.shape[0]}\n")
-                f.write(f"- Feature count: {X_train.shape[1]}\n\n")
-
-                f.write("## Embedding Features\n")
-                embedding_cols = [col for col in X_train.columns if '_emb_' in col]
-                for col_type in ['horse_emb_', 'jockey_emb_', 'couple_emb_', 'course_emb_']:
-                    type_cols = [col for col in embedding_cols if col.startswith(col_type)]
-                    if type_cols:
-                        f.write(f"- {col_type.replace('_emb_', '')} embeddings: {len(type_cols)} dimensions\n")
-                f.write("\n")
-
-                f.write("## Files\n")
-                f.write("- `X_train.parquet`, `X_val.parquet`, `X_test.parquet`: Feature datasets\n")
-                f.write("- `y_train.parquet`, `y_val.parquet`, `y_test.parquet`: Target variables\n")
-                f.write("- `embedders.pkl`: Embedding models (if included)\n")
-                f.write("- `metadata.json`: Dataset and preprocessing metadata\n")
-                f.write("- `feature_stats.json`: Statistical information about features\n\n")
-
-                f.write("## Usage\n")
-                f.write("To load this feature store:\n\n")
-                f.write("```python\n")
-                f.write("import pandas as pd\n")
-                f.write("import pickle\n\n")
-                f.write("# Load features\n")
-                f.write("X_train = pd.read_parquet('X_train.parquet')\n")
-                f.write("y_train = pd.read_parquet('y_train.parquet')['target']\n\n")
-                f.write("# Load embedders\n")
-                f.write("with open('embedders.pkl', 'rb') as f:\n")
-                f.write("    embedders = pickle.load(f)\n")
-                f.write("```\n")
-
-            self.log_info(f"Feature store saved successfully to {feature_store_dir}")
-            return feature_store_dir
-
-        except Exception as e:
-            error_msg = f"Error saving feature store: {str(e)}"
-            self.log_info(error_msg)
-
-            # Create simplified feature store without problematic metadata
+        # Try to get from cache
+        if use_cache:
             try:
-                self.log_info("Attempting to save feature store with minimal metadata...")
+                cached_data = self.cache_manager.load_dataframe(cache_key)
+                if cached_data is not None:
+                    self.log_info("Found cached training data")
+                    df_features = cached_data
+                    # Extract static features for RF with new approach
+                    static_columns = [col for col in df_features.columns
+                                      if not col.startswith(('comp', 'idche', 'id', 'cheval', 'ordre_arrivee'))]
+                    static_features_df = df_features[static_columns].astype(float)
+                    return df_features, static_features_df
+            except Exception as e:
+                self.log_info(f"Warning: Could not load from cache: {str(e)}. Loading fresh data...")
 
-                # Save a simplified README
-                with open(os.path.join(feature_store_dir, "README.md"), 'w') as f:
-                    f.write(f"# Feature Store {timestamp}\n\n")
-                    f.write("## Error\n")
-                    f.write(f"An error occurred while saving complete metadata: {str(e)}\n\n")
-                    f.write("Basic feature files were saved, but complete metadata could not be generated.\n")
+        self.log_info(f"Loading historical race data...")
 
-                self.log_info(f"Saved feature store with minimal metadata to {feature_store_dir}")
-                return feature_store_dir
+        # Load raw data
+        df_historical = self.load_historical_races(
+            limit=limit,
+            race_filter=race_filter,
+            date_filter=date_filter,
+            use_cache=use_cache
+        )
 
-            except Exception as e2:
-                self.log_info(f"Failed to save even minimal feature store: {str(e2)}")
-                raise
+        # Process and embed features
+        df_features = self.prepare_features(df_historical, use_cache=use_cache)
+        df_features = self.apply_embeddings(df_features, use_cache=use_cache,
+                                            clean_after_embedding=True, keep_identifiers=True)
 
-    def load_feature_store(self, feature_store_path=None, store_name=None):
+        # Extract static features for models that need them
+        static_columns = [col for col in df_features.columns
+                          if not col.startswith(('comp', 'idche', 'id', 'cheval', 'ordre_arrivee'))]
+        static_features_df = df_features[static_columns].astype(float)
+
+        # Cache the processed data
+        if use_cache:
+            try:
+                self.cache_manager.save_dataframe(df_features, cache_key)
+            except Exception as e:
+                self.log_info(f"Warning: Could not cache processed data: {str(e)}")
+
+        return df_features, static_features_df
+
+    def prepare_sequence_data(self, df, sequence_length=None, step_size=1,
+                              sequential_features=None, static_features=None):
         """
-        Load a previously saved feature store.
-
-        Args:
-            feature_store_path: Path to the feature store directory
-            store_name: Name of a specific feature store in the default directory
-
-        Returns:
-            Tuple of (X_train, X_val, X_test, y_train, y_val, y_test, metadata)
-        """
-        # Determine the feature store path
-        if feature_store_path is None:
-            if store_name is None:
-                # List available feature stores
-                stores = self._list_feature_stores()
-                if not stores:
-                    raise ValueError("No feature stores found in the default directory. Please specify a path or name.")
-                # Use the most recent one
-                feature_store_path = os.path.join(self.feature_store_dir, stores[0])
-                self.log_info(f"Using most recent feature store: {stores[0]}")
-            else:
-                # Find the store by name
-                stores = self._list_feature_stores()
-                matched_stores = [s for s in stores if store_name in s]
-                if not matched_stores:
-                    raise ValueError(f"No feature stores matching '{store_name}' found.")
-                feature_store_path = os.path.join(self.feature_store_dir, matched_stores[0])
-
-        self.log_info(f"Loading feature store from {feature_store_path}")
-
-        try:
-            # Load features
-            X_train = pd.read_parquet(os.path.join(feature_store_path, "X_train.parquet"))
-            X_val = pd.read_parquet(os.path.join(feature_store_path, "X_val.parquet"))
-            X_test = pd.read_parquet(os.path.join(feature_store_path, "X_test.parquet"))
-
-            # Load targets
-            y_train_df = pd.read_parquet(os.path.join(feature_store_path, "y_train.parquet"))
-            y_val_df = pd.read_parquet(os.path.join(feature_store_path, "y_val.parquet"))
-            y_test_df = pd.read_parquet(os.path.join(feature_store_path, "y_test.parquet"))
-
-            # Extract target series
-            y_train = y_train_df['target']
-            y_val = y_val_df['target']
-            y_test = y_test_df['target']
-
-            # Load metadata
-            metadata = {}
-            metadata_path = os.path.join(feature_store_path, "metadata.json")
-            if os.path.exists(metadata_path):
-                with open(metadata_path, 'r') as f:
-                    metadata = json.load(f)
-
-            # Restore categorical columns if indicated in metadata
-            if 'dataset_info' in metadata and 'categorical_features' in metadata['dataset_info']:
-                for col in metadata['dataset_info']['categorical_features']:
-                    if col in X_train.columns:
-                        # Convert strings back to category type
-                        X_train[col] = X_train[col].astype('category')
-                        X_val[col] = X_val[col].astype('category')
-                        X_test[col] = X_test[col].astype('category')
-
-            # Update preprocessing parameters if available
-            if 'preprocessing' in metadata:
-                self.preprocessing_params.update(metadata['preprocessing'])
-
-            # Update target info if available
-            if 'target_info' in metadata:
-                self.target_info = metadata['target_info']
-
-            # Update embedding status if available
-            if 'embedding_status' in metadata:
-                self.embedding_status = metadata['embedding_status']
-
-            # Update embedding dimension if available
-            if 'embedding_dim' in metadata:
-                self.embedding_dim = metadata['embedding_dim']
-
-            # Try to load embedders if available
-            embedders = None
-            embedders_path = os.path.join(feature_store_path, "embedders.pkl")
-            if os.path.exists(embedders_path):
-                try:
-                    with open(embedders_path, 'rb') as f:
-                        embedders = pickle.load(f)
-
-                    # Update orchestrator with loaded embedders
-                    if embedders:
-                        self.embedders = embedders
-                        self.log_info("Loaded embedders from feature store")
-                except Exception as e:
-                    self.log_info(f"Failed to load embedders: {str(e)}")
-
-            self.log_info("Feature store loaded successfully")
-            return X_train, X_val, X_test, y_train, y_val, y_test, metadata
-
-        except Exception as e:
-            error_msg = f"Error loading feature store: {str(e)}"
-            self.log_info(error_msg)
-            raise ValueError(error_msg)
-
-    def _list_feature_stores(self):
-        """
-        List available feature stores in the configured directory.
-
-        Returns:
-            List of feature store names, sorted by most recent first
-        """
-        if not os.path.exists(self.feature_store_dir):
-            return []
-
-        # Get all feature store directories
-        stores = [d for d in os.listdir(self.feature_store_dir)
-                  if os.path.isdir(os.path.join(self.feature_store_dir, d))
-                  and d.startswith('feature_store_')]
-
-        # Sort by timestamp (most recent first)
-        stores.sort(reverse=True)
-
-        return stores
-
-    def load_lstm_feature_store(self, feature_store_path=None, store_name=None):
-        """
-        Load a previously saved LSTM feature store with sequence data.
-
-        Args:
-            feature_store_path: Path to the LSTM feature store directory
-            store_name: Name of a specific LSTM feature store in the default directory
-
-        Returns:
-            Tuple of (X_seq_train, X_seq_val, X_seq_test, X_static_train, X_static_val, X_static_test,
-                     y_train, y_val, y_test, metadata)
-        """
-        # Set the LSTM feature stores directory
-        lstm_feature_dir = os.path.join(self.feature_store_dir, 'lstm')
-
-        # Determine the feature store path
-        if feature_store_path is None:
-            if store_name is None:
-                # List available feature stores
-                if not os.path.exists(lstm_feature_dir):
-                    raise ValueError("No LSTM feature stores directory found. Please specify a path or name.")
-
-                stores = [d for d in os.listdir(lstm_feature_dir)
-                          if os.path.isdir(os.path.join(lstm_feature_dir, d))
-                          and d.startswith('lstm_feature_store_')]
-
-                if not stores:
-                    raise ValueError(
-                        "No LSTM feature stores found in the default directory. Please specify a path or name.")
-
-                # Sort by timestamp (most recent first)
-                stores.sort(reverse=True)
-
-                # Use the most recent one
-                feature_store_path = os.path.join(lstm_feature_dir, stores[0])
-                self.log_info(f"Using most recent LSTM feature store: {stores[0]}")
-            else:
-                # Find the store by name
-                if not os.path.exists(lstm_feature_dir):
-                    raise ValueError("No LSTM feature stores directory found. Please specify a path.")
-
-                stores = [d for d in os.listdir(lstm_feature_dir)
-                          if os.path.isdir(os.path.join(lstm_feature_dir, d))
-                          and d.startswith('lstm_feature_store_')]
-
-                matched_stores = [s for s in stores if store_name in s]
-                if not matched_stores:
-                    raise ValueError(f"No LSTM feature stores matching '{store_name}' found.")
-
-                feature_store_path = os.path.join(lstm_feature_dir, matched_stores[0])
-
-        self.log_info(f"Loading LSTM feature store from {feature_store_path}")
-
-        try:
-            # Load sequence features
-            X_seq_train = np.load(os.path.join(feature_store_path, "X_seq_train.npy"))
-            X_seq_val = np.load(os.path.join(feature_store_path, "X_seq_val.npy"))
-            X_seq_test = np.load(os.path.join(feature_store_path, "X_seq_test.npy"))
-
-            # Load static features
-            X_static_train = np.load(os.path.join(feature_store_path, "X_static_train.npy"))
-            X_static_val = np.load(os.path.join(feature_store_path, "X_static_val.npy"))
-            X_static_test = np.load(os.path.join(feature_store_path, "X_static_test.npy"))
-
-            # Load targets
-            y_train = np.load(os.path.join(feature_store_path, "y_train.npy"))
-            y_val = np.load(os.path.join(feature_store_path, "y_val.npy"))
-            y_test = np.load(os.path.join(feature_store_path, "y_test.npy"))
-
-            # Load metadata
-            metadata = {}
-            metadata_path = os.path.join(feature_store_path, "metadata.json")
-            if os.path.exists(metadata_path):
-                with open(metadata_path, 'r') as f:
-                    metadata = json.load(f)
-
-            # Update sequence parameters if available
-            if 'sequence_length' in metadata:
-                self.preprocessing_params['sequence_length'] = metadata['sequence_length']
-
-            if 'feature_columns' in metadata:
-                self.preprocessing_params['feature_columns'] = metadata['feature_columns']
-
-            self.log_info("LSTM feature store loaded successfully")
-            return (X_seq_train, X_seq_val, X_seq_test,
-                    X_static_train, X_static_val, X_static_test,
-                    y_train, y_val, y_test, metadata)
-
-        except Exception as e:
-            error_msg = f"Error loading LSTM feature store: {str(e)}"
-            self.log_info(error_msg)
-            raise ValueError(error_msg)
-    def clear_cache(self):
-        """
-        Clear all cached data.
-        """
-        try:
-            # Call appropriate method based on CacheManager implementation
-            self.cache_manager.clear_cache()
-            print("Cache cleared successfully.")
-        except Exception as e:
-            print(f"Warning: Could not clear cache: {str(e)}")
-
-    def prepare_sequence_data(self, df: pd.DataFrame, sequence_length=5, step_size=1,
-                              feature_columns=None, ignore_columns=None, group_by='idche') -> Tuple:
-        """
-        Prepare sequential data for LSTM training by grouping by horse ID and creating sequences.
+        Enhanced method for preparing sequential data for LSTM training that combines
+        functionality from both the orchestrator and train_model.py.
 
         Args:
             df: DataFrame with race and participant data
-            sequence_length: Number of races to include in each sequence
+            sequence_length: Number of races to include in each sequence (overrides instance value)
             step_size: Step size for sliding window
-            feature_columns: Specific columns to use as features (None=auto-select)
-            ignore_columns: Columns to exclude from features
-            group_by: Column to group by for sequence creation (default: 'idche')
+            sequential_features: List of features to use in sequences (None=auto-select)
+            static_features: List of static features to include (None=auto-select)
 
         Returns:
-            Tuple of (X_sequences, static_features, targets)
+            Tuple of (sequences, static_features, targets)
         """
-        self.log_info(f"Preparing sequence data with length={sequence_length}, group_by={group_by}")
+        # Use instance sequence_length if not specified
+        if sequence_length is None:
+            sequence_length = self.sequence_length
 
-        # Default columns to exclude
-        default_ignore = [
-            'comp', 'cheval', 'ordre_arrivee', 'participants', 'created_at', 'jour',
-            'prix', 'reun', 'final_position', 'quinte', 'proprietaire',
-            'musiqueche', 'musiquejoc', 'cl', 'narrivee'
-        ]
+        self.log_info(f"Preparing sequence data with length={sequence_length}")
 
-        # Combine with additional exclusions
-        ignore_list = default_ignore + (ignore_columns or [])
+        # If feature lists not provided, use sensible defaults
+        if sequential_features is None:
+            sequential_features = [
+                'final_position', 'cotedirect', 'dist',
+                # Include embeddings if available
+                *[col for col in df.columns if col.startswith('horse_emb_')][:3],
+                *[col for col in df.columns if col.startswith('jockey_emb_')][:3]
+            ]
+            # Add musique-derived features if available
+            for prefix in ['che_global_', 'che_weighted_']:
+                for feature in ['avg_pos', 'recent_perf', 'consistency', 'pct_top3']:
+                    col = f"{prefix}{feature}"
+                    if col in df.columns:
+                        sequential_features.append(col)
 
-        # Select feature columns
-        if feature_columns is None:
-            # Auto-select all columns except those in ignore_list and the target
-            feature_columns = [col for col in df.columns if
-                               col not in ignore_list and col != self.target_info['column']]
+        if static_features is None:
+            static_features = [
+                'age', 'temperature', 'natpis', 'typec', 'meteo', 'corde',
+                # Include embeddings if available (ones not used in sequential)
+                *[col for col in df.columns if col.startswith('couple_emb_')][:3],
+                *[col for col in df.columns if col.startswith('course_emb_')][:3]
+            ]
 
-        # Ensure target column exists
-        target_column = self.target_info['column']
-        if target_column not in df.columns:
-            raise ValueError(f"Target column '{target_column}' not found in DataFrame")
+        # Ensure required columns exist
+        required_cols = ['idche', 'jour']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Required columns missing: {missing_cols}")
 
-        # Sort by date if available
-        if 'jour' in df.columns:
-            df = df.sort_values(['idche', 'jour'])
+        # Filter to only include columns that exist in the dataframe
+        sequential_features = [col for col in sequential_features if col in df.columns]
+        static_features = [col for col in static_features if col in df.columns]
 
-        # Convert all features to numeric (required for LSTM)
-        for col in feature_columns:
-            if not pd.api.types.is_numeric_dtype(df[col]):
-                try:
-                    df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-                except:
-                    self.log_info(f"Warning: Could not convert {col} to numeric, using one-hot encoding")
-                    # Use one-hot encoding for categorical features
-                    if df[col].dtype.name == 'category' or df[col].dtype == 'object':
-                        one_hot = pd.get_dummies(df[col], prefix=col, dummy_na=True)
-                        df = pd.concat([df, one_hot], axis=1)
-                        # Remove original column
-                        feature_columns.remove(col)
-                        # Add new one-hot columns
-                        feature_columns.extend(one_hot.columns.tolist())
+        self.log_info(f"Sequential features ({len(sequential_features)}): {sequential_features}")
+        self.log_info(f"Static features ({len(static_features)}): {static_features}")
 
-        # Normalize features
-        scaler = StandardScaler()
-        df[feature_columns] = scaler.fit_transform(df[feature_columns])
+        # Sort by date
+        df = df.sort_values(['idche', 'jour'])
 
-        # Store the scaler for later use
-        self.preprocessing_params['sequence_scaler'] = scaler
-        self.preprocessing_params['feature_columns'] = feature_columns
+        # Ensure all features are numeric
+        for col in sequential_features + static_features:
+            if col in df.columns and not pd.api.types.is_numeric_dtype(df[col]):
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
-        # Group by horse ID or other specified column
-        groups = df.groupby(group_by)
-
-        # Initialize lists to store results
+        # Group by horse ID
         sequences = []
+        static_feature_data = []
         targets = []
-        static_features = []  # For non-sequential features
 
-        # Identify static features (features that don't change for a horse)
-        static_feature_candidates = ['age', 'handicapPoids', 'gainsCarriere']
-        static_feature_cols = [col for col in static_feature_candidates if col in feature_columns]
+        # Get target column from configuration
+        target_column = self.target_info.get('column', 'final_position')
+        if target_column not in df.columns:
+            if 'final_position' in df.columns:
+                target_column = 'final_position'
+            elif 'cl' in df.columns:
+                target_column = 'cl'
+            else:
+                raise ValueError(f"Target column not found in DataFrame")
 
-        # Identify embedding features
-        embedding_cols = [col for col in feature_columns if '_emb_' in col]
+        for horse_id, horse_data in df.groupby('idche'):
+            # Sort by date to ensure chronological order
+            horse_races = horse_data.sort_values('jour')
 
-        # Create sequences
-        sequence_count = 0
-        for _, group in groups:
-            if len(group) < sequence_length + 1:  # Need at least sequence_length+1 races
-                continue
+            # Only process horses with enough races
+            if len(horse_races) >= sequence_length + 1:
+                # Get sequence features
+                seq_features = horse_races[sequential_features].values.astype(np.float32)
 
-            # Sort by date if available
-            if 'jour' in group.columns:
-                group = group.sort_values('jour')
+                # Get last static features (from most recent race)
+                static_feat = horse_races[static_features].iloc[-1].values.astype(np.float32)
 
-            # Extract features and targets
-            features = group[feature_columns].values
-            target_values = group[target_column].values
-
-            # Create sequences with sliding window
-            for i in range(0, len(group) - sequence_length, step_size):
-                if i + sequence_length < len(group):
-                    # Extract sequence
-                    seq = features[i:i + sequence_length]
-
-                    # Extract static features (from last race in sequence)
-                    if static_feature_cols or embedding_cols:
-                        static_feat_idx = min(i + sequence_length, len(group) - 1)
-                        static_feat = np.concatenate([
-                            group.iloc[static_feat_idx][static_feature_cols].values,
-                            group.iloc[static_feat_idx][embedding_cols].values
-                        ])
-                    else:
-                        static_feat = np.array([])
-
-                    # Extract target (next race after sequence)
-                    target = target_values[i + sequence_length]
-
-                    # Add to result lists
+                # Create sequences with sliding window
+                for i in range(len(horse_races) - sequence_length):
+                    # Sequence
+                    seq = seq_features[i:i + sequence_length]
                     sequences.append(seq)
-                    static_features.append(static_feat)
-                    targets.append(target)
-                    sequence_count += 1
 
-        self.log_info(f"Created {sequence_count} sequences from {len(groups)} {group_by} entities")
+                    # Static features (same for all sequences of this horse)
+                    static_feature_data.append(static_feat)
+
+                    # Target (position in next race)
+                    if target_column in horse_races.columns:
+                        target_value = horse_races.iloc[i + sequence_length][target_column]
+                        # Convert to float and handle non-numeric values
+                        try:
+                            target_value = float(target_value)
+                        except (ValueError, TypeError):
+                            # For DNF or other non-numeric results, use a high value
+                            target_value = 99.0
+                        targets.append(target_value)
+                    else:
+                        raise ValueError(f"Target column '{target_column}' not found")
 
         # Convert to numpy arrays
-        if sequences:
-            X_sequences = np.array(sequences)
-            X_static = np.array(static_features)
-            y = np.array(targets)
+        if not sequences:
+            raise ValueError("No valid sequences could be created. Check data quality and sequence length.")
 
-            self.log_info(
-                f"Sequence shape: {X_sequences.shape}, Static shape: {X_static.shape}, Target shape: {y.shape}")
-            return X_sequences, X_static, y
-        else:
-            raise ValueError("No valid sequences could be created. Check data quality and sequence_length.")
+        X_sequences = np.array(sequences, dtype=np.float32)
+        X_static = np.array(static_feature_data, dtype=np.float32)
+        y = np.array(targets, dtype=np.float32)
 
+        self.log_info(f"Created {len(sequences)} sequences from {df['idche'].nunique()} horses")
+        self.log_info(f"Sequence shape: {X_sequences.shape}, Static shape: {X_static.shape}, Target shape: {y.shape}")
+
+        # Store feature information
+        self.preprocessing_params.update({
+            'sequence_length': sequence_length,
+            'step_size': step_size,
+            'sequential_features': sequential_features,
+            'static_features': static_features,
+            'target_column': target_column
+        })
+
+        return X_sequences, X_static, y
+
+    def create_hybrid_model(self, sequence_shape, static_shape, lstm_units=64, dropout_rate=0.2):
+        """
+        Create a hybrid model architecture with LSTM for sequential data and dense layers for static features.
+        This consolidates the model creation logic from train_model.py.
+
+        Args:
+            sequence_shape: Shape of sequence input (seq_length, features)
+            static_shape: Number of static features
+            lstm_units: Number of LSTM units
+            dropout_rate: Dropout rate for regularization
+
+        Returns:
+            Dictionary with model components
+        """
+        try:
+            from tensorflow.keras.models import Model
+            from tensorflow.keras.layers import Input, Dense, LSTM, Dropout, concatenate
+            from tensorflow.keras.optimizers import Adam
+        except ImportError:
+            self.log_info("TensorFlow/Keras not available. Cannot create model.")
+            return None
+
+        # LSTM branch
+        sequence_input = Input(shape=(sequence_shape[1], sequence_shape[2]), name='sequence_input')
+        lstm = LSTM(lstm_units, return_sequences=False)(sequence_input)
+        lstm = Dropout(dropout_rate)(lstm)
+
+        # Static features branch
+        static_input = Input(shape=(static_shape[1],), name='static_input')
+        static_dense = Dense(32, activation='relu')(static_input)
+        static_dense = Dropout(dropout_rate)(static_dense)
+
+        # Combine branches
+        combined = concatenate([lstm, static_dense])
+
+        # Output layers
+        dense = Dense(32, activation='relu')(combined)
+        dense = Dropout(dropout_rate)(dense)
+        output = Dense(1, activation='linear')(dense)
+
+        # Create model
+        model = Model(inputs=[sequence_input, static_input], outputs=output)
+        model.compile(optimizer=Adam(learning_rate=0.001), loss='mse', metrics=['mae'])
+
+        return {
+            'lstm': model,
+            'sequence_input': sequence_input,
+            'static_input': static_input
+        }
