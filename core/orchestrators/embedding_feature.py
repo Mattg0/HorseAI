@@ -434,14 +434,17 @@ class FeatureEmbeddingOrchestrator:
         if target_column not in df.columns:
             raise ValueError(f"Target column '{target_column}' not found in DataFrame")
 
-        if task_type == 'regression':
-            # For regression (e.g., predicting finish position as a number)
-            # Convert positions to numeric, handling non-numeric values
-            y = pd.to_numeric(df[target_column], errors='coerce')
+        # First, convert the raw values to numeric using our specialized converter
+        # This handles all the race-specific codes properly regardless of task type
+        self.log_info(f"Converting target column '{target_column}' using specialized race result conversion")
+        numeric_results = self.convert_race_results_to_numeric(df[target_column], drop_empty=False)
 
-            # Fill NaN values with a high number (effectively placing non-finishers last)
-            max_pos = y.max()
-            y.fillna(max_pos + 1, inplace=True)
+        # Convert to Series with original index
+        numeric_positions = pd.Series(numeric_results, index=df.index)
+        # Now process according to task type
+        if task_type == 'regression':
+            # For regression, we can directly use the numeric positions
+            return numeric_positions
 
         elif task_type == 'classification':
             # For classification (e.g., predicting win/place/show)
@@ -467,7 +470,8 @@ class FeatureEmbeddingOrchestrator:
         elif task_type == 'ranking':
             # For ranking models (e.g., learning to rank horses within a race)
             # First, convert positions to numeric
-            y = pd.to_numeric(df[target_column], errors='coerce')
+            numeric_results, valid_mask = self.convert_race_results_to_numeric(df[target_column])
+            y = pd.Series(numeric_results, index=df.index)
 
             # Group by race ID to get the race context
             race_groups = df.groupby('comp')
@@ -478,7 +482,7 @@ class FeatureEmbeddingOrchestrator:
             for comp, group in race_groups:
                 # Rank horses within the race (lower position is better)
                 group = group.copy()
-                group['rank'] = group[target_column].rank(method='min', na_option='bottom')
+                group['rank'] = y[group.index].rank(method='min', na_option='bottom')
                 race_contexts.append(group)
 
             # Combine all groups back
@@ -492,20 +496,115 @@ class FeatureEmbeddingOrchestrator:
 
         return y
 
-    def drop_embedded_raw_features(self, df, keep_identifiers=False):
+    def convert_race_results_to_numeric(self, results_array, drop_empty=False):
         """
-        Drop raw features that have already been converted to embeddings.
+        Convert race result values to numeric, preserving meaning of non-numeric codes.
+
+        Args:
+            results_array: Array or Series of race results (mix of numeric positions and status codes)
+            drop_empty: Whether to drop empty strings or convert them to a numeric value
+
+        Returns:
+            if drop_empty=True: tuple of (numeric_array, valid_mask)
+            if drop_empty=False: numeric array with all values converted
+        """
+        # First convert to pandas Series for easier handling
+        results = pd.Series(results_array)
+
+        # Create a mask for empty strings
+        empty_mask = results.astype(str).str.strip() == ''
+        if empty_mask.sum() > 0:
+            self.log_info(f"Found {empty_mask.sum()} empty result values")
+
+        # Get current max numeric value to use as base for non-finishers
+        try:
+            numeric_results = pd.to_numeric(results, errors='coerce')
+            max_position = numeric_results.max()
+            # Use a safe default if max is NaN
+            max_position = 20 if pd.isna(max_position) else max_position
+        except:
+            max_position = 20  # Default if we can't determine max
+
+        # Create a dictionary for mapping special codes
+        special_codes = {
+            # Empty values (if not dropping them)
+            '': max_position + 50,
+
+            # Disqualifications (least bad of non-finishers)
+            'D': max_position + 10,
+            'DI': max_position + 10,
+            'DP': max_position + 10,
+            'DAI': max_position + 10,
+            'DIS': max_position + 10,
+
+            # Retired/Fell (medium bad)
+            'RET': max_position + 20,
+            'TOM': max_position + 20,
+            'ARR': max_position + 20,
+            'FER': max_position + 20,
+
+            # Never started (worst outcome)
+            'NP': max_position + 30,
+            'ABS': max_position + 30
+        }
+
+        # Apply conversions
+        def convert_value(val):
+            # Check for empty strings
+            if isinstance(val, str) and val.strip() == '':
+                return np.nan if drop_empty else special_codes['']
+
+            # If it's already numeric, return as is
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                # If it's a recognized code, map it
+                if isinstance(val, str):
+                    for code, value in special_codes.items():
+                        if code in val.upper():  # Case insensitive matching
+                            return value
+                # Default for any other unrecognized string
+                return max_position + 40
+
+        # Apply conversion to each value
+        numeric_results = np.array([convert_value(val) for val in results])
+
+        # Count non-numeric conversions for logging
+        non_numeric_count = len(results) - sum(1 for x in results if pd.notna(x) and isinstance(x, (int, float)))
+        if non_numeric_count > 0:
+            self.log_info(f"Converted {non_numeric_count} non-numeric results to numeric values")
+
+        if drop_empty:
+            # Create mask of valid (non-empty) entries
+            valid_mask = ~np.isnan(numeric_results)
+            return numeric_results, valid_mask
+        else:
+            # Return just the numeric results
+            return numeric_results
+    def drop_embedded_raw_features(self, df, keep_identifiers=False, clean_features=True):
+        """
+        Drop raw features that have already been converted to embeddings and optionally
+        clean remaining features for model training.
 
         Args:
             df: DataFrame with feature columns
-            keep_identifiers: Whether to keep ID columns (idche, idJockey, etc.) which may be
-                          needed for further processing
+            keep_identifiers: Whether to keep ID columns needed for further processing
+            clean_features: Whether to clean remaining features (convert to numeric, handle NAs)
 
         Returns:
-            DataFrame with raw embedded features removed
+            DataFrame with processed features ready for modeling
         """
         # Make a copy to avoid modifying the input
         clean_df = df.copy()
+
+        # Track modifications for logging
+        modifications = {
+            'dropped_embedded': [],
+            'encoded': [],
+            'converted_to_numeric': [],
+            'dropped_problematic': [],
+            'filled_na': []
+        }
 
         # 1. Check which types of embeddings exist in the dataframe
         has_horse_embeddings = any(col.startswith('horse_emb_') for col in clean_df.columns)
@@ -521,11 +620,11 @@ class FeatureEmbeddingOrchestrator:
             horse_raw_features = [
                 # Performance statistics
                 'victoirescheval', 'placescheval', 'coursescheval', 'gainsCarriere',
-                'pourcVictChevalHippo', 'pourcPlaceChevalHippo',
+                'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'gainsAnneeEnCours',
                 # Derived ratios
                 'ratio_victoires', 'ratio_places', 'gains_par_course', 'perf_cheval_hippo',
                 # Musique-derived features
-                'musiqueche'
+                'musiqueche', 'age'  # age is typically included in horse embeddings
             ]
 
             # Add all che_* columns (global, weighted, bytype)
@@ -533,12 +632,15 @@ class FeatureEmbeddingOrchestrator:
                            col.startswith(('che_global_', 'che_weighted_', 'che_bytype_'))]
             horse_raw_features.extend(che_columns)
 
-            columns_to_drop.extend(horse_raw_features)
+            # Keep track of what's being dropped
+            existing = [col for col in horse_raw_features if col in clean_df.columns]
+            columns_to_drop.extend(existing)
+            modifications['dropped_embedded'].extend(existing)
 
         # Jockey-related raw features
         if has_jockey_embeddings:
             jockey_raw_features = [
-                'pourcVictJockHippo', 'pourcPlaceJockHippo',
+                'pourcVictJockHippo', 'pourcPlaceJockHippo', 'perf_jockey_hippo',
                 'musiquejoc'
             ]
 
@@ -547,7 +649,9 @@ class FeatureEmbeddingOrchestrator:
                            col.startswith(('joc_global_', 'joc_weighted_', 'joc_bytype_'))]
             jockey_raw_features.extend(joc_columns)
 
-            columns_to_drop.extend(jockey_raw_features)
+            existing = [col for col in jockey_raw_features if col in clean_df.columns]
+            columns_to_drop.extend(existing)
+            modifications['dropped_embedded'].extend(existing)
 
         # Couple-related raw features
         if has_couple_embeddings:
@@ -555,28 +659,35 @@ class FeatureEmbeddingOrchestrator:
                 'nbVictCouple', 'nbPlaceCouple', 'nbCourseCouple', 'TxVictCouple',
                 'efficacite_couple', 'regularite_couple', 'progression_couple'
             ]
-            columns_to_drop.extend(couple_raw_features)
+            existing = [col for col in couple_raw_features if col in clean_df.columns]
+            columns_to_drop.extend(existing)
+            modifications['dropped_embedded'].extend(existing)
 
         # Course-related raw features
         if has_course_embeddings:
-            # These are already captured in course embeddings but might be kept as direct features
-            # based on your model requirements. If you're certain they're redundant, uncomment:
-            # course_raw_features = ['hippo', 'natpis', 'dist', 'meteo', 'temperature', 'forceVent', 'directionVent']
-            # columns_to_drop.extend(course_raw_features)
-            pass
+            # These features are likely captured in course embeddings
+            course_raw_features = [
+                'hippo', 'dist', 'typec', 'meteo', 'temperature',
+                'forceVent', 'directionVent', 'natpis', 'pistegp'
+            ]
+            existing = [col for col in course_raw_features if col in clean_df.columns]
+            columns_to_drop.extend(existing)
+            modifications['dropped_embedded'].extend(existing)
 
         # 3. Handle identifiers
         identifiers = ['idche', 'idJockey', 'idEntraineur', 'proprietaire', 'comp', 'couple_id']
 
         if not keep_identifiers:
-            columns_to_drop.extend(identifiers)
+            existing = [col for col in identifiers if col in clean_df.columns]
+            columns_to_drop.extend(existing)
 
         # 4. Add other metadata columns that should generally be excluded from training
         metadata_columns = [
             'cheval', 'ordre_arrivee', 'participants', 'created_at', 'jour',
-            'prix', 'reun', 'quinte', 'cl', 'narrivee'
+            'prix', 'reun', 'final_position', 'quinte', 'narrivee'
         ]
-        columns_to_drop.extend(metadata_columns)
+        existing = [col for col in metadata_columns if col in clean_df.columns]
+        columns_to_drop.extend(existing)
 
         # 5. Only drop columns that actually exist in the dataframe
         columns_to_drop = [col for col in columns_to_drop if col in clean_df.columns]
@@ -587,7 +698,86 @@ class FeatureEmbeddingOrchestrator:
         # Save the list of dropped columns for reference
         self.preprocessing_params['dropped_raw_features'] = columns_to_drop
 
-        self.log_info(f"Dropped {len(columns_to_drop)} raw feature columns that were already embedded")
+        # 7. Clean remaining features if requested
+        if clean_features:
+            # Process each remaining column
+            for col in list(clean_df.columns):  # Use list to avoid modification during iteration
+                # Skip embedding columns - they're already numeric
+                if any(col.startswith(prefix) for prefix in
+                       ['horse_emb_', 'jockey_emb_', 'couple_emb_', 'course_emb_']):
+                    continue
+
+                # Handle empty strings
+                if clean_df[col].dtype == 'object':
+                    empty_count = (clean_df[col] == '').sum()
+                    if empty_count > 0:
+                        clean_df[col] = clean_df[col].replace('', np.nan)
+                        modifications['filled_na'].append(f"{col} ({empty_count} empty strings)")
+
+                # Convert to numeric if possible
+                if not pd.api.types.is_numeric_dtype(clean_df[col]):
+                    try:
+                        # Try converting to numeric
+                        clean_df[col] = pd.to_numeric(clean_df[col], errors='coerce')
+
+                        # Check if conversion produced too many NaNs
+                        na_pct = clean_df[col].isna().mean()
+                        if na_pct > 0.3:  # If more than 30% NaNs after conversion
+                            # For high-cardinality categorical, use label encoding
+                            if col in ['corde', 'reunion', 'course', 'partant']:
+                                # These are likely categorical - create a code version
+                                orig_col = clean_df[col].copy()
+                                clean_df[f"{col}_code"] = orig_col.astype('category').cat.codes
+                                clean_df = clean_df.drop(columns=[col])
+                                modifications['encoded'].append(f"{col} (label encoding)")
+                            else:
+                                # Otherwise drop
+                                clean_df = clean_df.drop(columns=[col])
+                                modifications['dropped_problematic'].append(f"{col} (too many NAs: {na_pct:.1%})")
+                        else:
+                            # Fill remaining NAs with median
+                            median_val = clean_df[col].median()
+                            clean_df[col] = clean_df[col].fillna(median_val)
+                            modifications['converted_to_numeric'].append(col)
+                            if na_pct > 0:
+                                modifications['filled_na'].append(
+                                    f"{col} ({na_pct:.1%} NAs, filled with {median_val:.2f})")
+                    except:
+                        # If conversion fails completely, drop the column
+                        clean_df = clean_df.drop(columns=[col])
+                        modifications['dropped_problematic'].append(f"{col} (cannot convert to numeric)")
+
+                # Fill NAs in numeric columns
+                elif clean_df[col].isna().any():
+                    median_val = clean_df[col].median()
+                    na_count = clean_df[col].isna().sum()
+                    clean_df[col] = clean_df[col].fillna(median_val)
+                    modifications['filled_na'].append(f"{col} ({na_count} NAs, filled with {median_val:.2f})")
+
+            # Final check for any remaining non-numeric columns
+            non_numeric = [col for col in clean_df.columns
+                           if not pd.api.types.is_numeric_dtype(clean_df[col])]
+            if non_numeric:
+                clean_df = clean_df.drop(columns=non_numeric)
+                modifications['dropped_problematic'].extend(non_numeric)
+
+        # Log summary of cleaning
+        self.log_info("\n===== FEATURE PROCESSING SUMMARY =====")
+        total_modifications = 0
+        for category, items in modifications.items():
+            if items:
+                count = len(items)
+                total_modifications += count
+                self.log_info(f"\n{category.replace('_', ' ').title()} ({count}):")
+                # Show first few items if there are many
+                to_show = items if count <= 10 else items[:10] + [f"... and {count - 10} more"]
+                for item in to_show:
+                    self.log_info(f"  - {item}")
+
+        initial_cols = len(df.columns)
+        final_cols = len(clean_df.columns)
+        self.log_info(f"\nTotal modifications: {total_modifications}")
+        self.log_info(f"Final feature count: {final_cols} (reduced from {initial_cols})")
 
         return clean_df
 
@@ -735,7 +925,7 @@ class FeatureEmbeddingOrchestrator:
             df: DataFrame with all data
             target_column: Column to use as the target variable
             task_type: 'regression', 'classification', or 'ranking', if None uses default from config
-            race_group_split: Whether to split by race groups (entire races go to train/val/test)
+            race_group_split: Whether to split by race groups
 
         Returns:
             X: Features DataFrame
@@ -749,13 +939,6 @@ class FeatureEmbeddingOrchestrator:
         # Drop rows with missing target values
         training_df = df.dropna(subset=[target_column])
 
-        # Ensure raw features have been dropped (in case it wasn't done after embedding)
-        if any(col.startswith(('horse_emb_', 'jockey_emb_', 'couple_emb_', 'course_emb_')) for col in
-               training_df.columns):
-            # Keep identifiers at this stage if we need them for grouping
-            keep_ids = race_group_split
-            training_df = self.drop_embedded_raw_features(training_df, keep_identifiers=keep_ids)
-
         # Prepare the target variable
         if task_type == 'ranking':
             y, ranked_df = self.prepare_target_variable(training_df, target_column, task_type)
@@ -763,18 +946,23 @@ class FeatureEmbeddingOrchestrator:
         else:
             y = self.prepare_target_variable(training_df, target_column, task_type)
 
-        # Select feature columns (excluding target and identifier columns)
-        exclude_cols = [target_column]
+        # Process features - drop embedded raw features and clean remaining ones
+        # Keep identifiers if needed for grouping
+        X = self.drop_embedded_raw_features(
+            training_df,
+            keep_identifiers=race_group_split,
+            clean_features=True
+        )
 
-        # Always exclude these columns, even if we kept identifiers earlier
-        exclude_cols.extend(['comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id'])
+        # Exclude target column if it's still in X
+        if target_column in X.columns:
+            X = X.drop(columns=[target_column])
 
-        # Select all remaining columns for training
-        feature_cols = [col for col in training_df.columns if col not in exclude_cols]
-        X_raw = training_df[feature_cols]
-
-        # Clean the feature dataframe for training
-        X = self.clean_feature_dataframe(X_raw)
+        # If we kept identifiers for grouping, exclude them from features
+        identifiers = ['comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id']
+        id_cols_to_drop = [col for col in identifiers if col in X.columns]
+        if id_cols_to_drop:
+            X = X.drop(columns=id_cols_to_drop)
 
         # Store feature columns for consistency in inference
         self.preprocessing_params['feature_columns'] = X.columns.tolist()
@@ -1036,6 +1224,7 @@ class FeatureEmbeddingOrchestrator:
                                                           keep_identifiers=race_group_split)
 
         # Prepare training dataset
+
         self.log_info("Preparing training dataset...")
         if race_group_split:
             X, y, groups = self.prepare_training_dataset(
