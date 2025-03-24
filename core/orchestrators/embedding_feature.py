@@ -917,13 +917,13 @@ class FeatureEmbeddingOrchestrator:
 
         return embedded_df
 
-    def prepare_training_dataset(self, df, target_column='final_position', task_type=None, race_group_split=False):
+    def prepare_training_dataset(self, df, target_column=None, task_type=None, race_group_split=False):
         """
         Prepare the final dataset for training.
 
         Args:
             df: DataFrame with all data
-            target_column: Column to use as the target variable
+            target_column: Column to use as the target variable (None to auto-detect)
             task_type: 'regression', 'classification', or 'ranking', if None uses default from config
             race_group_split: Whether to split by race groups
 
@@ -936,8 +936,27 @@ class FeatureEmbeddingOrchestrator:
         if task_type is None:
             task_type = self.config.get_default_task_type()
 
+        # If target_column is None, auto-detect based on available columns
+        if target_column is None:
+            target_column = self._detect_target_column(df)
+
+        # Check if specified target column exists
+        if target_column not in df.columns:
+            self.log_info(f"Warning: Target column '{target_column}' not found in DataFrame")
+            # Try to find an alternative target column
+            target_column = self._detect_target_column(df)
+
+        self.log_info(f"Using '{target_column}' as target column")
+
         # Drop rows with missing target values
         training_df = df.dropna(subset=[target_column])
+
+        # Ensure raw features have been dropped if embeddings exist
+        if any(col.startswith(('horse_emb_', 'jockey_emb_', 'couple_emb_', 'course_emb_')) for col in
+               training_df.columns):
+            # Keep identifiers at this stage if we need them for grouping
+            keep_ids = race_group_split
+            training_df = self.drop_embedded_raw_features(training_df, keep_identifiers=keep_ids, clean_features=True)
 
         # Prepare the target variable
         if task_type == 'ranking':
@@ -946,26 +965,19 @@ class FeatureEmbeddingOrchestrator:
         else:
             y = self.prepare_target_variable(training_df, target_column, task_type)
 
-        # Process features - drop embedded raw features and clean remaining ones
-        # Keep identifiers if needed for grouping
-        X = self.drop_embedded_raw_features(
-            training_df,
-            keep_identifiers=race_group_split,
-            clean_features=True
-        )
+        # Select feature columns (excluding target and identifier columns)
+        exclude_cols = [target_column]
 
-        # Exclude target column if it's still in X
-        if target_column in X.columns:
-            X = X.drop(columns=[target_column])
+        # Always exclude these columns, even if we kept identifiers earlier
+        exclude_cols.extend(['comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id'])
 
-        # If we kept identifiers for grouping, exclude them from features
-        identifiers = ['comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id']
-        id_cols_to_drop = [col for col in identifiers if col in X.columns]
-        if id_cols_to_drop:
-            X = X.drop(columns=id_cols_to_drop)
+        # Create final feature set
+        feature_cols = [col for col in training_df.columns if col not in exclude_cols]
+        X = training_df[feature_cols]
 
         # Store feature columns for consistency in inference
         self.preprocessing_params['feature_columns'] = X.columns.tolist()
+        self.preprocessing_params['target_column'] = target_column
 
         # Return groups for group-based splitting if requested
         if race_group_split:
@@ -973,6 +985,34 @@ class FeatureEmbeddingOrchestrator:
             return X, y, groups
 
         return X, y
+
+    def _detect_target_column(self, df):
+        """
+        Auto-detect an appropriate target column from the DataFrame.
+
+        Args:
+            df: DataFrame to check
+
+        Returns:
+            Name of detected target column
+        """
+        # Priority order for target columns
+        target_candidates = ['final_position', 'cl', 'narrivee', 'position']
+
+        for candidate in target_candidates:
+            if candidate in df.columns:
+                self.log_info(f"Auto-detected target column: '{candidate}'")
+                return candidate
+
+        # If none of the priority candidates exist, look for anything with position in the name
+        position_cols = [col for col in df.columns if 'position' in col.lower()]
+        if position_cols:
+            self.log_info(f"Using '{position_cols[0]}' as target column")
+            return position_cols[0]
+
+        # Show all columns to help with debugging
+        self.log_info(f"Available columns: {df.columns.tolist()}")
+        raise ValueError("Could not detect an appropriate target column. Please specify target_column explicitly.")
 
     def split_dataset(self, X, y, test_size=0.2, val_size=0.1, random_state=42, groups=None):
         """
@@ -1146,6 +1186,7 @@ class FeatureEmbeddingOrchestrator:
         return cleaned_df
 
     def run_pipeline(self, limit=None, race_filter=None, date_filter=None,
+                     target_column=None,  # Changed to None for auto-detection
                      task_type=None, test_size=0.2, val_size=0.1,
                      race_group_split=False, random_state=42, embedding_dim=None,
                      use_cache=True, clean_embeddings=True):
@@ -1160,8 +1201,12 @@ class FeatureEmbeddingOrchestrator:
             X_train, X_val, X_test, y_train, y_val, y_test
         """
         # Use default task type from config if not specified
+        # Use default task type from config if not specified
         if task_type is None:
             task_type = self.config.get_default_task_type()
+
+        # Initialize groups to None
+        groups = None  # Add this line to initialize groups
 
         # Update embedding dimension if specified
         if embedding_dim is not None and embedding_dim != self.embedding_dim:
@@ -1228,17 +1273,25 @@ class FeatureEmbeddingOrchestrator:
         self.log_info("Preparing training dataset...")
         if race_group_split:
             X, y, groups = self.prepare_training_dataset(
-                features_df, task_type=task_type, race_group_split=True
+                features_df,
+                target_column=target_column,
+                task_type=task_type,
+                race_group_split=True
             )
             self.log_info(
                 f"Dataset prepared with {X.shape[1]} features and {len(y)} samples across {len(groups.unique())} races")
         else:
-            X, y = self.prepare_training_dataset(features_df, task_type=task_type)
-            groups = None
+            X, y = self.prepare_training_dataset(
+                features_df,
+                target_column=target_column,
+                task_type=task_type
+            )
             self.log_info(f"Dataset prepared with {X.shape[1]} features and {len(y)} samples")
 
         # Split for training, validation, and testing
         self.log_info("Splitting dataset...")
+
+        # Only pass groups if race_group_split was True
         X_train, X_val, X_test, y_train, y_val, y_test = self.split_dataset(
             X, y, test_size=test_size, val_size=val_size, random_state=random_state, groups=groups
         )

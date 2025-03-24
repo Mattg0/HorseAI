@@ -10,7 +10,8 @@ from typing import Tuple, Dict, Any, Optional
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-
+# Now - simply import from the package
+from model_training.regressions.isotonic_calibration import CalibratedRegressor, regression_metrics_report, plot_calibration_effect
 # Import consolidated orchestrator
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from utils.env_setup import AppConfig, get_sqlite_dbpath
@@ -123,7 +124,7 @@ class HorseRaceModel:
         # Get RF parameters from configuration
         rf_params = self.training_config['rf_params']
 
-        # Fix the max_features parameter - 'auto' is deprecated, use 'sqrt' instead
+        # Fix the max_features parameter
         if rf_params.get('max_features') == 'auto':
             self.log_info("Warning: 'max_features=auto' is deprecated, using 'sqrt' instead")
             max_features = 'sqrt'
@@ -131,72 +132,97 @@ class HorseRaceModel:
             max_features = rf_params.get('max_features', 'sqrt')  # Default to 'sqrt'
 
         # Create Random Forest model
-        self.rf_model = RandomForestRegressor(
+        from sklearn.ensemble import RandomForestRegressor
+        base_rf = RandomForestRegressor(
             n_estimators=rf_params.get('n_estimators', 100),
             max_depth=rf_params.get('max_depth', None),
             min_samples_split=rf_params.get('min_samples_split', 2),
             min_samples_leaf=rf_params.get('min_samples_leaf', 1),
-            max_features=max_features,  # Use the fixed value
+            max_features=max_features,
             n_jobs=rf_params.get('n_jobs', -1),
             random_state=rf_params.get('random_state', 42)
         )
 
-        # Train the model
+        # Create calibrated regressor (will automatically handle calibration)
+        self.rf_model = CalibratedRegressor(
+            base_regressor=base_rf,
+            # Clip predictions between 1 and highest position
+            clip_min=1.0,
+            clip_max=None  # Will be determined during fitting
+        )
+
+        # Train the model with calibration
         self.log_info(f"Training RF model on {len(X_train)} samples with {X_train.shape[1]} features...")
         start_time = time.time()
-        print(X_train.columns.values)
-        self.rf_model.fit(X_train, y_train)
+
+        # If no validation set, use a portion of training data for calibration
+        if X_val is None or y_val is None:
+            self.rf_model.fit(X_train, y_train)
+        else:
+            # Use validation set for calibration
+            self.rf_model.fit(X_train, y_train, X_calib=X_val, y_calib=y_val)
 
         training_time = time.time() - start_time
         self.log_info(f"RF model training completed in {training_time:.2f} seconds")
 
-        # Calculate performance metrics
-        train_pred = self.rf_model.predict(X_train)
-        train_rmse = np.sqrt(mean_squared_error(y_train, train_pred))
-        train_mae = mean_absolute_error(y_train, train_pred)
-        train_r2 = r2_score(y_train, train_pred)
+        # Evaluate performance
+        train_metrics = self.rf_model.evaluate(X_train, y_train)
+        self.log_info("\nTraining set performance:")
+        self.log_info(f"  Uncalibrated - RMSE: {train_metrics['raw_rmse']:.4f}, MAE: {train_metrics['raw_mae']:.4f}")
+        self.log_info(
+            f"  Calibrated - RMSE: {train_metrics['calibrated_rmse']:.4f}, MAE: {train_metrics['calibrated_mae']:.4f}")
 
-        self.log_info(f"RF Training metrics - RMSE: {train_rmse:.4f}, MAE: {train_mae:.4f}, R²: {train_r2:.4f}")
-
-        # Calculate validation metrics if validation data is provided
         if X_val is not None and y_val is not None:
-            val_pred = self.rf_model.predict(X_val)
-            val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))
-            val_mae = mean_absolute_error(y_val, val_pred)
-            val_r2 = r2_score(y_val, val_pred)
+            val_metrics = self.rf_model.evaluate(X_val, y_val)
+            self.log_info("\nValidation set performance:")
+            self.log_info(f"  Uncalibrated - RMSE: {val_metrics['raw_rmse']:.4f}, MAE: {val_metrics['raw_mae']:.4f}")
+            self.log_info(
+                f"  Calibrated - RMSE: {val_metrics['calibrated_rmse']:.4f}, MAE: {val_metrics['calibrated_mae']:.4f}")
 
-            self.log_info(f"RF Validation metrics - RMSE: {val_rmse:.4f}, MAE: {val_mae:.4f}, R²: {val_r2:.4f}")
+            # Generate calibration effect plot
+            logs_path = Path(self.model_paths['logs'])
+            logs_path.mkdir(parents=True, exist_ok=True)
+            plot_path = logs_path / f'calibration_effect_{self.db_type}.png'
 
-        # Calculate feature importance
-        feature_importance = pd.DataFrame({
-            'feature': X_train.columns,
-            'importance': self.rf_model.feature_importances_
-        }).sort_values('importance', ascending=False)
+            # Get raw and calibrated predictions
+            raw_preds = self.rf_model.predict_raw(X_val)
+            cal_preds = self.rf_model.predict(X_val)
 
-        self.log_info("\nTop feature importance for RF model:")
-        for i, (feature, importance) in enumerate(
-                zip(feature_importance['feature'][:10], feature_importance['importance'][:10])
-        ):
-            self.log_info(f"{i + 1}. {feature}: {importance:.4f}")
+            # Create plot
+            plot_calibration_effect(
+                raw_preds, cal_preds, y_val.values,
+                save_path=str(plot_path)
+            )
+            self.log_info(f"Calibration effect plot saved to {plot_path}")
 
-        # Save feature importance
-        importance_path = Path(self.model_paths['logs']) / f'rf_feature_importance_{self.db_type}.csv'
-        importance_path.parent.mkdir(parents=True, exist_ok=True)
-        feature_importance.to_csv(importance_path, index=False)
+        # Calculate and display feature importance
+        base_regressor = self.rf_model.base_regressor
+        if hasattr(base_regressor, 'feature_importances_'):
+            feature_importance = pd.DataFrame({
+                'feature': X_train.columns,
+                'importance': base_regressor.feature_importances_
+            }).sort_values('importance', ascending=False)
+
+            self.log_info("\nTop feature importance for RF model:")
+            for i, (feature, importance) in enumerate(
+                    zip(feature_importance['feature'][:10], feature_importance['importance'][:10])
+            ):
+                self.log_info(f"{i + 1}. {feature}: {importance:.4f}")
+
+            # Save feature importance
+            importance_path = Path(self.model_paths['logs']) / f'rf_feature_importance_{self.db_type}.csv'
+            importance_path.parent.mkdir(parents=True, exist_ok=True)
+            feature_importance.to_csv(importance_path, index=False)
+            self.log_info(f"Feature importance saved to {importance_path}")
 
         # Store model in models dictionary
         self.models['rf'] = self.rf_model
 
         # Store performance metrics
         self.models['rf_metrics'] = {
-            'train_rmse': train_rmse,
-            'train_mae': train_mae,
-            'train_r2': train_r2,
-            'val_rmse': val_rmse if X_val is not None else None,
-            'val_mae': val_mae if X_val is not None else None,
-            'val_r2': val_r2 if X_val is not None else None,
-            'feature_importance': feature_importance.to_dict(),
-            'training_time': training_time
+            'training_time': training_time,
+            'train_metrics': train_metrics,
+            'val_metrics': val_metrics if X_val is not None else None,
         }
 
     def train_lstm_model(self, X_sequences, X_static, y_targets) -> None:
@@ -418,7 +444,7 @@ class HorseRaceModel:
         return results
 
     def train(self, limit=None, race_filter=None, date_filter=None,
-              use_cache=True, train_rf=True, train_lstm=True) -> None:
+              use_cache=True, train_rf=True, train_lstm=True):
         """
         Train either or both models based on parameters.
 
@@ -444,13 +470,16 @@ class HorseRaceModel:
                 clean_embeddings=True
             )
 
-            # Train the RF model
+            # Train the RF model with integrated calibration (CalibratedRegressor handles calibration now)
             self.train_rf_model(X_train, y_train, X_val, y_val)
+
+            # No need for separate calibration since it's now integrated into the CalibratedRegressor
+            # REMOVE THIS LINE: self.calibrate_predictions(X_val, y_val, X_test, y_test)
 
             # Evaluate on test set
             self.evaluate_models(X_test, y_test)
 
-        # Train LSTM model if requested
+        # Continue with LSTM training as before...
         if train_lstm:
             try:
                 # Get data for sequential model
@@ -518,20 +547,25 @@ class HorseRaceModel:
 
         self.log_info(f"Saving models to: {save_dir}")
 
-        # Save RF model
+        # Save RF model (now using CalibratedRegressor's save method)
         if save_rf and self.rf_model is not None:
             rf_path = save_dir / self.model_paths['artifacts']['rf_model']
 
-            # Add model metadata
-            rf_metadata = {
-                'model': self.rf_model,
-                'version': version,
-                'features': self.data_orchestrator.preprocessing_params.get('feature_columns', []),
-                'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'metrics': self.models.get('rf_metrics', {})
-            }
-            joblib.dump(rf_metadata, rf_path)
-            self.log_info(f"Saved RF model with metadata to: {rf_path}")
+            if hasattr(self.rf_model, 'save'):
+                # Use CalibratedRegressor's save method
+                self.rf_model.save(rf_path)
+                self.log_info(f"Saved calibrated RF model to: {rf_path}")
+            else:
+                # Fallback to traditional joblib dump with metadata
+                rf_metadata = {
+                    'model': self.rf_model,
+                    'version': version,
+                    'features': self.data_orchestrator.preprocessing_params.get('feature_columns', []),
+                    'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'metrics': self.models.get('rf_metrics', {})
+                }
+                joblib.dump(rf_metadata, rf_path)
+                self.log_info(f"Saved RF model with metadata to: {rf_path}")
 
         # Save LSTM model
         if save_lstm and self.lstm_model is not None:
@@ -713,7 +747,7 @@ def main():
         limit=args.limit,
         race_filter=args.race_type,
         date_filter=args.date_filter,
-        use_cache=not args.no_cache,
+        use_cache=args.no_cache,
         train_rf=train_rf,
         train_lstm=train_lstm
     )

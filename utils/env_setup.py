@@ -209,11 +209,48 @@ class AppConfig:
         """
         return self._config.features.features_dir
 
-    def get_model_paths(self) -> str:
+    def get_model_paths(config, model_name: str = 'hybrid') -> Dict[str, Any]:
         """
-        Get model directory path
+        Get model paths based on model name.
+
+        Args:
+            config: Configuration
+            model_name: Name of the model architecture
+
+        Returns:
+            Dictionary of model paths
         """
-        return self._config.models.model_dir
+        # Get model dir based on config structure
+        model_dir = None
+
+        # Try different ways to access model_dir based on config structure
+        if isinstance(config, dict):
+            if 'models' in config and 'model_dir' in config['models']:
+                model_dir = config['models']['model_dir']
+        elif hasattr(config, 'models'):
+            if hasattr(config.models, 'model_dir'):
+                model_dir = config.models.model_dir
+
+        # If model_dir not found, use default
+        if not model_dir:
+            model_dir = './models'
+
+        # Define paths
+        model_paths = {
+            'model_path': os.path.join(model_dir, model_name),
+            'logs': os.path.join(model_dir, model_name, 'logs'),
+            'artifacts': {
+                'rf_model': f"{model_name}_rf_model.joblib",
+                'lstm_model': f"{model_name}_lstm_model",
+                'feature_engineer': f"{model_name}_feature_engineer.joblib"
+            }
+        }
+
+        # Ensure directories exist
+        for path in [model_paths['model_path'], model_paths['logs']]:
+            os.makedirs(path, exist_ok=True)
+
+        return model_paths
 
     def get_default_embedding_dim(self) -> int:
         """
