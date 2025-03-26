@@ -210,13 +210,12 @@ class RaceFetcher:
 
         return races
 
-    def _extract_race_info(self, participants: List[Dict], processed_df: Optional[pd.DataFrame] = None) -> Dict:
+    def _extract_race_info(self, participants: List[Dict]) -> Dict:
         """
         Extract race information from participants.
 
         Args:
             participants: List of participants
-            processed_df: DataFrame with processed features (optional)
 
         Returns:
             Dictionary with race information
@@ -224,13 +223,36 @@ class RaceFetcher:
         # Get race info from first participant's numcourse
         numcourse = participants[0].get('numcourse', {})
 
-        # Convert processed DataFrame to JSON if provided
-        processed_json = None
-        if processed_df is not None:
-            processed_json = processed_df.to_json(orient='records')
+        # Check if we have arrival information (results)
+        actual_results = None
+        if 'arriv' in numcourse and numcourse['arriv']:
+            # API has race results, parse and store them
+            try:
+                # Parse the arrival data
+                arrival_data = numcourse['arriv']
+
+                # Try to convert to proper format if needed
+                if isinstance(arrival_data, str):
+                    try:
+                        arrival_data = json.loads(arrival_data)
+                    except:
+                        # If not JSON, it might be in another format
+                        arrival_data = {"raw_data": arrival_data}
+
+                # Store the arrival data as JSON string
+                actual_results = json.dumps(arrival_data)
+                self.logger.info(f"Found race results for {numcourse.get('comp')}")
+            except Exception as e:
+                self.logger.warning(f"Error parsing arrival data: {str(e)}")
+                # Store error info
+                actual_results = json.dumps({"status": "error", "message": str(e)})
+        else:
+            # Race hasn't happened yet, store a pending flag
+            actual_results = json.dumps({"status": "pending", "updated_at": datetime.datetime.now().isoformat()})
+            self.logger.info(f"Race {numcourse.get('comp')} hasn't happened yet (no arrival info)")
 
         # Create race record for database
-        return {
+        race_info = {
             'comp': numcourse.get('comp'),
             'jour': numcourse.get('jour'),
             'hippo': numcourse.get('hippo'),
@@ -250,9 +272,10 @@ class RaceFetcher:
             'forceVent': numcourse.get('forceVent'),
             'directionVent': numcourse.get('directionVent'),
             'nebulosite': numcourse.get('nebulositeLibelleCourt'),
-            'raw_data': json.dumps(participants),
-            'processed_data': processed_json
+            'actual_results': actual_results
         }
+
+        return race_info
 
     def store_race(self, race_info: Dict) -> int:
         """
@@ -274,6 +297,15 @@ class RaceFetcher:
         )
         existing = cursor.fetchone()
 
+        # Make sure participants is available
+        participants_json = race_info.get('participants', '[]')
+
+        # Get actual_results
+        actual_results = race_info.get('actual_results', json.dumps({"status": "pending"}))
+
+        # Debug logging
+        self.logger.info(f"Storing race {race_info['comp']} with {participants_json.count('{}')} participant records")
+
         if existing:
             # Update existing record
             query = """
@@ -282,7 +314,7 @@ class RaceFetcher:
                 typec = ?, partant = ?, dist = ?, handi = ?, groupe = ?,
                 quinte = ?, natpis = ?, meteo = ?, corde = ?,
                 temperature = ?, forceVent = ?, directionVent = ?,
-                nebulosite = ?, raw_data = ?, processed_data = ?, updated_at = ?
+                nebulosite = ?, participants = ?, actual_results = ?, updated_at = ?
             WHERE comp = ?
             """
             cursor.execute(query, (
@@ -304,20 +336,20 @@ class RaceFetcher:
                 race_info['forceVent'],
                 race_info['directionVent'],
                 race_info['nebulosite'],
-                race_info['raw_data'],
-                race_info['processed_data'],
+                participants_json,
+                actual_results,
                 datetime.datetime.now().isoformat(),
                 race_info['comp']
             ))
             race_id = existing[0]
         else:
-            # Insert new record
+            # Insert new record with similar fields
             query = """
             INSERT INTO daily_race (
                 comp, jour, hippo, reun, prix, prixnom, typec, partant,
                 dist, handi, groupe, quinte, natpis, meteo, corde,
                 temperature, forceVent, directionVent, nebulosite,
-                raw_data, processed_data, created_at
+                participants, actual_results, created_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             cursor.execute(query, (
@@ -340,8 +372,8 @@ class RaceFetcher:
                 race_info['forceVent'],
                 race_info['directionVent'],
                 race_info['nebulosite'],
-                race_info['raw_data'],
-                race_info['processed_data'],
+                participants_json,
+                actual_results,
                 datetime.datetime.now().isoformat()
             ))
             race_id = cursor.lastrowid
