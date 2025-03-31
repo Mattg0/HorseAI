@@ -168,11 +168,22 @@ class RaceDataConverter:
         # Normalize to list of dictionaries
         raw_data = self._normalize_api_response(json_data)
 
+        # Extract race type from first participant for musique processing
+        race_typec = None
+        if raw_data and 'numcourse' in raw_data[0] and 'typec' in raw_data[0]['numcourse']:
+            race_typec = raw_data[0]['numcourse']['typec']
+            print(f"Race type: {race_typec}")
+
         # Create standardized data with strict field control
         standardized_data = []
         for p in raw_data:
             # Apply strict whitelist filtering
             standardized = self._standardize_field_names(p)
+
+            # Add typec temporarily for feature calculation - will be removed later
+            if race_typec:
+                standardized['typec'] = race_typec
+
             standardized_data.append(standardized)
 
         # Convert to DataFrame
@@ -182,6 +193,11 @@ class RaceDataConverter:
         try:
             processed_df = self.feature_calculator.calculate_all_features(df)
             print(f"Applied static feature calculations on {len(processed_df)} participants")
+
+            # Remove typec from final result if it was temporarily added
+            if 'typec' in processed_df.columns and race_typec:
+                processed_df = processed_df.drop(columns=['typec'])
+
         except Exception as e:
             print(f"Error applying static feature calculations: {str(e)}")
             processed_df = df

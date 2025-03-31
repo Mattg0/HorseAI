@@ -226,30 +226,13 @@ class RaceFetcher:
         # Check if we have arrival information (results)
         actual_results = None
         if 'arriv' in numcourse and numcourse['arriv']:
-            # API has race results, parse and store them
-            try:
-                # Parse the arrival data
-                arrival_data = numcourse['arriv']
-
-                # Try to convert to proper format if needed
-                if isinstance(arrival_data, str):
-                    try:
-                        arrival_data = json.loads(arrival_data)
-                    except:
-                        # If not JSON, it might be in another format
-                        arrival_data = {"raw_data": arrival_data}
-
-                # Store the arrival data as JSON string
-                actual_results = json.dumps(arrival_data)
-                self.logger.info(f"Found race results for {numcourse.get('comp')}")
-            except Exception as e:
-                self.logger.warning(f"Error parsing arrival data: {str(e)}")
-                # Store error info
-                actual_results = json.dumps({"status": "error", "message": str(e)})
+            # Just store the raw arrival data string
+            actual_results = numcourse['arriv']
+            self.logger.info(f"Found race results for {numcourse.get('comp')}: {actual_results}")
         else:
-            # Race hasn't happened yet, store a pending flag
-            actual_results = json.dumps({"status": "pending", "updated_at": datetime.datetime.now().isoformat()})
-            self.logger.info(f"Race {numcourse.get('comp')} hasn't happened yet (no arrival info)")
+            # Race hasn't happened yet, just store "pending"
+            actual_results = "pending"
+            self.logger.info(f"Race {numcourse.get('comp')} hasn't happened yet")
 
         # Create race record for database
         race_info = {
@@ -386,20 +369,21 @@ class RaceFetcher:
     def process_race(self, participants: List[Dict]) -> Dict:
         """
         Process a race using the RaceDataConverter to generate preprocessed features.
-
-        Args:
-            participants: List of participant dictionaries from API
-
-        Returns:
-            Dictionary with race information including processed features
         """
         try:
+            # Extract race info (only pass participants)
+            race_info = self._extract_race_info(participants)
+
             # Use RaceDataConverter to process the data
             processed_df = self.converter.process_race_data(participants)
             self.logger.info(f"Processed {len(processed_df)} participants with {len(processed_df.columns)} features")
 
-            # Extract race info and include processed data
-            race_info = self._extract_race_info(participants, processed_df)
+            # Add processed data to race_info
+            if len(processed_df) > 0:
+                participants_json = processed_df.to_json(orient='records')
+                race_info['participants'] = participants_json
+            else:
+                race_info['participants'] = '[]'  # Empty array if no participants
 
             return {
                 'race_info': race_info,
@@ -408,9 +392,12 @@ class RaceFetcher:
             }
         except Exception as e:
             self.logger.error(f"Error processing race: {str(e)}")
+            import traceback
+            traceback.print_exc()  # Print full stack trace for debugging
 
             # Extract basic race info without processed data
             race_info = self._extract_race_info(participants)
+            race_info['participants'] = '[]'  # Empty JSON array
 
             return {
                 'race_info': race_info,
