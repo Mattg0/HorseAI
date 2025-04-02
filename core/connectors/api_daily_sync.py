@@ -511,23 +511,51 @@ class RaceFetcher:
         conn.row_factory = sqlite3.Row  # This enables column access by name
         cursor = conn.cursor()
 
-        cursor.execute(
-            """SELECT id, comp, jour, hippo, reun, prix, prixnom, typec, 
-                    partant, dist, quinte, natpis, created_at,
-                    CASE WHEN processed_data IS NOT NULL THEN 1 ELSE 0 END as has_processed_data,
-                    CASE WHEN prediction_results IS NOT NULL THEN 1 ELSE 0 END as has_predictions,
-                    CASE WHEN actual_results IS NOT NULL THEN 1 ELSE 0 END as has_results
-               FROM daily_race WHERE jour = ?""",
-            (date,)
-        )
+        # Get table info to check available columns
+        cursor.execute("PRAGMA table_info(daily_race)")
+        columns = [info[1] for info in cursor.fetchall()]  # Column names are in position 1
 
+        # Base columns we always want if they exist
+        base_cols = ["id", "comp", "jour", "hippo", "reun", "prix", "prixnom", "typec",
+                     "partant", "dist", "quinte", "natpis", "created_at"]
+
+        # Filter to include only columns that exist
+        select_cols = [col for col in base_cols if col in columns]
+
+        # Add CASE statements for special indicator columns
+        select_items = select_cols.copy()
+
+        # Check for participants data
+        if "participants" in columns:
+            select_items.append(
+                "CASE WHEN participants IS NOT NULL AND participants != '[]' THEN 1 ELSE 0 END as has_processed_data")
+        else:
+            select_items.append("0 as has_processed_data")
+
+        # Check for predictions
+        if "prediction_results" in columns:
+            select_items.append("CASE WHEN prediction_results IS NOT NULL THEN 1 ELSE 0 END as has_predictions")
+        else:
+            select_items.append("0 as has_predictions")
+
+        # Check for results
+        if "actual_results" in columns:
+            select_items.append(
+                "CASE WHEN actual_results IS NOT NULL AND actual_results != 'pending' THEN 1 ELSE 0 END as has_results")
+        else:
+            select_items.append("0 as has_results")
+
+        # Construct the query
+        query = f"SELECT {', '.join(select_items)} FROM daily_race WHERE jour = ?"
+
+        cursor.execute(query, (date,))
         rows = cursor.fetchall()
 
         # Convert rows to dictionaries
         races = [dict(row) for row in rows]
-
         conn.close()
 
+        self.logger.info(f"Found {len(races)} races for date {date}")
         return races
 
     def get_race_by_comp(self, comp: str) -> Optional[Dict]:
@@ -544,38 +572,29 @@ class RaceFetcher:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM daily_race WHERE comp = ?", (comp,))
+        # Get table info to check available columns
+        cursor.execute("PRAGMA table_info(daily_race)")
+        available_columns = [info[1] for info in cursor.fetchall()]  # Column names are in position 1
 
+        # Execute query
+        cursor.execute("SELECT * FROM daily_race WHERE comp = ?", (comp,))
         row = cursor.fetchone()
 
         if row:
             # Convert row to dict
             race_dict = dict(row)
 
-            # Parse JSON fields
-            if race_dict['raw_data']:
-                try:
-                    race_dict['raw_data'] = json.loads(race_dict['raw_data'])
-                except:
-                    pass
-
-            if race_dict['processed_data']:
-                try:
-                    race_dict['processed_data'] = json.loads(race_dict['processed_data'])
-                except:
-                    pass
-
-            if race_dict['prediction_results']:
-                try:
-                    race_dict['prediction_results'] = json.loads(race_dict['prediction_results'])
-                except:
-                    pass
-
-            if race_dict['actual_results']:
-                try:
-                    race_dict['actual_results'] = json.loads(race_dict['actual_results'])
-                except:
-                    pass
+            # Handle JSON fields that exist in the schema
+            json_fields = ['participants', 'prediction_results', 'actual_results']
+            for field in json_fields:
+                if field in race_dict and race_dict[field]:
+                    try:
+                        race_dict[field] = json.loads(race_dict[field])
+                    except json.JSONDecodeError:
+                        # Keep as string if can't be parsed
+                        pass
+                    except Exception as e:
+                        self.logger.warning(f"Error parsing {field} for race {comp}: {str(e)}")
 
             conn.close()
             return race_dict

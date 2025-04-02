@@ -4,14 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="modular mysql&lt;-&gt;sqlite sync">
-      <change afterPath="$PROJECT_DIR$/model_training/features/couple_embedding.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/model_training/features/course_embedding.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/model_training/features/horse_embedding.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/model_training/features/jockey_embedding.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/model_training/historical/train_model.py" afterDir="false" />
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="adding daily races sync">
+      <change afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/race_prediction/predict_daily_races.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/race_prediction/predict_race.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,19 +51,31 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python.api_daily_sync.executor": "Run",
+    "Python.embedding_feature.executor": "Run",
     "Python.env_setup.executor": "Run",
+    "Python.horse_embedding.executor": "Run",
     "Python.musique_calculation.executor": "Debug",
     "Python.mysql_connector.executor": "Run",
     "Python.mysql_sqlite_sync.executor": "Run",
     "Python.mysql_to_sqlite.executor": "Run",
-    "Python.test.executor": "Run",
+    "Python.predict_daily_races.executor": "Run",
+    "Python.prediction_orchestrator.executor": "Run",
+    "Python.test.executor": "Debug",
+    "Python.train_model.executor": "Debug",
+    "Python.train_race_model.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main"
   }
 }]]></component>
-  <component name="RunManager" selected="Python.mysql_sqlite_sync">
-    <configuration name="historical_race_transformer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/core/connectors" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.predict_daily_races">
+    <configuration name="api_daily_sync" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -76,7 +88,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/transformers/historical_race_transformer.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/connectors/api_daily_sync.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -85,29 +97,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="musique_calculation" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="HorseAIv2" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/core/calculators" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/calculators/musique_calculation.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="mysql_connector" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="predict_daily_races" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -120,7 +110,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/connectors/mysql_connector.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/race_prediction/predict_daily_races.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -129,7 +119,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="mysql_sqlite_sync" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="prediction_orchestrator" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -138,11 +128,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/core/orchestrators" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/orchestrators/mysql_sqlite_sync.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -173,19 +163,41 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="train_race_model" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="HorseAIv2" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/model_training/historical/train_race_model.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <list>
-      <item itemvalue="Python.mysql_sqlite_sync" />
-      <item itemvalue="Python.musique_calculation" />
-      <item itemvalue="Python.historical_race_transformer" />
-      <item itemvalue="Python.mysql_connector" />
+      <item itemvalue="Python.predict_daily_races" />
+      <item itemvalue="Python.prediction_orchestrator" />
+      <item itemvalue="Python.api_daily_sync" />
+      <item itemvalue="Python.train_race_model" />
       <item itemvalue="Python.test" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.mysql_sqlite_sync" />
-        <item itemvalue="Python.historical_race_transformer" />
-        <item itemvalue="Python.musique_calculation" />
-        <item itemvalue="Python.mysql_connector" />
+        <item itemvalue="Python.predict_daily_races" />
+        <item itemvalue="Python.prediction_orchestrator" />
+        <item itemvalue="Python.api_daily_sync" />
+        <item itemvalue="Python.train_race_model" />
         <item itemvalue="Python.test" />
       </list>
     </recent_temporary>
@@ -230,23 +242,164 @@
       <option name="project" value="LOCAL" />
       <updated>1740650477583</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="adding embeddings">
+      <option name="closed" value="true" />
+      <created>1740659886795</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1740659886795</updated>
+    </task>
+    <task id="LOCAL-00005" summary="adding cache manager">
+      <option name="closed" value="true" />
+      <created>1740693327554</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1740693327554</updated>
+    </task>
+    <task id="LOCAL-00006" summary="updating embedding feature with config approach">
+      <option name="closed" value="true" />
+      <created>1740755058414</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1740755058414</updated>
+    </task>
+    <task id="LOCAL-00007" summary="updating embedding feature with config approach">
+      <option name="closed" value="true" />
+      <created>1740920224165</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1740920224165</updated>
+    </task>
+    <task id="LOCAL-00008" summary="updating embedding feature with config approach">
+      <option name="closed" value="true" />
+      <created>1741207626289</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1741207626289</updated>
+    </task>
+    <task id="LOCAL-00009" summary="refactored_horse_embedding">
+      <option name="closed" value="true" />
+      <created>1741207970875</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1741207970875</updated>
+    </task>
+    <task id="LOCAL-00010" summary="refactored_couple_embedding">
+      <option name="closed" value="true" />
+      <created>1741208877518</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1741208877518</updated>
+    </task>
+    <task id="LOCAL-00011" summary="refactored_cache_manager">
+      <option name="closed" value="true" />
+      <created>1742135265333</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1742135265333</updated>
+    </task>
+    <task id="LOCAL-00012" summary="fixed cache_manager &amp; orchestrator">
+      <option name="closed" value="true" />
+      <created>1742200198713</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1742200198713</updated>
+    </task>
+    <task id="LOCAL-00013" summary="fixing feature storing and loading with testing">
+      <option name="closed" value="true" />
+      <created>1742201779545</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1742201779545</updated>
+    </task>
+    <task id="LOCAL-00014" summary="fixed feature embedding">
+      <option name="closed" value="true" />
+      <created>1742226900595</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1742226900595</updated>
+    </task>
+    <task id="LOCAL-00015" summary="fixed feature embedding">
+      <option name="closed" value="true" />
+      <created>1742541186315</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1742541186315</updated>
+    </task>
+    <task id="LOCAL-00016" summary="fixed feature embedding">
+      <option name="closed" value="true" />
+      <created>1742549204949</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1742549204949</updated>
+    </task>
+    <task id="LOCAL-00017" summary="fixed feature embedding">
+      <option name="closed" value="true" />
+      <created>1742825115896</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1742825115896</updated>
+    </task>
+    <task id="LOCAL-00018" summary="adding daily races sync">
+      <option name="closed" value="true" />
+      <created>1742903024757</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1742903024757</updated>
+    </task>
+    <task id="LOCAL-00019" summary="adding daily races sync">
+      <option name="closed" value="true" />
+      <created>1743020439512</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1743020439512</updated>
+    </task>
+    <task id="LOCAL-00020" summary="adding daily races sync">
+      <option name="closed" value="true" />
+      <created>1743421163636</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1743421163636</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Project Initialisiation" />
     <MESSAGE value="Working MySQL connector!" />
     <MESSAGE value="modular mysql&lt;-&gt;sqlite sync" />
-    <option name="LAST_COMMIT_MESSAGE" value="modular mysql&lt;-&gt;sqlite sync" />
+    <MESSAGE value="adding embeddings" />
+    <MESSAGE value="adding cache manager" />
+    <MESSAGE value="updating embedding feature with config approach" />
+    <MESSAGE value="refactored_horse_embedding" />
+    <MESSAGE value="refactored_couple_embedding" />
+    <MESSAGE value="refactored_cache_manager" />
+    <MESSAGE value="fixed cache_manager &amp; orchestrator" />
+    <MESSAGE value="fixing feature storing and loading with testing" />
+    <MESSAGE value="fixed feature embedding" />
+    <MESSAGE value="adding daily races sync" />
+    <option name="LAST_COMMIT_MESSAGE" value="adding daily races sync" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/utils/env_setup.py</url>
-          <line>34</line>
-          <option name="timeStamp" value="4" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
           <line>55</line>
@@ -276,6 +429,21 @@
           <url>file://$PROJECT_DIR$/core/orchestrators/mysql_sqlite_sync.py</url>
           <line>25</line>
           <option name="timeStamp" value="67" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
+          <line>514</line>
+          <option name="timeStamp" value="92" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
+          <line>315</line>
+          <option name="timeStamp" value="97" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/race_prediction/predict_daily_races.py</url>
+          <line>127</line>
+          <option name="timeStamp" value="98" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
