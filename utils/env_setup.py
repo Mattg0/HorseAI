@@ -117,33 +117,36 @@ class AppConfig:
 
         raise ValueError(f"Database '{db_name}' not found in configuration")
 
-    def get_mysql_config(self, db_name: str = "mysql") -> MySQLConfig:
+    def get_mysql_config(self, db_name: str = None) -> MySQLConfig:
         """
-        Get MySQL configuration for the specified database name.
+        Get MySQL configuration with optional database name override.
 
         Args:
-            db_name: Name of the MySQL database configuration to use
+            db_name: Optional database name to connect to (overrides dbname in config)
 
         Returns:
-            MySQLConfig object
+            MySQLConfig object with connection parameters
 
         Raises:
-            ValueError: If the database is not found or is not MySQL
+            ValueError: If MySQL database configuration not found
         """
+        # Find the MySQL database configuration
+        mysql_db = None
         for db in self._config.databases:
-            if db["name"] == db_name:
-                if db["type"] != "mysql":
-                    raise ValueError(f"Database '{db_name}' is not a MySQL database")
+            if db["name"] == "mysql" and db["type"] == "mysql":
+                mysql_db = db
+                break
 
-                return MySQLConfig(
-                    host=db["host"],
-                    user=db["user"],
-                    password=db["password"],
-                    dbname=db["dbname"]
-                )
+        if mysql_db is None:
+            raise ValueError("MySQL database configuration not found in configuration")
 
-        raise ValueError(f"MySQL database '{db_name}' not found in configuration")
-
+        # Create MySQLConfig, using provided db_name or default from config
+        return MySQLConfig(
+            host=mysql_db["host"],
+            user=mysql_db["user"],
+            password=mysql_db["password"],
+            dbname=db_name if db_name is not None else mysql_db["dbname"]
+        )
     def get_active_db_path(self) -> str:
         """
         Retrieve the path of the base.active_db database from the configuration.
@@ -209,13 +212,14 @@ class AppConfig:
         """
         return self._config.features.features_dir
 
-    def get_model_paths(config, model_name: str = 'hybrid') -> Dict[str, Any]:
+    def get_model_paths(config, model_name: str = 'hybrid_model', model_type: str = None) -> Dict[str, Any]:
         """
-        Get model paths based on model name.
+        Get model paths based on model name and active database.
 
         Args:
             config: Configuration
-            model_name: Name of the model architecture
+            model_name: Name of the model (defaults to 'hybrid_model')
+            model_type: Type of model folder ('hybrid_model' or 'incremental_models')
 
         Returns:
             Dictionary of model paths
@@ -235,15 +239,40 @@ class AppConfig:
         if not model_dir:
             model_dir = './models'
 
+        # Get active database to determine subdirectory
+        active_db = None
+        if isinstance(config, dict):
+            if 'base' in config and 'active_db' in config['base']:
+                active_db = config['base']['active_db']
+        elif hasattr(config, 'base'):
+            if hasattr(config.base, 'active_db'):
+                active_db = config.base.active_db
+
+        # Default to "2years" if not found
+        if not active_db or active_db == "full":
+            active_db = "2years"
+
+        # Determine model type if not specified
+        if model_type is None:
+            if model_name == 'hybrid_model':
+                model_type = 'hybrid_model'
+            else:
+                model_type = 'incremental_models'
+
+        # Build complete path with active_db and model type
+        complete_model_dir = os.path.join(model_dir, active_db, model_type)
+
         # Define paths
         model_paths = {
-            'model_path': os.path.join(model_dir, model_name),
-            'logs': os.path.join(model_dir, model_name, 'logs'),
+            'model_path': complete_model_dir,
+            'logs': os.path.join(complete_model_dir, 'logs'),
             'artifacts': {
-                'rf_model': f"{model_name}_rf_model.joblib",
-                'lstm_model': f"{model_name}_lstm_model",
-                'feature_engineer': f"{model_name}_feature_engineer.joblib"
-            }
+                'rf_model': f"hybrid_rf_model.joblib",  # Standardized names regardless of folder
+                'lstm_model': f"hybrid_lstm_model",
+                'feature_engineer': f"hybrid_feature_engineer.joblib"
+            },
+            'active_db': active_db,
+            'model_type': model_type
         }
 
         # Ensure directories exist
@@ -295,8 +324,8 @@ def get_sqlite_dbpath(db_name: str = "full") -> str:
     return AppConfig().get_sqlite_dbpath(db_name)
 
 
-def get_mysql_config(db_name: str = "mysql") -> MySQLConfig:
-    """Get MySQL configuration"""
+def get_mysql_config(db_name: str = None) -> MySQLConfig:
+    """Get MySQL configuration with optional db name override"""
     return AppConfig().get_mysql_config(db_name)
 
 

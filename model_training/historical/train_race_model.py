@@ -20,14 +20,14 @@ from utils.env_setup import AppConfig, get_sqlite_dbpath
 class HorseRaceModel:
     """Horse race prediction model that combines random forest and LSTM for predictions."""
 
-    def __init__(self, config_path: str = 'config.yaml', model_name: str = 'hybrid',
-                 sequence_length: int = 5, embedding_dim: int = None,
+    def __init__(self, config_path: str = 'config.yaml', model_name: str = 'hybrid_model',
+                 model_type: str = None, sequence_length: int = 5, embedding_dim: int = None,
                  verbose: bool = False):
         """Initialize the model with configuration."""
         self.config = AppConfig(config_path)
         self.model_name = model_name
-        self.model_paths = self.config.get_model_paths()
-        self.sequence_length = sequence_length
+        self.model_type = model_type or ('hybrid_model' if model_name == 'hybrid_model' else 'incremental_models')
+        self.model_paths = self.config.get_model_paths(model_name=self.model_name, model_type=self.model_type)
         self.verbose = verbose
 
         # Initialize model components
@@ -224,6 +224,94 @@ class HorseRaceModel:
             'train_metrics': train_metrics,
             'val_metrics': val_metrics if X_val is not None else None,
         }
+
+    def train_lgbm_model(self, X_train: pd.DataFrame, y_train: pd.Series,
+                         X_val: pd.DataFrame = None, y_val: pd.Series = None) -> None:
+        """
+        Train the LightGBM model using scikit-learn API as a direct replacement for RF.
+        No calibration is applied.
+        """
+        self.log_info("\n===== TRAINING LIGHTGBM MODEL =====")
+
+        # Get LightGBM parameters
+        lgbm_params = self.training_config.get('lgbm_params', {
+            'objective': 'regression',
+            'metric': 'mae',
+            'boosting_type': 'gbdt',
+            'num_leaves': 31,
+            'learning_rate': 0.05,
+            'feature_fraction': 0.9,
+            'bagging_fraction': 0.8,
+            'bagging_freq': 5,
+            'verbose': -1,
+            'n_estimators': 1000
+        })
+
+        import lightgbm as lgb
+
+        # Use LGBMRegressor (scikit-learn API) for direct RF replacement
+        self.lgbm_model = lgb.LGBMRegressor(**lgbm_params)
+
+        # Time the training
+        start_time = time.time()
+
+        # Train the model
+        if X_val is not None and y_val is not None:
+            # Use validation data for early stopping
+            self.lgbm_model.fit(
+                X_train, y_train,
+                eval_set=[(X_val, y_val)],
+                eval_metric='mae'            )
+        else:
+            self.lgbm_model.fit(X_train, y_train)
+
+        training_time = time.time() - start_time
+        self.log_info(f"LightGBM model training completed in {training_time:.2f} seconds")
+
+        # Store model in models dictionary
+        self.models['lgbm'] = self.lgbm_model
+
+        # Calculate and store metrics
+        train_pred = self.lgbm_model.predict(X_train)
+        train_rmse = np.sqrt(mean_squared_error(y_train, train_pred))
+        train_mae = mean_absolute_error(y_train, train_pred)
+
+        self.log_info(f"Training set performance:")
+        self.log_info(f"  RMSE: {train_rmse:.4f}, MAE: {train_mae:.4f}")
+
+        # Evaluate on validation data if available
+        val_rmse = None
+        val_mae = None
+        if X_val is not None and y_val is not None:
+            val_pred = self.lgbm_model.predict(X_val)
+            val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))
+            val_mae = mean_absolute_error(y_val, val_pred)
+
+            self.log_info(f"Validation set performance:")
+            self.log_info(f"  RMSE: {val_rmse:.4f}, MAE: {val_mae:.4f}")
+
+        # Store metrics
+        self.models['lgbm_metrics'] = {
+            'training_time': training_time,
+            'train_rmse': train_rmse,
+            'train_mae': train_mae,
+            'val_rmse': val_rmse,
+            'val_mae': val_mae
+        }
+
+        # Display feature importance if available
+        if hasattr(self.lgbm_model, 'feature_importances_'):
+            feature_importance = pd.DataFrame({
+                'feature': X_train.columns,
+                'importance': self.lgbm_model.feature_importances_
+            }).sort_values('importance', ascending=False)
+
+            self.log_info("\nTop feature importance for LightGBM model:")
+            for i, (feature, importance) in enumerate(
+                    zip(feature_importance['feature'][:10], feature_importance['importance'][:10])
+            ):
+                self.log_info(f"{i + 1}. {feature}: {importance:.4f}")
+
 
     def train_lstm_model(self, X_sequences, X_static, y_targets) -> None:
         """
@@ -444,7 +532,7 @@ class HorseRaceModel:
         return results
 
     def train(self, limit=None, race_filter=None, date_filter=None,
-              use_cache=True, train_rf=True, train_lstm=True):
+              use_cache=True, train_lgbm=False, train_rf=True, train_lstm=True):
         """
         Train either or both models based on parameters.
 
@@ -457,6 +545,7 @@ class HorseRaceModel:
             train_lstm: Whether to train the LSTM model
         """
         start_time = time.time()
+        print(f" value for cache is {use_cache}")
         self.log_info(f"\nStarting training process for {self.db_type} database...")
 
         # Train RF model if requested
@@ -480,6 +569,17 @@ class HorseRaceModel:
             self.evaluate_models(X_test, y_test)
 
         # Continue with LSTM training as before...
+        # Train LGBM model if requested
+        if train_lgbm:
+            X_train, X_val, X_test, y_train, y_val, y_test = self.data_orchestrator.run_pipeline(
+                limit=limit,
+                race_filter=race_filter,
+                date_filter=date_filter,
+                use_cache=use_cache,
+                clean_embeddings=True
+            )
+            self.train_lgbm_model(X_train, y_train, X_val, y_val)
+
         if train_lstm:
             try:
                 # Get data for sequential model
@@ -525,12 +625,12 @@ class HorseRaceModel:
         self.log_info(f"\nTotal training time: {total_time:.2f} seconds")
 
         # Save models if any were trained
-        if train_rf or train_lstm:
-            self.save_models(save_rf=train_rf, save_lstm=train_lstm)
+        if train_rf or train_lstm or train_lgbm:
+            self.save_models(save_rf=train_rf, save_lstm=train_lstm, save_lgbm=train_lgbm)
 
         self.log_info("\nTraining process completed!")
 
-    def save_models(self, save_rf: bool = True, save_lstm: bool = True) -> None:
+    def save_models(self, save_rf: bool = True, save_lstm: bool = True, save_lgbm: bool = True) -> None:
         """
         Save the trained models and metadata.
 
@@ -542,6 +642,8 @@ class HorseRaceModel:
 
         # Create version string
         version = f"v{time.strftime('%Y%m%d')}"
+
+        # Create version directory in appropriate model type folder
         save_dir = Path(self.model_paths['model_path']) / version
         save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -578,7 +680,22 @@ class HorseRaceModel:
                 history_path = save_dir / 'lstm_history.joblib'
                 joblib.dump(self.history, history_path)
                 self.log_info(f"Saved LSTM training history to: {history_path}")
+        # Save LGBM model
+        if save_lgbm and hasattr(self, 'lgbm_model') and self.lgbm_model is not None:
+            lgbm_path = save_dir / "hybrid_lgbm_model.joblib"
 
+            if hasattr(self.lgbm_model, 'save'):
+                self.lgbm_model.save(lgbm_path)
+            else:
+                lgbm_metadata = {
+                    'model': self.lgbm_model,
+                    'version': version,
+                    'features': self.data_orchestrator.preprocessing_params.get('feature_columns', []),
+                    'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'metrics': self.models.get('lgbm_metrics', {})
+                }
+                joblib.dump(lgbm_metadata, lgbm_path)
+            self.log_info(f"Saved LightGBM model to: {lgbm_path}")
         # Save orchestrator state for reproducibility
         feature_path = save_dir / self.model_paths['artifacts']['feature_engineer']
         orchestrator_state = {
@@ -595,6 +712,7 @@ class HorseRaceModel:
         model_config = {
             'version': version,
             'model_name': self.model_name,
+            'model_type': self.model_type,
             'db_type': self.db_type,
             'sequence_length': self.sequence_length,
             'embedding_dim': self.data_orchestrator.embedding_dim,
@@ -602,7 +720,9 @@ class HorseRaceModel:
             'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
             'models_trained': {
                 'rf': save_rf and self.rf_model is not None,
-                'lstm': save_lstm and self.lstm_model is not None
+                'lstm': save_lstm and self.lstm_model is not None,
+                'lgbm': save_lgbm and self.lgbm_model is not None
+
             },
             'evaluation_results': self.models.get('test_evaluation', {})
         }
@@ -706,9 +826,7 @@ class HorseRaceModel:
 
 
 def main():
-    """
-    Main function to run the training process from command line.
-    """
+    parser = argparse.ArgumentParser(description='Train horse race prediction model')
     parser = argparse.ArgumentParser(description='Train horse race prediction model')
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to configuration file')
     parser.add_argument('--db', type=str, default=None, help='Database to use (overrides config)')
@@ -720,19 +838,15 @@ def main():
     parser.add_argument('--embedding-dim', type=int, default=None, help='Dimension for entity embeddings')
     parser.add_argument('--model-name', type=str, default='hybrid', help='Model architecture name')
     parser.add_argument('--rf-only', action='store_true', help='Train only Random Forest model')
+    parser.add_argument('--lgbm-only', action='store_true', help='Train only LightGBM model')
     parser.add_argument('--lstm-only', action='store_true', help='Train only LSTM model')
     parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
-
     args = parser.parse_args()
 
-    # Update AppConfig with specified database if provided
-    if args.db is not None:
-        config = AppConfig(args.config)
-        config._config.base.active_db = args.db
-
     # Determine which models to train
-    train_rf = not args.lstm_only  # Train RF unless LSTM-only flag is set
-    train_lstm = not args.rf_only  # Train LSTM unless RF-only flag is set
+    train_rf = not (args.lstm_only or args.lgbm_only) and args.model_name == 'hybrid_model'
+    train_lgbm = not (args.lstm_only or args.rf_only) and args.model_name == 'hybrid_LGBM'
+    train_lstm = not (args.rf_only or args.lgbm_only)
 
     # Create and train the model
     trainer = HorseRaceModel(
@@ -747,8 +861,9 @@ def main():
         limit=args.limit,
         race_filter=args.race_type,
         date_filter=args.date_filter,
-        use_cache=args.no_cache,
+        use_cache= not args.no_cache,
         train_rf=train_rf,
+        train_lgbm=train_lgbm,
         train_lstm=train_lstm
     )
 

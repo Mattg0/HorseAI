@@ -1,8 +1,8 @@
 # Root directory - uncomment the appropriate line for your environment
 base:
-  rootdir: '/Users/mattg0/Docs/HorseAIv2/'
+  #rootdir: '/Users/mattg0/Docs/HorseAIv2/'
   # Active database configuration
-  active_db: "dev"  # Can be "full", "2years", or "5years"
+  active_db: "5years"  # Can be "full", "2years", or "5years"
 
 # Database configurations
 databases:
@@ -46,7 +46,10 @@ features:
 
 models:
   model_dir: './models'
+  types:
+    - hybrid_model
+    - incremental_models
+    - hybrid_LGBM
 
-
-
+  default_type: 'hybrid_model'
 

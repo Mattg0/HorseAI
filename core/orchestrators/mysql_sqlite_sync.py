@@ -1,7 +1,8 @@
 from core.connectors.mysql_historical_fetcher import fetch_race_data
 from core.transformers.historical_race_transformer import transform_race_data, transform_results
 from core.connectors.sqlite_historical_writer import write_races_to_sqlite, write_results_to_sqlite
-from utils.env_setup import get_sqlite_dbpath
+from utils.env_setup import AppConfig
+
 from core.connectors.mysql_connector import connect_to_mysql
 
 
@@ -12,9 +13,11 @@ def sync_data(mysql_dbname=None):
     Args:
         mysql_dbname: Optional name of MySQL database
     """
+    config = AppConfig()
     # Connect to data sources
     mysql_conn = connect_to_mysql(mysql_dbname)
-    sqlite_db_path = get_sqlite_dbpath()
+    sqlite_db_path = config.get_active_db_path()
+
 
     # Fetch data
     df_raw_data = fetch_race_data(mysql_conn)
@@ -35,4 +38,4 @@ def sync_data(mysql_dbname=None):
 
 
 if __name__ == "__main__":
-    sync_data('pturf2025')
+    sync_data('pturf2020')

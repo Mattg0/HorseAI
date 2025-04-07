@@ -23,18 +23,16 @@ class PredictionOrchestrator:
     5. Optionally evaluates predictions against actual results
     """
 
-    def __init__(self,
-                 model_path: str,
-                 db_name: str = None,
-                 log_dir: str = None,
-                 verbose: bool = False):
+    # In PredictionOrchestrator.__init__:
+
+    def __init__(self, model_path: str, db_name: str = None, model_type: str = None, verbose: bool = False):
         """
         Initialize the prediction orchestrator.
 
         Args:
-            model_path: Path to the trained model directory
+            model_path: Path to the model or model name
             db_name: Database name from config (default: active_db from config)
-            log_dir: Directory for logs (default: from config)
+            model_type: Type of model ('hybrid_model' or 'incremental_models')
             verbose: Whether to output verbose logs
         """
         # Initialize config
@@ -46,39 +44,32 @@ class PredictionOrchestrator:
         else:
             self.db_name = db_name
 
-        # Get database path from config
-        self.db_path = self.config.get_sqlite_dbpath(self.db_name)
+        # Get base model paths with active_db consideration
+        self.model_paths = self.config.get_model_paths(model_name=model_path, model_type=model_type)
 
-        # Set model path
-        self.model_path = model_path
-
-        # Set verbosity
-        self.verbose = verbose
-
-        # Set up logging
-        if log_dir is None:
-            root_dir = self.config._config.base.rootdir
-            log_dir = os.path.join(root_dir, 'logs')
-
-        os.makedirs(log_dir, exist_ok=True)
-        self.log_file = os.path.join(log_dir, f"prediction_orchestrator_{self.db_name}.log")
-
-        self._setup_logging()
-
-        # Initialize components
-        self.logger.info(f"Initializing prediction orchestrator with model at {model_path}")
-        self.logger.info(f"Using database: {self.db_path}")
-
-        # Initialize race fetcher
-        self.race_fetcher = RaceFetcher(db_name=self.db_name)
-
-        # Initialize race predictor
-        try:
-            self.race_predictor = RacePredictor(model_path=model_path, db_name=self.db_name, verbose=verbose)
-            self.logger.info("Race predictor initialized successfully")
-        except Exception as e:
-            self.logger.error(f"Error initializing race predictor: {str(e)}")
-            self.race_predictor = None
+        # Determine if model_path is a full path or just a model name
+        model_path_obj = Path(model_path)
+        if model_path_obj.exists() and model_path_obj.is_dir():
+            # This is a full path to a specific model version
+            self.model_path = model_path_obj
+        else:
+            # This is a model type, need to find latest version
+            model_dir = Path(self.model_paths['model_path'])
+            if model_dir.exists():
+                # Get all version folders, sorted newest first
+                versions = sorted([d for d in model_dir.iterdir() if d.is_dir() and d.name.startswith('v')],
+                                  key=lambda x: x.name, reverse=True)
+                if versions:
+                    self.model_path = versions[0]  # Use latest version
+                    if verbose:
+                        print(f"Using latest model version: {self.model_path.name}")
+                else:
+                    # No version folders, use model_dir itself
+                    self.model_path = model_dir
+            else:
+                # Model directory doesn't exist, create it
+                os.makedirs(model_dir, exist_ok=True)
+                self.model_path = model_dir
 
     def _setup_logging(self):
         """Set up logging."""
