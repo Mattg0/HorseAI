@@ -1,6 +1,7 @@
 # Root directory - uncomment the appropriate line for your environment
 base:
   #rootdir: '/Users/mattg0/Docs/HorseAIv2/'
+  rootdir: '/root/HorseAI'
   # Active database configuration
   active_db: "5years"  # Can be "full", "2years", or "5years"
 

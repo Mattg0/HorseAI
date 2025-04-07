@@ -1,0 +1,9 @@
+requests
+pyyaml
+pandas
+scikit-learn
+tensorflow
+joblib
+pydantic
+matplotlib
+lightgbm
