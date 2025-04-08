@@ -15,19 +15,20 @@ from model_training.regressions.isotonic_calibration import CalibratedRegressor,
 # Import consolidated orchestrator
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from utils.env_setup import AppConfig, get_sqlite_dbpath
+from utils.model_manager import get_model_manager
 
 
 class HorseRaceModel:
     """Horse race prediction model that combines random forest and LSTM for predictions."""
 
-    def __init__(self, config_path: str = 'config.yaml', model_name: str = 'hybrid_model',
-                 model_type: str = None, sequence_length: int = 5, embedding_dim: int = None,
+    def __init__(self, config_path: str = 'config.yaml', model_name: str = 'hybrid',
+                 sequence_length: int = 5, embedding_dim: int = None,
                  verbose: bool = False):
         """Initialize the model with configuration."""
         self.config = AppConfig(config_path)
         self.model_name = model_name
-        self.model_type = model_type or ('hybrid_model' if model_name == 'hybrid_model' else 'incremental_models')
-        self.model_paths = self.config.get_model_paths(model_name=self.model_name, model_type=self.model_type)
+        self.model_paths = self.config.get_model_paths()
+        self.sequence_length = sequence_length
         self.verbose = verbose
 
         # Initialize model components
@@ -224,94 +225,6 @@ class HorseRaceModel:
             'train_metrics': train_metrics,
             'val_metrics': val_metrics if X_val is not None else None,
         }
-
-    def train_lgbm_model(self, X_train: pd.DataFrame, y_train: pd.Series,
-                         X_val: pd.DataFrame = None, y_val: pd.Series = None) -> None:
-        """
-        Train the LightGBM model using scikit-learn API as a direct replacement for RF.
-        No calibration is applied.
-        """
-        self.log_info("\n===== TRAINING LIGHTGBM MODEL =====")
-
-        # Get LightGBM parameters
-        lgbm_params = self.training_config.get('lgbm_params', {
-            'objective': 'regression',
-            'metric': 'mae',
-            'boosting_type': 'gbdt',
-            'num_leaves': 31,
-            'learning_rate': 0.05,
-            'feature_fraction': 0.9,
-            'bagging_fraction': 0.8,
-            'bagging_freq': 5,
-            'verbose': -1,
-            'n_estimators': 1000
-        })
-
-        import lightgbm as lgb
-
-        # Use LGBMRegressor (scikit-learn API) for direct RF replacement
-        self.lgbm_model = lgb.LGBMRegressor(**lgbm_params)
-
-        # Time the training
-        start_time = time.time()
-
-        # Train the model
-        if X_val is not None and y_val is not None:
-            # Use validation data for early stopping
-            self.lgbm_model.fit(
-                X_train, y_train,
-                eval_set=[(X_val, y_val)],
-                eval_metric='mae'            )
-        else:
-            self.lgbm_model.fit(X_train, y_train)
-
-        training_time = time.time() - start_time
-        self.log_info(f"LightGBM model training completed in {training_time:.2f} seconds")
-
-        # Store model in models dictionary
-        self.models['lgbm'] = self.lgbm_model
-
-        # Calculate and store metrics
-        train_pred = self.lgbm_model.predict(X_train)
-        train_rmse = np.sqrt(mean_squared_error(y_train, train_pred))
-        train_mae = mean_absolute_error(y_train, train_pred)
-
-        self.log_info(f"Training set performance:")
-        self.log_info(f"  RMSE: {train_rmse:.4f}, MAE: {train_mae:.4f}")
-
-        # Evaluate on validation data if available
-        val_rmse = None
-        val_mae = None
-        if X_val is not None and y_val is not None:
-            val_pred = self.lgbm_model.predict(X_val)
-            val_rmse = np.sqrt(mean_squared_error(y_val, val_pred))
-            val_mae = mean_absolute_error(y_val, val_pred)
-
-            self.log_info(f"Validation set performance:")
-            self.log_info(f"  RMSE: {val_rmse:.4f}, MAE: {val_mae:.4f}")
-
-        # Store metrics
-        self.models['lgbm_metrics'] = {
-            'training_time': training_time,
-            'train_rmse': train_rmse,
-            'train_mae': train_mae,
-            'val_rmse': val_rmse,
-            'val_mae': val_mae
-        }
-
-        # Display feature importance if available
-        if hasattr(self.lgbm_model, 'feature_importances_'):
-            feature_importance = pd.DataFrame({
-                'feature': X_train.columns,
-                'importance': self.lgbm_model.feature_importances_
-            }).sort_values('importance', ascending=False)
-
-            self.log_info("\nTop feature importance for LightGBM model:")
-            for i, (feature, importance) in enumerate(
-                    zip(feature_importance['feature'][:10], feature_importance['importance'][:10])
-            ):
-                self.log_info(f"{i + 1}. {feature}: {importance:.4f}")
-
 
     def train_lstm_model(self, X_sequences, X_static, y_targets) -> None:
         """
@@ -532,7 +445,7 @@ class HorseRaceModel:
         return results
 
     def train(self, limit=None, race_filter=None, date_filter=None,
-              use_cache=True, train_lgbm=False, train_rf=True, train_lstm=True):
+              use_cache=True, train_rf=True, train_lstm=True):
         """
         Train either or both models based on parameters.
 
@@ -545,7 +458,6 @@ class HorseRaceModel:
             train_lstm: Whether to train the LSTM model
         """
         start_time = time.time()
-        print(f" value for cache is {use_cache}")
         self.log_info(f"\nStarting training process for {self.db_type} database...")
 
         # Train RF model if requested
@@ -569,17 +481,6 @@ class HorseRaceModel:
             self.evaluate_models(X_test, y_test)
 
         # Continue with LSTM training as before...
-        # Train LGBM model if requested
-        if train_lgbm:
-            X_train, X_val, X_test, y_train, y_val, y_test = self.data_orchestrator.run_pipeline(
-                limit=limit,
-                race_filter=race_filter,
-                date_filter=date_filter,
-                use_cache=use_cache,
-                clean_embeddings=True
-            )
-            self.train_lgbm_model(X_train, y_train, X_val, y_val)
-
         if train_lstm:
             try:
                 # Get data for sequential model
@@ -625,12 +526,12 @@ class HorseRaceModel:
         self.log_info(f"\nTotal training time: {total_time:.2f} seconds")
 
         # Save models if any were trained
-        if train_rf or train_lstm or train_lgbm:
-            self.save_models(save_rf=train_rf, save_lstm=train_lstm, save_lgbm=train_lgbm)
+        if train_rf or train_lstm:
+            self.save_models(save_rf=train_rf, save_lstm=train_lstm)
 
         self.log_info("\nTraining process completed!")
 
-    def save_models(self, save_rf: bool = True, save_lstm: bool = True, save_lgbm: bool = True) -> None:
+    def save_models(self, save_rf: bool = True, save_lstm: bool = True) -> None:
         """
         Save the trained models and metadata.
 
@@ -638,108 +539,101 @@ class HorseRaceModel:
             save_rf: Whether to save RF model
             save_lstm: Whether to save LSTM model
         """
+
         self.log_info("\n===== SAVING MODELS =====")
 
-        # Create version string
-        version = f"v{time.strftime('%Y%m%d')}"
+        # Get the model manager
+        model_manager = get_model_manager()
 
-        # Create version directory in appropriate model type folder
-        save_dir = Path(self.model_paths['model_path']) / version
-        save_dir.mkdir(parents=True, exist_ok=True)
+        # Create version string based on date, database type, and training type (full for historical)
+        version = model_manager.get_version_path(self.db_type, train_type='full')
+
+        # Resolve the base path
+        save_dir = model_manager.get_model_path(self.model_name) / version
 
         self.log_info(f"Saving models to: {save_dir}")
 
-        # Save RF model (now using CalibratedRegressor's save method)
-        if save_rf and self.rf_model is not None:
-            rf_path = save_dir / self.model_paths['artifacts']['rf_model']
-
-            if hasattr(self.rf_model, 'save'):
-                # Use CalibratedRegressor's save method
-                self.rf_model.save(rf_path)
-                self.log_info(f"Saved calibrated RF model to: {rf_path}")
-            else:
-                # Fallback to traditional joblib dump with metadata
-                rf_metadata = {
-                    'model': self.rf_model,
-                    'version': version,
-                    'features': self.data_orchestrator.preprocessing_params.get('feature_columns', []),
-                    'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'metrics': self.models.get('rf_metrics', {})
-                }
-                joblib.dump(rf_metadata, rf_path)
-                self.log_info(f"Saved RF model with metadata to: {rf_path}")
-
-        # Save LSTM model
-        if save_lstm and self.lstm_model is not None:
-            lstm_path = save_dir / self.model_paths['artifacts']['lstm_model']
-            self.lstm_model.save(lstm_path)
-            self.log_info(f"Saved LSTM model to: {lstm_path}")
-
-            # Save LSTM training history separately
-            if self.history:
-                history_path = save_dir / 'lstm_history.joblib'
-                joblib.dump(self.history, history_path)
-                self.log_info(f"Saved LSTM training history to: {history_path}")
-        # Save LGBM model
-        if save_lgbm and hasattr(self, 'lgbm_model') and self.lgbm_model is not None:
-            lgbm_path = save_dir / "hybrid_lgbm_model.joblib"
-
-            if hasattr(self.lgbm_model, 'save'):
-                self.lgbm_model.save(lgbm_path)
-            else:
-                lgbm_metadata = {
-                    'model': self.lgbm_model,
-                    'version': version,
-                    'features': self.data_orchestrator.preprocessing_params.get('feature_columns', []),
-                    'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'metrics': self.models.get('lgbm_metrics', {})
-                }
-                joblib.dump(lgbm_metadata, lgbm_path)
-            self.log_info(f"Saved LightGBM model to: {lgbm_path}")
-        # Save orchestrator state for reproducibility
-        feature_path = save_dir / self.model_paths['artifacts']['feature_engineer']
+        # Prepare orchestrator state
         orchestrator_state = {
             'preprocessing_params': self.data_orchestrator.preprocessing_params,
             'embedding_dim': self.data_orchestrator.embedding_dim,
             'sequence_length': self.data_orchestrator.sequence_length,
             'target_info': self.data_orchestrator.target_info
         }
-        joblib.dump(orchestrator_state, feature_path)
-        self.log_info(f"Saved feature engineering state to: {feature_path}")
 
-        # Save model configuration
-        config_path = save_dir / 'model_config.json'
+        # Prepare model configuration
         model_config = {
             'version': version,
             'model_name': self.model_name,
-            'model_type': self.model_type,
             'db_type': self.db_type,
+            'train_type': 'full',  # Explicitly mark as full training
             'sequence_length': self.sequence_length,
             'embedding_dim': self.data_orchestrator.embedding_dim,
             'training_config': self.training_config,
             'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
             'models_trained': {
                 'rf': save_rf and self.rf_model is not None,
-                'lstm': save_lstm and self.lstm_model is not None,
-                'lgbm': save_lgbm and self.lgbm_model is not None
-
+                'lstm': save_lstm and self.lstm_model is not None
             },
             'evaluation_results': self.models.get('test_evaluation', {})
         }
 
-        with open(config_path, 'w') as f:
-            json.dump(model_config, f, indent=2, default=str)
-        self.log_info(f"Saved model configuration to: {config_path}")
+        # Save all artifacts at once
+        saved_paths = model_manager.save_model_artifacts(
+            base_path=save_dir,
+            rf_model=self.rf_model if save_rf else None,
+            lstm_model=self.lstm_model if save_lstm else None,
+            orchestrator_state=orchestrator_state,
+            history=self.history,
+            model_config=model_config,
+            db_type=self.db_type,
+            train_type='full',
+            update_config=True  # Update config.yaml with reference to this model
+        )
 
         self.log_info(f"All models and components saved successfully to {save_dir}")
+        return saved_paths
 
-    def load_models(self, model_dir=None, version=None):
+    def _update_config_with_latest_model(self, version: str) -> None:
+        """
+        Update config.yaml with the latest full model information.
+
+        Args:
+            version: Version string of the model
+        """
+        try:
+            config_path = "config.yaml"
+
+            # Read existing config
+            with open(config_path, 'r') as f:
+                config_content = f.read()
+
+            # Parse YAML
+            import yaml
+            config_data = yaml.safe_load(config_content)
+
+            # Update or add the latest_base_model field
+            if 'models' not in config_data:
+                config_data['models'] = {}
+
+            config_data['models']['latest_base_model'] = version
+
+            # Write updated config
+            with open(config_path, 'w') as f:
+                yaml.dump(config_data, f, default_flow_style=False)
+
+            self.log_info(f"Updated config.yaml with latest_base_model: {version}")
+        except Exception as e:
+            self.log_info(f"Warning: Failed to update config.yaml: {str(e)}")
+
+    def load_models(self, model_dir=None, version=None, use_latest_base=False):
         """
         Load saved models.
 
         Args:
             model_dir: Path to model directory, if None uses default from config
             version: Specific version to load, if None uses latest
+            use_latest_base: Whether to load the latest base model from config
 
         Returns:
             Whether loading was successful
@@ -750,23 +644,36 @@ class HorseRaceModel:
 
         model_path = Path(model_dir)
 
-        # Find available versions
-        versions = [d for d in model_path.iterdir() if d.is_dir() and d.name.startswith('v')]
+        # If use_latest_base is True, try to get the latest_base_model from config
+        if use_latest_base:
+            try:
+                latest_base = self.config._config.models.latest_base_model
+                if latest_base:
+                    # Construct the path to the latest base model
+                    base_model_dir = Path(self.config._config.models.model_dir) / self.model_name
+                    version = latest_base
+                    model_path = base_model_dir
+                    self.log_info(f"Using latest base model from config: {latest_base}")
+            except (AttributeError, KeyError):
+                self.log_info("No latest_base_model found in config, using specified model path")
 
-        if not versions:
-            self.log_info(f"No model versions found in {model_path}")
-            return False
-
-        # Sort versions (newest first)
-        versions.sort(reverse=True)
-
-        # Select version to load
+        # If version is specified, use it directly
         if version is not None:
             version_path = model_path / version
             if not version_path.exists():
                 self.log_info(f"Version {version} not found in {model_path}")
                 return False
         else:
+            # Find available versions
+            versions = [d for d in model_path.iterdir() if
+                        d.is_dir() and d.name.startswith(('v', 'full_v', '2years_v', '5years_v', 'dev_v'))]
+
+            if not versions:
+                self.log_info(f"No model versions found in {model_path}")
+                return False
+
+            # Sort versions (newest first)
+            versions.sort(reverse=True)
             version_path = versions[0]  # Latest version
 
         self.log_info(f"Loading models from {version_path}")
@@ -777,11 +684,26 @@ class HorseRaceModel:
         rf_path = version_path / self.model_paths['artifacts']['rf_model']
         if rf_path.exists():
             try:
-                rf_metadata = joblib.load(rf_path)
-                self.rf_model = rf_metadata.get('model')
-                self.models['rf'] = self.rf_model
-                self.models['rf_metadata'] = rf_metadata
-                self.log_info(f"Loaded RF model from {rf_path}")
+                # Try to load with CalibratedRegressor.load first
+                try:
+                    from model_training.regressions.isotonic_calibration import CalibratedRegressor
+                    self.rf_model = CalibratedRegressor.load(rf_path)
+                    self.models['rf'] = self.rf_model
+                    self.log_info(f"Loaded RF model with CalibratedRegressor from {rf_path}")
+                except:
+                    # Fall back to joblib load if CalibratedRegressor.load fails
+                    rf_metadata = joblib.load(rf_path)
+
+                    if isinstance(rf_metadata, dict) and 'model' in rf_metadata:
+                        self.rf_model = rf_metadata['model']
+                        self.models['rf'] = self.rf_model
+                        self.models['rf_metadata'] = rf_metadata
+                        self.log_info(f"Loaded RF model from metadata dictionary at {rf_path}")
+                    else:
+                        # Direct model object
+                        self.rf_model = rf_metadata
+                        self.models['rf'] = self.rf_model
+                        self.log_info(f"Loaded RF model directly from {rf_path}")
             except Exception as e:
                 self.log_info(f"Error loading RF model: {str(e)}")
                 success = False
@@ -818,15 +740,33 @@ class HorseRaceModel:
                     if 'target_info' in orchestrator_state:
                         self.data_orchestrator.target_info = orchestrator_state['target_info']
 
+                    # Update embedding_dim and sequence_length if available
+                    if 'embedding_dim' in orchestrator_state:
+                        self.data_orchestrator.embedding_dim = orchestrator_state['embedding_dim']
+                    if 'sequence_length' in orchestrator_state:
+                        self.data_orchestrator.sequence_length = orchestrator_state['sequence_length']
+
                 self.log_info(f"Loaded feature engineering state from {feature_path}")
             except Exception as e:
                 self.log_info(f"Error loading feature engineering state: {str(e)}")
+
+        # Load model config if available
+        model_config_path = version_path / 'model_config.json'
+        if model_config_path.exists():
+            try:
+                with open(model_config_path, 'r') as f:
+                    self.model_config = json.load(f)
+                self.log_info(f"Loaded model configuration from {model_config_path}")
+            except Exception as e:
+                self.log_info(f"Error loading model configuration: {str(e)}")
 
         return success
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Train horse race prediction model')
+    """
+    Main function to run the training process from command line.
+    """
     parser = argparse.ArgumentParser(description='Train horse race prediction model')
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to configuration file')
     parser.add_argument('--db', type=str, default=None, help='Database to use (overrides config)')
@@ -838,15 +778,19 @@ def main():
     parser.add_argument('--embedding-dim', type=int, default=None, help='Dimension for entity embeddings')
     parser.add_argument('--model-name', type=str, default='hybrid', help='Model architecture name')
     parser.add_argument('--rf-only', action='store_true', help='Train only Random Forest model')
-    parser.add_argument('--lgbm-only', action='store_true', help='Train only LightGBM model')
     parser.add_argument('--lstm-only', action='store_true', help='Train only LSTM model')
     parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
+
     args = parser.parse_args()
 
+    # Update AppConfig with specified database if provided
+    if args.db is not None:
+        config = AppConfig(args.config)
+        config._config.base.active_db = args.db
+
     # Determine which models to train
-    train_rf = not (args.lstm_only or args.lgbm_only) and args.model_name == 'hybrid_model'
-    train_lgbm = not (args.lstm_only or args.rf_only) and args.model_name == 'hybrid_LGBM'
-    train_lstm = not (args.rf_only or args.lgbm_only)
+    train_rf = not args.lstm_only  # Train RF unless LSTM-only flag is set
+    train_lstm = not args.rf_only  # Train LSTM unless RF-only flag is set
 
     # Create and train the model
     trainer = HorseRaceModel(
@@ -861,9 +805,8 @@ def main():
         limit=args.limit,
         race_filter=args.race_type,
         date_filter=args.date_filter,
-        use_cache= not args.no_cache,
+        use_cache=not args.no_cache,
         train_rf=train_rf,
-        train_lgbm=train_lgbm,
         train_lstm=train_lstm
     )
 

@@ -5,13 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="adding daily races sync">
-      <change afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/race_prediction/predict_daily_races.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/utils/model_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/race_prediction/predict_race.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,6 +25,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -61,12 +65,13 @@
     "Python.mysql_to_sqlite.executor": "Run",
     "Python.predict_daily_races.executor": "Run",
     "Python.prediction_orchestrator.executor": "Run",
+    "Python.regression_enhancement.executor": "Run",
     "Python.test.executor": "Debug",
     "Python.train_model.executor": "Debug",
     "Python.train_race_model.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main"
+    "git-widget-placeholder": "LightGBM"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -74,7 +79,7 @@
       <recent name="$PROJECT_DIR$/core/connectors" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.predict_daily_races">
+  <component name="RunManager" selected="Python.regression_enhancement">
     <configuration name="api_daily_sync" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
@@ -89,6 +94,28 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/connectors/api_daily_sync.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="mysql_sqlite_sync" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="HorseAIv2" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/orchestrators/mysql_sqlite_sync.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -141,29 +168,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="HorseAIv2" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="train_race_model" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="regression_enhancement" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -176,7 +181,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/model_training/historical/train_race_model.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -186,19 +191,19 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.mysql_sqlite_sync" />
+      <item itemvalue="Python.regression_enhancement" />
       <item itemvalue="Python.predict_daily_races" />
       <item itemvalue="Python.prediction_orchestrator" />
       <item itemvalue="Python.api_daily_sync" />
-      <item itemvalue="Python.train_race_model" />
-      <item itemvalue="Python.test" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.predict_daily_races" />
-        <item itemvalue="Python.prediction_orchestrator" />
+        <item itemvalue="Python.regression_enhancement" />
         <item itemvalue="Python.api_daily_sync" />
-        <item itemvalue="Python.train_race_model" />
-        <item itemvalue="Python.test" />
+        <item itemvalue="Python.prediction_orchestrator" />
+        <item itemvalue="Python.predict_daily_races" />
+        <item itemvalue="Python.mysql_sqlite_sync" />
       </list>
     </recent_temporary>
   </component>
@@ -426,16 +431,6 @@
           <option name="timeStamp" value="55" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/mysql_sqlite_sync.py</url>
-          <line>25</line>
-          <option name="timeStamp" value="67" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
-          <line>514</line>
-          <option name="timeStamp" value="92" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
           <line>315</line>
           <option name="timeStamp" value="97" />
@@ -444,6 +439,16 @@
           <url>file://$PROJECT_DIR$/race_prediction/predict_daily_races.py</url>
           <line>127</line>
           <option name="timeStamp" value="98" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/model_training/regressions/isotonic_calibration.py</url>
+          <line>329</line>
+          <option name="timeStamp" value="102" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>
+          <line>778</line>
+          <option name="timeStamp" value="112" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

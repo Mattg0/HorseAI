@@ -20,24 +20,51 @@ class RacePredictor:
     Handles both static models (Random Forest) and sequence models (LSTM) if available.
     """
 
-    def __init__(self, model_path: str, db_name: str = "dev", verbose: bool = False):
+    def __init__(self, model_path: str = None, db_name: str = "dev",
+                 use_latest_base: bool = False, verbose: bool = False):
         """
         Initialize the race predictor.
 
         Args:
-            model_path: Path to saved model directory
+            model_path: Path to saved model directory (use None with use_latest_base=True to use latest from config)
             db_name: Database configuration name from config
+            use_latest_base: Whether to use the latest base model from config
             verbose: Whether to print verbose output
         """
-        self.model_path = Path(model_path)
-        self.verbose = verbose
+        # Initialize config
+        self.config = AppConfig()
+
+        # If use_latest_base is True, try to get latest model from config
+        if use_latest_base:
+            try:
+                if hasattr(self.config._config.models, 'latest_base_model'):
+                    latest_model = self.config._config.models.latest_base_model
+                    # Construct full path to model
+                    base_model_dir = os.path.join(
+                        self.config._config.models.model_dir,
+                        'hybrid'  # Default model name
+                    )
+                    self.model_path = Path(base_model_dir) / latest_model
+                    print(f"Using latest base model from config: {self.model_path}")
+                else:
+                    # Fall back to provided model_path
+                    self.model_path = Path(model_path) if model_path else None
+                    print("No latest_base_model found in config, using specified model path")
+            except (AttributeError, TypeError) as e:
+                print(f"Error loading latest_base_model from config: {str(e)}")
+                self.model_path = Path(model_path) if model_path else None
+        else:
+            # Use specified model path
+            self.model_path = Path(model_path) if model_path else None
 
         # Check if model path exists
+        if self.model_path is None:
+            raise ValueError("No model path provided and couldn't get latest_base_model from config")
+
         if not self.model_path.exists():
             raise FileNotFoundError(f"Model path {self.model_path} does not exist")
 
-        # Initialize config
-        self.config = AppConfig()
+        self.verbose = verbose
 
         # Get database path from config
         self.db_path = get_sqlite_dbpath(db_name)
@@ -54,7 +81,7 @@ class RacePredictor:
         # Load models and configuration
         self._load_models()
 
-        self.log_info(f"Race predictor initialized with model at {model_path}")
+        self.log_info(f"Race predictor initialized with model at {self.model_path}")
         self.log_info(f"Using database: {self.db_path}")
 
     def _setup_logging(self):

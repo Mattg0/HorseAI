@@ -781,91 +781,188 @@ class RegressionEnhancer:
             "best_model": best_model_name
         }
 
-    def build_correction_models(self, prediction_df: pd.DataFrame) -> Dict[str, Any]:
+    def build_correction_model(
+            base_model_path: str = None,
+            new_data_db: str = "dev",
+            use_latest_base: bool = False,
+            output_dir: str = None,
+            verbose: bool = True
+    ):
         """
-        Build models to correct prediction biases.
+        Build an incremental model by updating a base model with new data.
 
         Args:
-            prediction_df: DataFrame with prediction data
+            base_model_path: Path to base model (if not using latest_base)
+            new_data_db: Database to use for new data
+            use_latest_base: Whether to use latest base model from config
+            output_dir: Custom output directory (optional)
+            verbose: Whether to print verbose output
 
         Returns:
-            Dictionary with correction models and performance metrics
+            Dictionary with paths to saved artifacts
         """
-        if len(prediction_df) == 0:
-            return {"status": "error", "message": "No prediction data provided"}
+        # Import model manager
+        from utils.model_manager import get_model_manager
 
-        self.logger.info(f"Building correction models for {len(prediction_df)} samples")
+        if verbose:
+            print("\n===== BUILDING INCREMENTAL MODEL =====")
 
-        # Create segmented correction models based on race type
-        if 'typec' in prediction_df.columns:
-            race_types = prediction_df['typec'].unique()
+        # Initialize model manager
+        model_manager = get_model_manager()
 
-            # Initialize models dictionary
-            correction_models = {}
-            performance = {}
+        # Resolve base model path
+        if not base_model_path and not use_latest_base:
+            raise ValueError("Either base_model_path or use_latest_base must be provided")
 
-            # Global correction model (across all types)
-            global_model = self._train_correction_model(prediction_df, 'all_races')
-            correction_models['global'] = global_model['model']
-            performance['global'] = global_model['performance']
+        try:
+            base_path = model_manager.resolve_model_path(
+                model_path=base_model_path,
+                use_latest_base=use_latest_base
+            )
 
-            # Type-specific models where we have enough data
-            for race_type in race_types:
-                type_df = prediction_df[prediction_df['typec'] == race_type]
+            if verbose:
+                print(f"Using base model from: {base_path}")
+        except ValueError as e:
+            raise ValueError(f"Could not resolve base model path: {str(e)}")
 
-                # Only build model if we have enough data
-                if len(type_df) >= 30:
-                    type_model = self._train_correction_model(type_df, f'type_{race_type}')
-                    correction_models[race_type] = type_model['model']
-                    performance[race_type] = type_model['performance']
+        # Load base model
+        artifacts = model_manager.load_model_artifacts(
+            base_path=base_path,
+            load_rf=True,
+            load_lstm=True,
+            load_feature_config=True,
+            verbose=verbose
+        )
 
-            # Store models for later use
-            self.bias_models = correction_models
+        base_rf_model = artifacts.get('rf_model')
+        base_feature_config = artifacts.get('feature_config')
 
-            # Summarize overall improvement
-            improvement_summary = {
-                "global": performance['global']['improvement'],
-                "by_type": {
-                    race_type: perf['improvement']
-                    for race_type, perf in performance.items()
-                    if race_type != 'global'
-                }
-            }
+        if not base_rf_model:
+            raise ValueError("Base RF model could not be loaded")
 
-            avg_improvement = np.mean([perf['improvement'] for perf in performance.values()])
+        # Load new data using orchestrator
+        from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 
-            self.logger.info(
-                f"Built {len(correction_models)} correction models with {avg_improvement:.2f}% average improvement")
-
-            # Save models for future use
-            self._save_correction_models()
-
-            return {
-                "status": "success",
-                "models_built": len(correction_models),
-                "performance": performance,
-                "improvement_summary": improvement_summary
-            }
+        # Create orchestrator with same configuration as base model
+        if base_feature_config and isinstance(base_feature_config, dict):
+            embedding_dim = base_feature_config.get('embedding_dim', 8)
+            sequence_length = base_feature_config.get('sequence_length', 5)
         else:
-            # Just build a global model if we don't have race type
-            global_model = self._train_correction_model(prediction_df, 'all_races')
-            self.bias_models['global'] = global_model['model']
+            embedding_dim = 8  # Default
+            sequence_length = 5  # Default
 
-            self.logger.info(
-                f"Built global correction model with {global_model['performance']['improvement']:.2f}% improvement")
+        orchestrator = FeatureEmbeddingOrchestrator(
+            sqlite_path=None,  # Will be set based on db_name
+            db_name=new_data_db,
+            embedding_dim=embedding_dim,
+            sequence_length=sequence_length,
+            verbose=verbose
+        )
 
-            # Save model
-            self._save_correction_models()
+        # Load recent data
+        # Note: We're only using the last month of data for incremental update
+        from datetime import datetime, timedelta
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 
-            return {
-                "status": "success",
-                "models_built": 1,
-                "performance": {'global': global_model['performance']},
-                "improvement_summary": {
-                    "global": global_model['performance']['improvement']
-                }
-            }
+        date_filter = f"jour BETWEEN '{start_date}' AND '{end_date}'"
 
+        if verbose:
+            print(f"Loading recent data from {start_date} to {end_date}")
+
+        # Load and prepare data
+        X_train, X_val, X_test, y_train, y_val, y_test = orchestrator.run_pipeline(
+            limit=None,
+            date_filter=date_filter,
+            use_cache=True,
+            clean_embeddings=True
+        )
+
+        if verbose:
+            print(f"Loaded {len(X_train) + len(X_val) + len(X_test)} samples for incremental update")
+
+        # Create a combined dataset for training
+        import pandas as pd
+        X_combined = pd.concat([X_train, X_val, X_test])
+        y_combined = pd.concat([y_train, y_val, y_test])
+
+        if verbose:
+            print(f"Combined dataset has {len(X_combined)} samples")
+
+        # Create and train incremental model
+        from model_training.regressions.isotonic_calibration import CalibratedRegressor
+
+        # Option 1: Train new model directly on new data
+        # incremental_rf = clone(base_rf_model)
+        # incremental_rf.fit(X_combined, y_combined)
+
+        # Option 2: Build upon existing model (better for continuous learning)
+        # This depends on your model type, here's a simple example
+        if hasattr(base_rf_model, 'base_regressor'):
+            # This is a CalibratedRegressor with a base model
+            base_regressor = base_rf_model.base_regressor
+
+            # For now, just retrain on new data
+            # In a real implementation, you might have more sophisticated
+            # incremental learning approaches
+            base_regressor.n_estimators += 20  # Add more trees
+            base_regressor.fit(X_combined, y_combined)
+
+            # Create a new calibrated regressor
+            incremental_rf = CalibratedRegressor(
+                base_regressor=base_regressor,
+                clip_min=1.0,
+                clip_max=None
+            )
+
+            # Fit the calibrator on validation data
+            incremental_rf.fit(X_combined, y_combined)
+        else:
+            # Direct model, just fit it again
+            base_rf_model.fit(X_combined, y_combined)
+            incremental_rf = base_rf_model
+
+        # Evaluate the incremental model
+        from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+        predictions = incremental_rf.predict(X_test)
+
+        eval_results = {
+            'rmse': float(np.sqrt(mean_squared_error(y_test, predictions))),
+            'mae': float(mean_absolute_error(y_test, predictions)),
+            'r2': float(r2_score(y_test, predictions)),
+            'test_size': len(X_test),
+            'date_range': f"{start_date} to {end_date}"
+        }
+
+        if verbose:
+            print("\n===== INCREMENTAL MODEL EVALUATION =====")
+            print(f"RMSE: {eval_results['rmse']:.4f}")
+            print(f"MAE: {eval_results['mae']:.4f}")
+            print(f"R²: {eval_results['r2']:.4f}")
+            print(f"Test samples: {eval_results['test_size']}")
+
+        # Save the incremental model
+        from race_prediction.daily_training import DailyModelTrainer
+
+        # Create a trainer instance
+        daily_trainer = DailyModelTrainer(db_name=new_data_db, verbose=verbose)
+
+        # Call the new save_incremental_model method
+        saved_paths = daily_trainer.save_incremental_model(
+            rf_model=incremental_rf,
+            lstm_model=None,  # We're not updating LSTM in this example
+            evaluation_results=eval_results
+        )
+
+        if verbose:
+            print(f"Incremental model saved to: {saved_paths}")
+
+        return {
+            'model': incremental_rf,
+            'evaluation': eval_results,
+            'paths': saved_paths,
+            'feature_orchestrator': orchestrator
+        }
     def _train_correction_model(self, df: pd.DataFrame, model_name: str) -> Dict[str, Any]:
         """
         Train a model to correct prediction errors.
@@ -1002,29 +1099,73 @@ class RegressionEnhancer:
             "feature_importance": feature_importance
         }
 
-    def _save_correction_models(self):
-        """Save the correction models for future use."""
-        # Create a models directory
-        models_dir = self.output_dir / 'correction_models'
-        models_dir.mkdir(exist_ok=True)
+    def save_incremental_model(self, rf_model, lstm_model=None, evaluation_results=None):
+        """
+        Save models trained incrementally on daily data.
 
-        # Save each model
-        for name, model in self.bias_models.items():
-            model_path = models_dir / f'{name}_correction_model.joblib'
-            joblib.dump(model, model_path)
+        Args:
+            rf_model: Random Forest model to save
+            lstm_model: LSTM model to save (optional)
+            evaluation_results: Evaluation metrics (optional)
 
-        # Save model metadata
-        metadata = {
-            "model_count": len(self.bias_models),
-            "model_names": list(self.bias_models.keys()),
-            "created_at": datetime.now().isoformat(),
-            "base_model_version": self.model_config.get('version', 'unknown')
+        Returns:
+            Dictionary with paths to saved artifacts
+        """
+        from utils.model_manager import get_model_manager
+
+        print("===== SAVING INCREMENTAL MODEL =====")
+
+        # Get the model manager
+        model_manager = get_model_manager()
+
+        # Create version string based on date, database type, and training type (incremental)
+        version = model_manager.get_version_path(self.db_type, train_type='incremental')
+
+        # Resolve the base path
+        save_dir = model_manager.get_model_path('hybrid') / version
+
+        print(f"Saving incremental model to: {save_dir}")
+
+        # Prepare orchestrator state (simplified for incremental training)
+        orchestrator_state = {
+            'preprocessing_params': self.feature_orchestrator.preprocessing_params,
+            'embedding_dim': self.feature_orchestrator.embedding_dim,
+            'sequence_length': 5,  # Default value for incremental training
+            'target_info': {
+                'column': 'final_position',
+                'type': 'regression'
+            }
         }
 
-        with open(models_dir / 'correction_models_metadata.json', 'w') as f:
-            json.dump(metadata, f, indent=4)
+        # Prepare model configuration
+        model_config = {
+            'version': version,
+            'model_name': 'hybrid',
+            'db_type': self.db_type,
+            'train_type': 'incremental',  # Explicitly mark as incremental training
+            'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'base_model': model_manager.get_latest_base_model(),  # Reference to base model
+            'models_trained': {
+                'rf': rf_model is not None,
+                'lstm': lstm_model is not None
+            },
+            'evaluation_results': evaluation_results or {}
+        }
 
-        self.logger.info(f"Saved {len(self.bias_models)} correction models to {models_dir}")
+        # Save all artifacts at once
+        saved_paths = model_manager.save_model_artifacts(
+            base_path=save_dir,
+            rf_model=rf_model,
+            lstm_model=lstm_model,
+            orchestrator_state=orchestrator_state,
+            model_config=model_config,
+            db_type=self.db_type,
+            train_type='incremental',
+            update_config=True  # Update config.yaml with reference to this incremental model
+        )
+
+        print(f"Incremental model saved successfully to {save_dir}")
+        return saved_paths
 
     def update_base_model(self, training_data: pd.DataFrame, blend_weight: float = 0.7) -> Dict[str, Any]:
         """
@@ -1451,5 +1592,5 @@ def main():
 if __name__ == "__main__":
     # For debugging in IDE - uncomment and modify these lines as needed
     # import sys
-    sys.argv = [sys.argv[0], "--model", "models/hybrid/v20250324" , "--from-date", "2025-03-30"]
+    sys.argv = [sys.argv[0], "--model", "models/hybrid/v20250407" , "--to-date", "2025-04-04"]
     sys.exit(main())
