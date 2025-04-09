@@ -16,7 +16,7 @@ from datetime import datetime
 
 # Import TensorFlow and Keras
 import tensorflow as tf
-from tf.keras.models import load_model
+from tensorflow.keras.models import load_model
 
 from utils.env_setup import AppConfig
 
@@ -37,33 +37,49 @@ class ModelManager:
         self.config = AppConfig(config_path)
         self.model_dir = self.config._config.models.model_dir
 
-    def get_model_path(self, model_name: str = 'hybrid') -> Path:
+    def get_model_path(self, model_name: str = 'hybrid', db_type: str = None, model_type: str = None) -> Path:
         """
-        Get the base path for a model.
+        Get the base path for a model based on database and model type.
 
         Args:
-            model_name: Name of the model
+            model_name: Name of the model (e.g., 'hybrid')
+            db_type: Database type (e.g., 'full', '2years', 'dev')
+            model_type: Type of model ('rf', 'lstm', or 'hybrid')
 
         Returns:
             Path object for the model directory
         """
-        return Path(self.model_dir) / model_name
+        # If db_type not provided, use the one from config
+        if db_type is None:
+            db_type = self.config._config.base.active_db
 
-    def get_version_path(self, db_type: str, train_type: str = 'full', date: Optional[str] = None) -> str:
+        # If model_type not provided, default to 'hybrid'
+        if model_type is None:
+            model_type = 'hybrid'
+
+        # Validate model_type
+        if model_type not in ['rf', 'lstm', 'hybrid']:
+            raise ValueError(f"Invalid model_type: {model_type}. Must be 'rf', 'lstm', or 'hybrid'")
+
+        # Create path: models/<db>/<model_type>/
+        return Path(self.model_dir) / db_type / model_type
+
+    def get_filename_with_date(self, prefix: str, extension: str, date: str = None) -> str:
         """
-        Generate a version string based on database type, training type, and date.
+        Generate a filename with date format.
 
         Args:
-            db_type: Database type (e.g., 'full', '2years')
-            train_type: Training type ('full' or 'incremental')
+            prefix: Prefix for the filename
+            extension: File extension
             date: Optional date string (default: current date)
 
         Returns:
-            Version string in the format "{db_type}_{train_type}_v{YYYYMMDD}"
+            Filename in format "<prefix>_<date>.<extension>"
         """
         if date is None:
-            date = time.strftime('%Y%m%d')
-        return f"{db_type}_{train_type}_v{date}"
+            date = datetime.now().strftime('%Y%m%d')
+
+        return f"{prefix}_{date}.{extension}"
 
     def parse_version_string(self, version: str) -> Dict[str, str]:
         """
@@ -182,13 +198,13 @@ class ModelManager:
         except (AttributeError, KeyError):
             return None
 
-    def update_config_model_reference(self, version: str, reference_type: str = 'base') -> bool:
+    def update_config_model_reference(self, version: str, reference_type: str = 'hybrid') -> bool:
         """
         Update model reference fields in config.yaml.
 
         Args:
             version: Version string to set
-            reference_type: Type of reference to update ('base', 'full', or 'incremental')
+            reference_type: Type of reference to update ('rf', 'lstm', 'hybrid')
 
         Returns:
             Success status
@@ -208,11 +224,12 @@ class ModelManager:
                 config_data['models'] = {}
 
             # Update appropriate field based on reference_type
-            if reference_type == 'base' or reference_type == 'full':
-                config_data['models']['latest_base_model'] = version
-                config_data['models']['latest_full_model'] = version
-            elif reference_type == 'incremental':
-                config_data['models']['latest_incremental_model'] = version
+            if reference_type == 'rf':
+                config_data['models']['latest_rf_model'] = version
+            elif reference_type == 'lstm':
+                config_data['models']['latest_lstm_model'] = version
+            elif reference_type == 'hybrid':
+                config_data['models']['latest_hybrid_model'] = version
             else:
                 print(f"Unknown reference_type: {reference_type}")
                 return False
@@ -428,15 +445,15 @@ class ModelManager:
             raise
 
     def save_model_artifacts(self,
-                            base_path: Path,
-                            rf_model=None,
-                            lstm_model=None,
-                            orchestrator_state=None,
-                            history=None,
-                            model_config=None,
-                            db_type=None,
-                            train_type='full',
-                            update_config=True) -> Dict[str, Path]:
+                             base_path: Path,
+                             rf_model=None,
+                             lstm_model=None,
+                             orchestrator_state=None,
+                             history=None,
+                             model_config=None,
+                             db_type=None,
+                             train_type='full',
+                             update_config=True) -> Dict[str, Path]:
         """
         Save all model artifacts to disk.
 
@@ -474,10 +491,25 @@ class ModelManager:
 
         # Save LSTM model
         if lstm_model is not None:
-            lstm_path = base_path / "hybrid_lstm_model"
-            if hasattr(lstm_model, 'save'):
-                lstm_model.save(lstm_path)
+            # Ensure proper file extension for Keras model
+            lstm_path = base_path / "hybrid_lstm_model.keras"
+
+            # Attempt to save with .keras extension
+            try:
+                lstm_model.save(str(lstm_path))
                 saved_paths['lstm_model'] = lstm_path
+            except Exception as e:
+                print(f"Error saving LSTM model: {e}")
+
+                # Fallback to .h5 extension if .keras fails
+                lstm_path = base_path / "hybrid_lstm_model.h5"
+                try:
+                    lstm_model.save(str(lstm_path))
+                    saved_paths['lstm_model'] = lstm_path
+                except Exception as e:
+                    print(f"Error saving LSTM model with alternative extension: {e}")
+                    # If both methods fail, raise the original error
+                    raise
 
         # Save LSTM training history
         if history is not None:

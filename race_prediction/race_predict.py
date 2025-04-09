@@ -120,97 +120,126 @@ class RacePredictor:
             print(f"ERROR: {message}")
 
     def _load_models(self):
-        """Load the trained models and associated files."""
-        # Find latest version folder if it exists
-        versions = [d for d in self.model_path.iterdir() if d.is_dir() and d.name.startswith('v')]
+        """Load the trained models using the new directory structure."""
+        # Get model manager
+        from utils.model_manager import get_model_manager
+        model_manager = get_model_manager()
 
-        if versions:
-            # Sort by version (assuming vYYYYMMDD format)
-            versions.sort(reverse=True)
-            version_path = versions[0]
-            self.log_info(f"Using latest model version: {version_path.name}")
-        else:
-            # Use model_path directly if no version folders
-            version_path = self.model_path
-            self.log_info("No version folders found, using model path directly")
+        # Extract db_type from model_path
+        db_type = self.model_path.parts[-3] if len(self.model_path.parts) >= 3 else None
 
-        # Paths for model files
-        self.rf_model_path = version_path / "hybrid_rf_model.joblib"
-        self.lstm_model_path = version_path / "hybrid_lstm_model"
-        self.feature_engineer_path = version_path / "hybrid_feature_engineer.joblib"
-        self.config_path = version_path / "model_config.json"
+        if not db_type:
+            # Try to get db_type from config
+            db_type = self.config._config.base.active_db
+            self.log_info(f"Using database type from config: {db_type}")
 
-        # Initialize models
-        self.rf_model = None
-        self.lstm_model = None
-        self.model_config = None
-        self.feature_config = None
+        # Determine which models to load based on the specified path
+        model_type = self.model_path.parts[-2] if len(self.model_path.parts) >= 2 else 'hybrid'
 
-        # Load model configuration
-        if self.config_path.exists():
-            try:
-                with open(self.config_path, 'r') as f:
-                    self.model_config = json.load(f)
-                self.log_info("Loaded model configuration")
-            except Exception as e:
-                self.log_error(f"Error loading model configuration: {str(e)}")
+        self.log_info(f"Loading models of type '{model_type}' for database '{db_type}'")
 
-        # Load feature engineering configuration
-        if self.feature_engineer_path.exists():
-            try:
-                self.feature_config = joblib.load(self.feature_engineer_path)
-                self.log_info("Loaded feature engineering configuration")
+        # Get the latest date for the specified model type
+        # This could be extracted from directory listing or config
+        date = None
 
-                # Update orchestrator with feature configuration
-                if isinstance(self.feature_config, dict):
-                    # Update config parameters
-                    if 'preprocessing_params' in self.feature_config:
-                        self.orchestrator.preprocessing_params.update(
-                            self.feature_config['preprocessing_params']
-                        )
-                    if 'embedding_dim' in self.feature_config:
-                        self.orchestrator.embedding_dim = self.feature_config['embedding_dim']
-                    if 'sequence_length' in self.feature_config:
-                        self.orchestrator.sequence_length = self.feature_config['sequence_length']
-            except Exception as e:
-                self.log_error(f"Error loading feature engineering configuration: {str(e)}")
+        # Try to get latest date from config
+        try:
+            if model_type == 'rf' and hasattr(self.config._config.models, 'latest_rf_model'):
+                latest_model = self.config._config.models.latest_rf_model
+                date = latest_model.split('_')[1]  # Extract date from "db_date"
+            elif model_type == 'lstm' and hasattr(self.config._config.models, 'latest_lstm_model'):
+                latest_model = self.config._config.models.latest_lstm_model
+                date = latest_model.split('_')[1]  # Extract date from "db_date"
+            elif model_type == 'hybrid' and hasattr(self.config._config.models, 'latest_hybrid_model'):
+                latest_model = self.config._config.models.latest_hybrid_model
+                date = latest_model.split('_')[1]  # Extract date from "db_date"
+        except (AttributeError, IndexError):
+            # If we can't get date from config, find latest file
+            pass
 
-        # Load RF model if it exists
-        if self.rf_model_path.exists():
-            try:
-                # Load the joblib file
-                rf_data = joblib.load(self.rf_model_path)
-
-                self.log_info(f"Loaded RF model of type: {type(rf_data)}")
-
-                # Handle different saving formats
-                if isinstance(rf_data, dict) and 'model' in rf_data:
-                    self.rf_model = rf_data['model']
-                    self.log_info(f"Found model in dictionary with keys: {list(rf_data.keys())}")
-                elif hasattr(rf_data, 'predict') and callable(getattr(rf_data, 'predict')):
-                    self.rf_model = rf_data
-                    self.log_info("Model has predict method, using directly")
-                else:
-                    # Try to find a model with predict method
-                    self.log_info(f"Searching for model in object with attributes: {dir(rf_data)}")
-                    if hasattr(rf_data, 'base_regressor'):
-                        self.rf_model = rf_data.base_regressor
-                        self.log_info("Using base_regressor from loaded model")
+        if not date:
+            # Find latest file in the directory
+            model_dir = model_manager.get_model_path(db_type=db_type, model_type=model_type)
+            if model_dir.exists():
+                # List files and sort by modification time
+                files = list(model_dir.glob(f"*.*"))
+                if files:
+                    files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+                    # Try to extract date from filename
+                    filename = files[0].name
+                    date_match = re.search(r'_(\d{8})\.', filename)
+                    if date_match:
+                        date = date_match.group(1)
                     else:
-                        # Use as is, we'll check for predict method later
-                        self.rf_model = rf_data
-                        self.log_info("Using model as-is, will check for predict method later")
+                        # Use current date as fallback
+                        date = datetime.now().strftime('%Y%m%d')
 
-                # Verify model has predict method
-                if hasattr(self.rf_model, 'predict') and callable(getattr(self.rf_model, 'predict')):
-                    self.log_info("Verified that RF model has predict method")
-                else:
-                    self.log_error(f"WARNING: RF model does not have predict method. Model type: {type(self.rf_model)}")
-                    self.log_error(f"Model attributes: {dir(self.rf_model)}")
-            except Exception as e:
-                self.log_error(f"Error loading Random Forest model: {str(e)}")
-                import traceback
-                self.log_error(traceback.format_exc())
+        self.log_info(f"Using date: {date}")
+
+        # Load models based on model_type
+        if model_type == 'rf' or model_type == 'hybrid':
+            # Load RF model
+            rf_path = model_manager.get_model_path(db_type=db_type, model_type='rf')
+            rf_model_file = rf_path / f"model_{date}.joblib"
+
+            if rf_model_file.exists():
+                try:
+                    # Load the RF model
+                    rf_data = joblib.load(rf_model_file)
+
+                    # Handle different model formats
+                    if isinstance(rf_data, dict) and 'model' in rf_data:
+                        self.rf_model = rf_data['model']
+                    elif hasattr(rf_data, 'predict') and callable(getattr(rf_data, 'predict')):
+                        self.rf_model = rf_data
+                    else:
+                        # Try to find model component
+                        if hasattr(rf_data, 'base_regressor'):
+                            self.rf_model = rf_data
+                        else:
+                            self.rf_model = rf_data
+
+                    self.log_info(f"Loaded RF model from {rf_model_file}")
+
+                    # Load feature configuration
+                    feature_config_file = rf_path / f"feature_config_{date}.joblib"
+                    if feature_config_file.exists():
+                        self.feature_config = joblib.load(feature_config_file)
+                        self.log_info(f"Loaded feature configuration from {feature_config_file}")
+                except Exception as e:
+                    self.log_error(f"Error loading RF model: {str(e)}")
+
+        if model_type == 'lstm' or model_type == 'hybrid':
+            # Load LSTM model
+            lstm_path = model_manager.get_model_path(db_type=db_type, model_type='lstm')
+            lstm_model_dir = lstm_path / f"model_{date}"
+
+            if lstm_model_dir.exists():
+                try:
+                    from tensorflow.keras.models import load_model
+                    self.lstm_model = load_model(lstm_model_dir)
+                    self.log_info(f"Loaded LSTM model from {lstm_model_dir}")
+
+                    # Load history if available
+                    history_file = lstm_path / f"history_{date}.joblib"
+                    if history_file.exists():
+                        self.history = joblib.load(history_file)
+                        self.log_info(f"Loaded LSTM training history from {history_file}")
+                except Exception as e:
+                    self.log_error(f"Error loading LSTM model: {str(e)}")
+
+        if model_type == 'hybrid':
+            # Load hybrid configuration
+            hybrid_path = model_manager.get_model_path(db_type=db_type, model_type='hybrid')
+            config_file = hybrid_path / f"config_{date}.json"
+
+            if config_file.exists():
+                try:
+                    with open(config_file, 'r') as f:
+                        self.model_config = json.load(f)
+                    self.log_info(f"Loaded hybrid configuration from {config_file}")
+                except Exception as e:
+                    self.log_error(f"Error loading hybrid configuration: {str(e)}")
 
     def prepare_race_data(self, race_df: pd.DataFrame) -> Tuple[
         pd.DataFrame, Optional[np.ndarray], Optional[np.ndarray]]:

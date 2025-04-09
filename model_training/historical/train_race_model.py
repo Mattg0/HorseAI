@@ -7,6 +7,7 @@ import time
 import json
 import matplotlib.pyplot as plt
 from typing import Tuple, Dict, Any, Optional
+from datetime import datetime
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -386,24 +387,148 @@ class HorseRaceModel:
         except Exception as e:
             self.log_info(f"Error plotting LSTM history: {str(e)}")
 
-    def evaluate_models(self, X_test, y_test, X_seq_test=None, X_static_test=None):
+    def train_rf_model_pipeline(self, limit=None, race_filter=None, date_filter=None, use_cache=True):
         """
-        Evaluate trained models on test data.
+        Train and evaluate the Random Forest model.
 
         Args:
-            X_test: Test features for RF model
+            limit: Optional limit for number of races to load
+            race_filter: Optional filter for specific race types
+            date_filter: Optional date filter
+            use_cache: Whether to use cached results when available
+
+        Returns:
+            Dictionary with training results and evaluation metrics
+        """
+        start_time = time.time()
+        self.log_info(f"\nStarting Random Forest training for {self.db_type} database...")
+
+        # Get prepared data through the orchestrator
+        X_train, X_val, X_test, y_train, y_val, y_test = self.data_orchestrator.run_pipeline(
+            limit=limit,
+            race_filter=race_filter,
+            date_filter=date_filter,
+            use_cache=use_cache,
+            clean_embeddings=True
+        )
+
+        # Train the RF model
+        self.train_rf_model(X_train, y_train, X_val, y_val)
+
+        # Evaluate on test set
+        rf_results = self.evaluate_rf_model(X_test, y_test)
+
+        # Calculate training time
+        training_time = time.time() - start_time
+
+        results = {
+            'model_type': 'random_forest',
+            'training_time': training_time,
+            'evaluation': rf_results
+        }
+
+        self.log_info(f"Random Forest training completed in {training_time:.2f} seconds")
+        return results
+
+    def train_lstm_model_pipeline(self, limit=None, race_filter=None, date_filter=None, use_cache=True):
+        """
+        Train and evaluate the LSTM model.
+
+        Args:
+            limit: Optional limit for number of races to load
+            race_filter: Optional filter for specific race types
+            date_filter: Optional date filter
+            use_cache: Whether to use cached results when available
+
+        Returns:
+            Dictionary with training results and evaluation metrics
+        """
+        start_time = time.time()
+        self.log_info(f"\nStarting LSTM training for {self.db_type} database...")
+
+        try:
+            # Get data for sequential model
+            df_raw = self.data_orchestrator.load_historical_races(
+                limit=limit,
+                race_filter=race_filter,
+                date_filter=date_filter,
+                use_cache=use_cache
+            )
+            # Apply embeddings with lstm_mode=True to preserve idche and jour
+            df_features = self.data_orchestrator.apply_embeddings(
+                df_raw,
+                clean_after_embedding=True,
+                keep_identifiers=True,
+                lstm_mode=True  # This will ensure idche and jour are preserved
+            )
+
+            # Now prepare sequence data
+            X_sequences, X_static, y, horse_ids, race_dates = self.data_orchestrator.prepare_lstm_sequence_features(
+                df_features,
+                sequence_length=self.sequence_length
+            )
+
+            # Split into train/test sets
+            from sklearn.model_selection import train_test_split
+
+            # Split with test_size from parameters
+            test_size = self.training_config['data_params'].get('test_size', 0.2)
+            random_state = self.training_config['data_params'].get('random_state', 42)
+
+            X_seq_train, X_seq_test, X_static_train, X_static_test, y_train, y_test = train_test_split(
+                X_sequences, X_static, y,
+                test_size=test_size,
+                random_state=random_state
+            )
+
+            # Train the LSTM model
+            self.train_lstm_model(X_seq_train, X_static_train, y_train)
+
+            # Evaluate on test set
+            lstm_results = self.evaluate_lstm_model(X_seq_test, X_static_test, y_test)
+
+            # Calculate training time
+            training_time = time.time() - start_time
+
+            results = {
+                'model_type': 'lstm',
+                'training_time': training_time,
+                'evaluation': lstm_results,
+                'sequence_length': self.sequence_length
+            }
+
+            self.log_info(f"LSTM training completed in {training_time:.2f} seconds")
+            return results
+
+        except Exception as e:
+            self.log_info(f"Error during LSTM model training: {str(e)}")
+            import traceback
+            self.log_info(traceback.format_exc())
+
+            return {
+                'model_type': 'lstm',
+                'status': 'error',
+                'error': str(e)
+            }
+
+    def evaluate_rf_model(self, X_test, y_test):
+        """
+        Evaluate the Random Forest model.
+
+        Args:
+            X_test: Test features
             y_test: Test targets
-            X_seq_test: Test sequential features for LSTM
-            X_static_test: Test static features for LSTM
 
         Returns:
             Dictionary with evaluation metrics
         """
-        results = {}
+        if self.rf_model is None:
+            self.log_info("RF model not available for evaluation")
+            return {'status': 'error', 'error': 'Model not available'}
 
-        # Evaluate RF model if available
-        if self.rf_model is not None:
-            self.log_info("\n===== EVALUATING RANDOM FOREST MODEL =====")
+        self.log_info("\n===== EVALUATING RANDOM FOREST MODEL =====")
+
+        try:
             rf_pred = self.rf_model.predict(X_test)
 
             rf_rmse = np.sqrt(mean_squared_error(y_test, rf_pred))
@@ -412,15 +537,37 @@ class HorseRaceModel:
 
             self.log_info(f"RF Test metrics - RMSE: {rf_rmse:.4f}, MAE: {rf_mae:.4f}, R²: {rf_r2:.4f}")
 
-            results['rf'] = {
-                'rmse': rf_rmse,
-                'mae': rf_mae,
-                'r2': rf_r2
+            return {
+                'status': 'success',
+                'rmse': float(rf_rmse),
+                'mae': float(rf_mae),
+                'r2': float(rf_r2),
+                'sample_count': len(y_test)
             }
 
-        # Evaluate LSTM model if available
-        if self.lstm_model is not None and X_seq_test is not None and X_static_test is not None:
-            self.log_info("\n===== EVALUATING LSTM MODEL =====")
+        except Exception as e:
+            self.log_info(f"Error evaluating RF model: {str(e)}")
+            return {'status': 'error', 'error': str(e)}
+
+    def evaluate_lstm_model(self, X_seq_test, X_static_test, y_test):
+        """
+        Evaluate the LSTM model.
+
+        Args:
+            X_seq_test: Test sequence features
+            X_static_test: Test static features
+            y_test: Test targets
+
+        Returns:
+            Dictionary with evaluation metrics
+        """
+        if self.lstm_model is None:
+            self.log_info("LSTM model not available for evaluation")
+            return {'status': 'error', 'error': 'Model not available'}
+
+        self.log_info("\n===== EVALUATING LSTM MODEL =====")
+
+        try:
             lstm_loss, lstm_mae = self.lstm_model.evaluate(
                 [X_seq_test, X_static_test], y_test, verbose=0
             )
@@ -433,103 +580,144 @@ class HorseRaceModel:
             self.log_info(
                 f"LSTM Test metrics - Loss: {lstm_loss:.4f}, MAE: {lstm_mae:.4f}, RMSE: {lstm_rmse:.4f}, R²: {lstm_r2:.4f}")
 
-            results['lstm'] = {
-                'loss': lstm_loss,
-                'mae': lstm_mae,
-                'rmse': lstm_rmse,
-                'r2': lstm_r2
+            return {
+                'status': 'success',
+                'loss': float(lstm_loss),
+                'mae': float(lstm_mae),
+                'rmse': float(lstm_rmse),
+                'r2': float(lstm_r2),
+                'sample_count': len(y_test)
             }
 
-        # Store evaluation results
-        self.models['test_evaluation'] = results
-        return results
+        except Exception as e:
+            self.log_info(f"Error evaluating LSTM model: {str(e)}")
+            return {'status': 'error', 'error': str(e)}
 
-    def train(self, limit=None, race_filter=None, date_filter=None,
-              use_cache=True, train_rf=True, train_lstm=True):
+    def train_hybrid_model_pipeline(self, limit=None, race_filter=None, date_filter=None, use_cache=True):
         """
-        Train either or both models based on parameters.
+        Train both RF and LSTM models as a hybrid approach.
 
         Args:
             limit: Optional limit for number of races to load
             race_filter: Optional filter for specific race types
             date_filter: Optional date filter
             use_cache: Whether to use cached results when available
-            train_rf: Whether to train the Random Forest model
-            train_lstm: Whether to train the LSTM model
+
+        Returns:
+            Dictionary with training results for both models
         """
         start_time = time.time()
-        self.log_info(f"\nStarting training process for {self.db_type} database...")
+        self.log_info(f"\nStarting Hybrid model training for {self.db_type} database...")
 
-        # Train RF model if requested
-        if train_rf:
-            # Get prepared data through the orchestrator
-            X_train, X_val, X_test, y_train, y_val, y_test = self.data_orchestrator.run_pipeline(
-                limit=limit,
-                race_filter=race_filter,
-                date_filter=date_filter,
-                use_cache=use_cache,
-                clean_embeddings=True
-            )
+        # Train RF model
+        rf_results = self.train_rf_model_pipeline(
+            limit=limit,
+            race_filter=race_filter,
+            date_filter=date_filter,
+            use_cache=use_cache
+        )
 
-            # Train the RF model with integrated calibration (CalibratedRegressor handles calibration now)
-            self.train_rf_model(X_train, y_train, X_val, y_val)
-
-            # No need for separate calibration since it's now integrated into the CalibratedRegressor
-            # REMOVE THIS LINE: self.calibrate_predictions(X_val, y_val, X_test, y_test)
-
-            # Evaluate on test set
-            self.evaluate_models(X_test, y_test)
-
-        # Continue with LSTM training as before...
-        if train_lstm:
-            try:
-                # Get data for sequential model
-                df_features, _ = self.data_orchestrator.load_or_prepare_data(
-                    use_cache=use_cache,
-                    limit=limit,
-                    race_filter=race_filter,
-                    date_filter=date_filter
-                )
-
-                # Prepare sequence data
-                X_sequences, X_static, y = self.data_orchestrator.prepare_sequence_data(
-                    df_features,
-                    sequence_length=self.sequence_length
-                )
-
-                # Split into train/test sets
-                from sklearn.model_selection import train_test_split
-
-                # Split with test_size from parameters
-                test_size = self.training_config['data_params'].get('test_size', 0.2)
-                random_state = self.training_config['data_params'].get('random_state', 42)
-
-                X_seq_train, X_seq_test, X_static_train, X_static_test, y_train, y_test = train_test_split(
-                    X_sequences, X_static, y,
-                    test_size=test_size,
-                    random_state=random_state
-                )
-
-                # Train the LSTM model (includes further train/val split)
-                self.train_lstm_model(X_seq_train, X_static_train, y_train)
-
-                # Evaluate on test set
-                self.evaluate_models(None, y_test, X_seq_test, X_static_test)
-
-            except Exception as e:
-                self.log_info(f"Error during LSTM model training: {str(e)}")
-                import traceback
-                self.log_info(traceback.format_exc())
+        # Train LSTM model
+        lstm_results = self.train_lstm_model_pipeline(
+            limit=limit,
+            race_filter=race_filter,
+            date_filter=date_filter,
+            use_cache=use_cache
+        )
 
         # Calculate total training time
         total_time = time.time() - start_time
-        self.log_info(f"\nTotal training time: {total_time:.2f} seconds")
 
-        # Save models if any were trained
-        if train_rf or train_lstm:
-            self.save_models(save_rf=train_rf, save_lstm=train_lstm)
+        # Combine results
+        results = {
+            'model_type': 'hybrid',
+            'training_time': total_time,
+            'rf_results': rf_results,
+            'lstm_results': lstm_results
+        }
+
+        self.log_info(f"\nHybrid model training completed in {total_time:.2f} seconds")
+
+        # Save models
+        self.save_models(save_rf=True, save_lstm=True)
+
+        return results
+
+    def evaluate_models(self, X_test=None, y_test=None, X_seq_test=None, X_static_test=None):
+        """
+        Evaluate trained models on test data.
+
+        This is a wrapper around the specialized evaluation functions. Consider using
+        evaluate_rf_model() or evaluate_lstm_model() directly for specific model evaluation.
+
+        Args:
+            X_test: Test features for RF model (can be None if only evaluating LSTM)
+            y_test: Test targets
+            X_seq_test: Test sequential features for LSTM (can be None if only evaluating RF)
+            X_static_test: Test static features for LSTM (can be None if only evaluating RF)
+
+        Returns:
+            Dictionary with evaluation metrics
+        """
+        results = {}
+
+        # Verify we have targets to evaluate against
+        if y_test is None:
+            self.log_info("Cannot evaluate models: y_test is None")
+            return {"error": "No target data provided for evaluation"}
+
+        # Evaluate RF model if we have the right data
+        if X_test is not None:
+            rf_results = self.evaluate_rf_model(X_test, y_test)
+            results['rf'] = rf_results
+
+        # Evaluate LSTM model if we have the right data
+        if X_seq_test is not None and X_static_test is not None:
+            lstm_results = self.evaluate_lstm_model(X_seq_test, X_static_test, y_test)
+            results['lstm'] = lstm_results
+
+        # Store evaluation results
+        self.models['test_evaluation'] = results
+        return results
+
+    def train(self, limit=None, race_filter=None, date_filter=None, use_cache=True, model_type='hybrid'):
+        """
+        Train models based on the specified model type.
+
+        Args:
+            limit: Optional limit for number of races to load
+            race_filter: Optional filter for specific race types
+            date_filter: Optional date filter
+            use_cache: Whether to use cached results when available
+            model_type: Type of model to train ('rf', 'lstm', or 'hybrid')
+
+        Returns:
+            Dictionary with training results
+        """
+        # Normalize model type string
+        model_type = model_type.lower()
+
+        if model_type == 'rf' or model_type == 'random_forest':
+            results = self.train_rf_model_pipeline(limit, race_filter, date_filter, use_cache)
+            self.save_models(save_rf=True, save_lstm=False)
+
+        elif model_type == 'lstm':
+            results = self.train_lstm_model_pipeline(limit, race_filter, date_filter, use_cache)
+            self.save_models(save_rf=False, save_lstm=True)
+
+        elif model_type == 'hybrid':
+            results = self.train_hybrid_model_pipeline(limit, race_filter, date_filter, use_cache)
+            self.save_models(save_rf=True, save_lstm=True)
+
+        else:
+            self.log_info(f"Unknown model type: {model_type}. Valid options are 'rf', 'lstm', or 'hybrid'")
+            return {
+                'status': 'error',
+                'error': f"Unknown model type: {model_type}. Valid options are 'rf', 'lstm', or 'hybrid'"
+            }
 
         self.log_info("\nTraining process completed!")
+        return results
 
     def save_models(self, save_rf: bool = True, save_lstm: bool = True) -> None:
         """
@@ -539,13 +727,10 @@ class HorseRaceModel:
             save_rf: Whether to save RF model
             save_lstm: Whether to save LSTM model
         """
-
-        self.log_info("\n===== SAVING MODELS =====")
-
         # Get the model manager
         model_manager = get_model_manager()
 
-        # Create version string based on date, database type, and training type (full for historical)
+        # Create version string based on date, database type, and training type
         version = model_manager.get_version_path(self.db_type, train_type='full')
 
         # Resolve the base path
@@ -777,8 +962,8 @@ def main():
     parser.add_argument('--sequence-length', type=int, default=5, help='Sequence length for LSTM')
     parser.add_argument('--embedding-dim', type=int, default=None, help='Dimension for entity embeddings')
     parser.add_argument('--model-name', type=str, default='hybrid', help='Model architecture name')
-    parser.add_argument('--rf-only', action='store_true', help='Train only Random Forest model')
-    parser.add_argument('--lstm-only', action='store_true', help='Train only LSTM model')
+    parser.add_argument('--model-type', type=str, default='hybrid', choices=['rf', 'lstm', 'hybrid'],
+                        help='Type of model to train')
     parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
 
     args = parser.parse_args()
@@ -787,10 +972,6 @@ def main():
     if args.db is not None:
         config = AppConfig(args.config)
         config._config.base.active_db = args.db
-
-    # Determine which models to train
-    train_rf = not args.lstm_only  # Train RF unless LSTM-only flag is set
-    train_lstm = not args.rf_only  # Train LSTM unless RF-only flag is set
 
     # Create and train the model
     trainer = HorseRaceModel(
@@ -805,9 +986,8 @@ def main():
         limit=args.limit,
         race_filter=args.race_type,
         date_filter=args.date_filter,
-        use_cache=not args.no_cache,
-        train_rf=train_rf,
-        train_lstm=train_lstm
+        use_cache=args.no_cache,
+        model_type=args.model_type
     )
 
 
