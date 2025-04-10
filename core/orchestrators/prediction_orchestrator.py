@@ -38,11 +38,17 @@ class PredictionOrchestrator:
         # Initialize config
         self.config = AppConfig()
 
+        # Store the verbose flag
+        self.verbose = verbose
+
         # Set database
         if db_name is None:
             self.db_name = self.config._config.base.active_db
         else:
             self.db_name = db_name
+
+        # Get database path
+        self.db_path = self.config.get_sqlite_dbpath(self.db_name)
 
         # Get base model paths with active_db consideration
         self.model_paths = self.config.get_model_paths(model_name=model_path, model_type=model_type)
@@ -70,21 +76,58 @@ class PredictionOrchestrator:
                 # Model directory doesn't exist, create it
                 os.makedirs(model_dir, exist_ok=True)
                 self.model_path = model_dir
+                # Initialize a basic logger FIRST so it's always available
+        # Set up logging with proper verbose handling
+
+        self._setup_logging()
+
+        # Initialize components
+        self.race_fetcher = RaceFetcher(db_name=self.db_name, verbose=self.verbose)
+        self.race_predictor = RacePredictor(model_path=str(self.model_path), db_name=self.db_name, verbose=self.verbose)
+
+        # Only show initialization message if verbose
+        if self.verbose:
+            self.logger.info(f"Prediction Orchestrator initialized with model: {self.model_path}")
+    def log_info(self, message):
+        """Simple logging method."""
+        if self.verbose:
+            print(message)
 
     def _setup_logging(self):
-        """Set up logging."""
-        logging.basicConfig(
-            level=logging.INFO if not self.verbose else logging.DEBUG,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(self.log_file),
-                logging.StreamHandler()
-            ],
-            force=True  # Reset existing loggers
-        )
+        """Set up logging with proper verbose control."""
+        # Create logs directory if it doesn't exist
+        log_dir = self.model_path / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
 
+        # Configure the root logger - important to set up first
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.WARNING)  # Default to WARNING level
+
+        # Clear any existing handlers to avoid duplicate messages
+        for handler in list(root_logger.handlers):
+            root_logger.removeHandler(handler)
+
+        # Set up logger for this class
         self.logger = logging.getLogger("PredictionOrchestrator")
-        self.logger.info(f"Logging initialized to {self.log_file}")
+
+        # Set log level based on verbose flag
+        self.logger.setLevel(logging.INFO if self.verbose else logging.WARNING)
+
+        # Remove any existing handlers
+        for handler in list(self.logger.handlers):
+            self.logger.removeHandler(handler)
+
+        # Add file handler always
+        log_file = log_dir / f"race_predictor_{datetime.now().strftime('%Y%m%d')}.log"
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(file_handler)
+
+        # Add console handler only if verbose is True
+        if self.verbose:
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
+            self.logger.addHandler(console_handler)
 
     def predict_race(self, comp: str, blend_weight: float = 0.7) -> Dict:
         """
@@ -98,15 +141,11 @@ class PredictionOrchestrator:
             Dictionary with prediction results
         """
         start_time = datetime.now()
+        if not hasattr(self, 'logger'):
+            self.logger = logging.getLogger("PredictionOrchestrator")
+
         self.logger.info(f"Starting prediction for race {comp}")
 
-        # Check if predictor is initialized
-        if self.race_predictor is None:
-            return {
-                'status': 'error',
-                'error': 'Race predictor not initialized',
-                'comp': comp
-            }
 
         try:
             # Fetch race data from database
@@ -195,14 +234,14 @@ class PredictionOrchestrator:
             metadata = {
                 'race_id': comp,
                 'prediction_time': datetime.now().isoformat(),
-                'model_path': self.model_path,
+                'model_path': str(self.model_path),  # Convert Path to string here
                 'blend_weight': blend_weight,
                 'hippo': race_data.get('hippo'),
                 'prix': race_data.get('prix'),
                 'jour': race_data.get('jour'),
                 'typec': race_data.get('typec'),
                 'participants_count': len(prediction_results),
-                'predicted_arriv': predicted_arriv  # Add the arrival string here
+                'predicted_arriv': predicted_arriv
             }
             # Store prediction results
             prediction_data = {
@@ -239,16 +278,10 @@ class PredictionOrchestrator:
             }
 
     def predict_races_by_date(self, date: str = None, blend_weight: float = 0.7) -> Dict:
-        """
-        Generate predictions for all races on a given date.
+        # Make sure logger exists
+        if not hasattr(self, 'logger'):
+            self.logger = logging.getLogger("PredictionOrchestrator")
 
-        Args:
-            date: Date string in format YYYY-MM-DD (default: today)
-            blend_weight: Weight for RF model in blend (0-1)
-
-        Returns:
-            Dictionary with prediction results for all races
-        """
         # Use today's date if none provided
         if date is None:
             date = datetime.now().strftime("%Y-%m-%d")
@@ -386,7 +419,7 @@ class PredictionOrchestrator:
             comp: Race identifier
 
         Returns:
-            Dictionary with evaluation metrics
+            Dictionary with evaluation metrics and bet results
         """
         self.logger.info(f"Evaluating stored predictions for race {comp}")
 
@@ -431,6 +464,7 @@ class PredictionOrchestrator:
                 }
 
             # Parse actual results
+            actual_arriv = None
             if isinstance(actual_results, str):
                 try:
                     actual_results = json.loads(actual_results)
@@ -551,9 +585,12 @@ class PredictionOrchestrator:
             metrics['predicted_arriv'] = predicted_arriv
             metrics['actual_arriv'] = actual_arriv
 
-            self.logger.info(f"Evaluation for race {comp}: "
-                             f"Winner correct: {metrics['winner_correct']}, "
-                             f"Podium accuracy: {metrics['podium_accuracy']:.2f}")
+            # Log winning bets if any
+            winning_bets = metrics.get('winning_bets', [])
+            if winning_bets:
+                self.logger.info(f"Winning bets for race {comp}: {', '.join(winning_bets)}")
+            else:
+                self.logger.info(f"No winning bets for race {comp}")
 
             return {
                 'status': 'success',
@@ -574,13 +611,13 @@ class PredictionOrchestrator:
 
     def _calculate_summary_metrics(self, results: List[Dict]) -> Dict:
         """
-        Calculate summary metrics from a list of evaluation results.
+        Calculate summary metrics from a list of evaluation results with enhanced PMU bet reporting.
 
         Args:
             results: List of evaluation result dictionaries
 
         Returns:
-            Dictionary with summary metrics
+            Dictionary with summary metrics and detailed PMU bet statistics
         """
         success_count = sum(1 for r in results if r['status'] == 'success')
 
@@ -601,7 +638,8 @@ class PredictionOrchestrator:
                     'bonus3': 0, 'bonus3_rate': 0,
                     'deuxsur4': 0, 'deuxsur4_rate': 0,
                     'multi4': 0, 'multi4_rate': 0
-                }
+                },
+                'bet_type_summary': {}
             }
 
         # Calculate standard metrics
@@ -617,7 +655,7 @@ class PredictionOrchestrator:
 
         mean_rank_error = sum(valid_errors) / len(valid_errors) if valid_errors else float('nan')
 
-        # PMU bet type success rates
+        # PMU bet type success rates and detailed statistics
         pmu_bet_types = [
             'tierce_exact', 'tierce_desordre',
             'quarte_exact', 'quarte_desordre',
@@ -626,19 +664,59 @@ class PredictionOrchestrator:
         ]
 
         pmu_bet_successes = {}
+        bet_type_summary = {}
+
+        # Track successes for each bet type
         for bet_type in pmu_bet_types:
+            # Count successful bets
             successes = sum(1 for r in results
                             if r['status'] == 'success' and
                             r['metrics'].get('pmu_bets', {}).get(bet_type, False))
+
+            # Success rate as percentage
+            success_rate = successes / success_count
+
+            # Store counts and rates
             pmu_bet_successes[bet_type] = successes
-            pmu_bet_successes[f'{bet_type}_rate'] = successes / success_count
+            pmu_bet_successes[f'{bet_type}_rate'] = success_rate
+
+            # Create summary with win/loss count and percentage
+            bet_type_summary[bet_type] = {
+                'wins': successes,
+                'losses': success_count - successes,
+                'success_rate': success_rate * 100,  # as percentage
+                'total_races': success_count
+            }
+
+        # Calculate race-by-race statistics - which races won which bets
+        races_with_wins = sum(1 for r in results
+                              if r['status'] == 'success' and
+                              any(r['metrics'].get('pmu_bets', {}).values()))
+
+        races_with_no_wins = success_count - races_with_wins
+
+        # Calculate races by number of bet types won
+        races_by_bet_count = {}
+        for r in results:
+            if r['status'] == 'success':
+                wins = sum(1 for v in r['metrics'].get('pmu_bets', {}).values() if v)
+                races_by_bet_count[wins] = races_by_bet_count.get(wins, 0) + 1
+
+        bet_statistics = {
+            'races_with_wins': races_with_wins,
+            'races_with_no_wins': races_with_no_wins,
+            'win_rate': races_with_wins / success_count if success_count > 0 else 0,
+            'races_by_bet_count': races_by_bet_count
+        }
 
         return {
             'races_evaluated': success_count,
             'winner_accuracy': winner_correct / success_count,
             'avg_podium_accuracy': podium_accuracy,
             'avg_mean_rank_error': mean_rank_error,
-            'pmu_bets': pmu_bet_successes
+            'pmu_bets': pmu_bet_successes,
+            'bet_type_summary': bet_type_summary,
+            'bet_statistics': bet_statistics
         }
 
     def evaluate_predictions_by_date(self, date: str = None) -> Dict:
@@ -720,14 +798,14 @@ class PredictionOrchestrator:
 
     def _calculate_arriv_metrics(self, predicted_arriv: str, actual_arriv: str) -> Dict:
         """
-        Calculate evaluation metrics based on arrival strings.
+        Calculate evaluation metrics based on arrival strings, including PMU bet types.
 
         Args:
             predicted_arriv: Predicted arrival order (e.g., "1-5-3-2-4")
             actual_arriv: Actual arrival order
 
         Returns:
-            Dictionary with evaluation metrics
+            Dictionary with evaluation metrics and PMU bet results
         """
         # Parse arrival strings to lists
         pred_order = predicted_arriv.split('-')
@@ -739,7 +817,7 @@ class PredictionOrchestrator:
                 'error': 'Invalid arrival strings'
             }
 
-        # 1. Winner correctly predicted
+        # 1. Basic metrics
         winner_correct = pred_order[0] == actual_order[0]
 
         # 2. Podium accuracy (top 3)
@@ -773,32 +851,62 @@ class PredictionOrchestrator:
         else:
             mean_rank_error = float('nan')
 
-        # 6. Calculate Spearman correlation if scipy is available
-        rank_correlation = None
-        try:
-            from scipy.stats import spearmanr
+        # 6. Calculate PMU bet type results
+        pmu_bets = {}
 
-            # Prepare data for correlation
-            common_horses = list(common_horses)
-            if len(common_horses) > 2:  # Need at least 3 points for meaningful correlation
-                pred_ranks_list = [pred_ranks[h] for h in common_horses]
-                actual_ranks_list = [actual_ranks[h] for h in common_horses]
-                correlation, _ = spearmanr(pred_ranks_list, actual_ranks_list)
-                rank_correlation = correlation
-        except:
-            pass
+        # 6.1 Tiercé (top 3)
+        if len(pred_order) >= 3 and len(actual_order) >= 3:
+            # Tiercé exact (1-2-3 in order)
+            pmu_bets['tierce_exact'] = pred_order[:3] == actual_order[:3]
 
-        # Format details for display
-        details = []
-        for horse in pred_order[:min(len(pred_order), len(actual_order))]:
-            if horse in actual_ranks:
-                detail = {
-                    'numero': horse,
-                    'predicted_rank': pred_ranks.get(horse, float('nan')),
-                    'actual_rank': actual_ranks.get(horse, float('nan')),
-                    'rank_error': abs(pred_ranks.get(horse, 0) - actual_ranks.get(horse, 0))
-                }
-                details.append(detail)
+            # Tiercé désordre (1-2-3 in any order)
+            pmu_bets['tierce_desordre'] = set(pred_order[:3]) == set(actual_order[:3])
+        else:
+            pmu_bets['tierce_exact'] = False
+            pmu_bets['tierce_desordre'] = False
+
+        # 6.2 Quarté (top 4)
+        if len(pred_order) >= 4 and len(actual_order) >= 4:
+            # Quarté exact (1-2-3-4 in order)
+            pmu_bets['quarte_exact'] = pred_order[:4] == actual_order[:4]
+
+            # Quarté désordre (1-2-3-4 in any order)
+            pmu_bets['quarte_desordre'] = set(pred_order[:4]) == set(actual_order[:4])
+
+            # Bonus 4 (first horse correct, other 3 in top 4 in any order)
+            pmu_bets['bonus4'] = (pred_order[0] == actual_order[0] and
+                                  len(set(pred_order[1:4]) & set(actual_order[1:4])) >= 3)
+        else:
+            pmu_bets['quarte_exact'] = False
+            pmu_bets['quarte_desordre'] = False
+            pmu_bets['bonus4'] = False
+
+        # 6.3 Quinté+ (top 5)
+        if len(pred_order) >= 5 and len(actual_order) >= 5:
+            # Quinté+ exact (1-2-3-4-5 in order)
+            pmu_bets['quinte_exact'] = pred_order[:5] == actual_order[:5]
+
+            # Quinté+ désordre (1-2-3-4-5 in any order)
+            pmu_bets['quinte_desordre'] = set(pred_order[:5]) == set(actual_order[:5])
+
+            # Bonus 3 (first horse correct, other 2 in top 3 in any order)
+            pmu_bets['bonus3'] = (pred_order[0] == actual_order[0] and
+                                  len(set(pred_order[1:3]) & set(actual_order[1:3])) >= 2)
+
+            # 2 sur 4 (at least 2 of the top 4 correct in any order)
+            pmu_bets['deuxsur4'] = len(set(pred_order[:4]) & set(actual_order[:4])) >= 2
+
+            # Multi en 4 (top 4 correct in any order)
+            pmu_bets['multi4'] = set(pred_order[:4]) == set(actual_order[:4])
+        else:
+            pmu_bets['quinte_exact'] = False
+            pmu_bets['quinte_desordre'] = False
+            pmu_bets['bonus3'] = False
+            pmu_bets['deuxsur4'] = False
+            pmu_bets['multi4'] = False
+
+        # 7. Determine which bet types were won (for easier reporting)
+        winning_bets = [bet_type for bet_type, result in pmu_bets.items() if result]
 
         return {
             'winner_correct': winner_correct,
@@ -806,6 +914,6 @@ class PredictionOrchestrator:
             'mean_rank_error': mean_rank_error,
             'exacta_correct': exacta_correct,
             'trifecta_correct': trifecta_correct,
-            'rank_correlation': rank_correlation,
-            'details': details
+            'pmu_bets': pmu_bets,
+            'winning_bets': winning_bets
         }

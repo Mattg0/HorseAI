@@ -20,7 +20,7 @@ class RacePredictor:
     Handles both static models (Random Forest) and sequence models (LSTM) if available.
     """
 
-    def __init__(self, model_path: str = None, db_name: str = "dev",
+    def __init__(self, model_path: str = None, db_name: str = None,
                  use_latest_base: bool = False, verbose: bool = False):
         """
         Initialize the race predictor.
@@ -65,7 +65,6 @@ class RacePredictor:
             raise FileNotFoundError(f"Model path {self.model_path} does not exist")
 
         self.verbose = verbose
-
         # Get database path from config
         self.db_path = get_sqlite_dbpath(db_name)
 
@@ -75,171 +74,94 @@ class RacePredictor:
             verbose=verbose
         )
 
-        # Set up logging
+        # Set up logging with proper verbose control
         self._setup_logging()
 
         # Load models and configuration
         self._load_models()
 
-        self.log_info(f"Race predictor initialized with model at {self.model_path}")
-        self.log_info(f"Using database: {self.db_path}")
+        if self.verbose:
+            self.log_info(f"Race predictor initialized with model at {self.model_path}")
+            self.log_info(f"Using database: {self.db_path}")
 
     def _setup_logging(self):
-        """Set up logging."""
+        """Set up logging with proper verbose control."""
         # Create logs directory if it doesn't exist
         log_dir = self.model_path / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
 
-        # Set up logger
+        # Get or create logger
         self.logger = logging.getLogger("RacePredictor")
-        self.logger.setLevel(logging.INFO if not self.verbose else logging.DEBUG)
 
-        # Add file handler
+        # Remove any existing handlers to avoid duplicates
+        for handler in list(self.logger.handlers):
+            self.logger.removeHandler(handler)
+
+        # Set level based on verbose flag
+        self.logger.setLevel(logging.INFO if self.verbose else logging.WARNING)
+
+        # Add file handler (always log to file)
         log_file = log_dir / f"race_predictor_{datetime.now().strftime('%Y%m%d')}.log"
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         self.logger.addHandler(file_handler)
 
-        # Add console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
-        self.logger.addHandler(console_handler)
+        # Add console handler only if verbose is True
+        if self.verbose:
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
+            self.logger.addHandler(console_handler)
 
     def log_info(self, message):
         """Log an info message."""
         if hasattr(self, 'logger'):
             self.logger.info(message)
-        else:
+        elif self.verbose:  # Only print if verbose when logger not initialized
             print(message)
 
     def log_error(self, message):
         """Log an error message."""
         if hasattr(self, 'logger'):
             self.logger.error(message)
-        else:
+        else:  # Always print errors even without logger
             print(f"ERROR: {message}")
-
     def _load_models(self):
-        """Load the trained models using the new directory structure."""
         # Get model manager
         from utils.model_manager import get_model_manager
         model_manager = get_model_manager()
 
-        # Extract db_type from model_path
-        db_type = self.model_path.parts[-3] if len(self.model_path.parts) >= 3 else None
+        # Load models
+        artifacts = model_manager.load_model_artifacts(
+            base_path=self.model_path,
+            load_rf=True,
+            load_lstm=True,
+            load_feature_config=True
+        )
 
-        if not db_type:
-            # Try to get db_type from config
-            db_type = self.config._config.base.active_db
-            self.log_info(f"Using database type from config: {db_type}")
+        # Set model attributes from loaded artifacts
+        if 'rf_model' in artifacts:
+            self.rf_model = artifacts['rf_model']
+            self.log_info(f"Loaded RF model")
+        else:
+            self.rf_model = None
+            self.log_info("RF model not available")
 
-        # Determine which models to load based on the specified path
-        model_type = self.model_path.parts[-2] if len(self.model_path.parts) >= 2 else 'hybrid'
+        if 'lstm_model' in artifacts:
+            self.lstm_model = artifacts['lstm_model']
+            self.log_info(f"Loaded LSTM model")
+        else:
+            self.lstm_model = None
+            self.log_info("LSTM model not available")
 
-        self.log_info(f"Loading models of type '{model_type}' for database '{db_type}'")
+        if 'feature_config' in artifacts:
+            self.feature_config = artifacts['feature_config']
+            self.log_info(f"Loaded feature configuration")
+        else:
+            self.feature_config = {}
 
-        # Get the latest date for the specified model type
-        # This could be extracted from directory listing or config
-        date = None
-
-        # Try to get latest date from config
-        try:
-            if model_type == 'rf' and hasattr(self.config._config.models, 'latest_rf_model'):
-                latest_model = self.config._config.models.latest_rf_model
-                date = latest_model.split('_')[1]  # Extract date from "db_date"
-            elif model_type == 'lstm' and hasattr(self.config._config.models, 'latest_lstm_model'):
-                latest_model = self.config._config.models.latest_lstm_model
-                date = latest_model.split('_')[1]  # Extract date from "db_date"
-            elif model_type == 'hybrid' and hasattr(self.config._config.models, 'latest_hybrid_model'):
-                latest_model = self.config._config.models.latest_hybrid_model
-                date = latest_model.split('_')[1]  # Extract date from "db_date"
-        except (AttributeError, IndexError):
-            # If we can't get date from config, find latest file
-            pass
-
-        if not date:
-            # Find latest file in the directory
-            model_dir = model_manager.get_model_path(db_type=db_type, model_type=model_type)
-            if model_dir.exists():
-                # List files and sort by modification time
-                files = list(model_dir.glob(f"*.*"))
-                if files:
-                    files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-                    # Try to extract date from filename
-                    filename = files[0].name
-                    date_match = re.search(r'_(\d{8})\.', filename)
-                    if date_match:
-                        date = date_match.group(1)
-                    else:
-                        # Use current date as fallback
-                        date = datetime.now().strftime('%Y%m%d')
-
-        self.log_info(f"Using date: {date}")
-
-        # Load models based on model_type
-        if model_type == 'rf' or model_type == 'hybrid':
-            # Load RF model
-            rf_path = model_manager.get_model_path(db_type=db_type, model_type='rf')
-            rf_model_file = rf_path / f"model_{date}.joblib"
-
-            if rf_model_file.exists():
-                try:
-                    # Load the RF model
-                    rf_data = joblib.load(rf_model_file)
-
-                    # Handle different model formats
-                    if isinstance(rf_data, dict) and 'model' in rf_data:
-                        self.rf_model = rf_data['model']
-                    elif hasattr(rf_data, 'predict') and callable(getattr(rf_data, 'predict')):
-                        self.rf_model = rf_data
-                    else:
-                        # Try to find model component
-                        if hasattr(rf_data, 'base_regressor'):
-                            self.rf_model = rf_data
-                        else:
-                            self.rf_model = rf_data
-
-                    self.log_info(f"Loaded RF model from {rf_model_file}")
-
-                    # Load feature configuration
-                    feature_config_file = rf_path / f"feature_config_{date}.joblib"
-                    if feature_config_file.exists():
-                        self.feature_config = joblib.load(feature_config_file)
-                        self.log_info(f"Loaded feature configuration from {feature_config_file}")
-                except Exception as e:
-                    self.log_error(f"Error loading RF model: {str(e)}")
-
-        if model_type == 'lstm' or model_type == 'hybrid':
-            # Load LSTM model
-            lstm_path = model_manager.get_model_path(db_type=db_type, model_type='lstm')
-            lstm_model_dir = lstm_path / f"model_{date}"
-
-            if lstm_model_dir.exists():
-                try:
-                    from tensorflow.keras.models import load_model
-                    self.lstm_model = load_model(lstm_model_dir)
-                    self.log_info(f"Loaded LSTM model from {lstm_model_dir}")
-
-                    # Load history if available
-                    history_file = lstm_path / f"history_{date}.joblib"
-                    if history_file.exists():
-                        self.history = joblib.load(history_file)
-                        self.log_info(f"Loaded LSTM training history from {history_file}")
-                except Exception as e:
-                    self.log_error(f"Error loading LSTM model: {str(e)}")
-
-        if model_type == 'hybrid':
-            # Load hybrid configuration
-            hybrid_path = model_manager.get_model_path(db_type=db_type, model_type='hybrid')
-            config_file = hybrid_path / f"config_{date}.json"
-
-            if config_file.exists():
-                try:
-                    with open(config_file, 'r') as f:
-                        self.model_config = json.load(f)
-                    self.log_info(f"Loaded hybrid configuration from {config_file}")
-                except Exception as e:
-                    self.log_error(f"Error loading hybrid configuration: {str(e)}")
+        if 'model_config' in artifacts:
+            self.model_config = artifacts['model_config']
+            self.log_info(f"Loaded model configuration")
 
     def prepare_race_data(self, race_df: pd.DataFrame) -> Tuple[
         pd.DataFrame, Optional[np.ndarray], Optional[np.ndarray]]:
@@ -330,12 +252,6 @@ class RacePredictor:
     def predict_with_rf(self, X: pd.DataFrame) -> np.ndarray:
         """
         Make predictions using the Random Forest model with feature name alignment.
-
-        Args:
-            X: Feature DataFrame
-
-        Returns:
-            NumPy array with predictions
         """
         if self.rf_model is None:
             self.log_error("Random Forest model not loaded")
@@ -346,21 +262,21 @@ class RacePredictor:
             expected_features = None
 
             # Try to get expected feature names from different places
-            if hasattr(self.feature_config, 'preprocessing_params') and 'feature_columns' in self.feature_config[
-                'preprocessing_params']:
-                expected_features = self.feature_config['preprocessing_params']['feature_columns']
+            if hasattr(self.feature_config,
+                       'preprocessing_params') and 'feature_columns' in self.feature_config.preprocessing_params:
+                expected_features = self.feature_config.preprocessing_params['feature_columns']
                 self.log_info(f"Found {len(expected_features)} expected feature columns from config")
             elif hasattr(self.rf_model, 'feature_names_in_'):
                 expected_features = self.rf_model.feature_names_in_
                 self.log_info(f"Found {len(expected_features)} feature names from model")
-            elif isinstance(self.rf_model, dict) and 'base_regressor' in self.rf_model:
-                if hasattr(self.rf_model['base_regressor'], 'feature_names_in_'):
-                    expected_features = self.rf_model['base_regressor'].feature_names_in_
-                    self.log_info(f"Found {len(expected_features)} feature names from base_regressor")
+            elif hasattr(self.rf_model, 'base_regressor') and hasattr(self.rf_model.base_regressor,
+                                                                      'feature_names_in_'):
+                expected_features = self.rf_model.base_regressor.feature_names_in_
+                self.log_info(f"Found {len(expected_features)} feature names from base_regressor")
 
             # If we have expected features, align the input data
             if expected_features is not None:
-                # Create a DataFrame with expected feature columns
+                # Create a DataFrame with expected feature columns filled with zeros
                 aligned_X = pd.DataFrame(0, index=range(len(X)), columns=expected_features)
 
                 # Copy values for columns that exist in both DataFrames
@@ -373,21 +289,12 @@ class RacePredictor:
                 # Use the aligned DataFrame for prediction
                 X_for_prediction = aligned_X
             else:
-                # No expected features found, use original data
+                # No expected features found, use original data (will likely fail)
                 self.log_info("No expected feature list found, using original features")
                 X_for_prediction = X
 
-            # Make prediction with the appropriate model
-            if isinstance(self.rf_model, dict) and 'base_regressor' in self.rf_model:
-                self.log_info("Using base_regressor from dictionary for prediction")
-                preds = self.rf_model['base_regressor'].predict(X_for_prediction)
-            elif hasattr(self.rf_model, 'predict') and callable(getattr(self.rf_model, 'predict')):
-                self.log_info("Using model's predict method")
-                preds = self.rf_model.predict(X_for_prediction)
-            else:
-                self.log_error("No valid prediction method found in model")
-                return np.zeros(len(X))
-
+            # Make prediction with appropriate model
+            preds = self.rf_model.predict(X_for_prediction)
             self.log_info(f"Generated predictions for {len(X)} samples")
             return preds
 

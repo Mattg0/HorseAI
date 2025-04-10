@@ -25,7 +25,8 @@ class RaceFetcher:
     def __init__(self,
                  db_name: str = None,
                  api_uid: str = "8cdfGeF4pHeSOPv05dPnVyGaghL2",
-                 api_base_url: str = "https://api.aspiturf.com/api"):
+                 api_base_url: str = "https://api.aspiturf.com/api",
+                 verbose: bool = False):
         """
         Initialize the race fetcher.
 
@@ -33,9 +34,13 @@ class RaceFetcher:
             db_name: Database name in config (default: active_db from config)
             api_uid: User ID for API authentication
             api_base_url: Base URL for the API
+            verbose: Whether to output verbose logs
         """
         # Initialize config
         self.config = AppConfig()
+
+        # Store verbose flag
+        self.verbose = verbose
 
         # Get database name from config if not provided
         if db_name is None:
@@ -59,10 +64,12 @@ class RaceFetcher:
         # Initialize database
         self._ensure_database()
 
-        self.logger.info(f"RaceFetcher initialized with database: {self.db_path} ({self.db_name})")
+        if self.verbose:
+            self.logger.info(f"RaceFetcher initialized with database: {self.db_path} ({self.db_name})")
 
+    # Also update _setup_logging
     def _setup_logging(self):
-        """Set up logging with directory from config."""
+        """Set up logging with proper verbose control."""
         # Determine log directory from config
         root_dir = self.config._config.base.rootdir
         log_dir = os.path.join(root_dir, 'logs')
@@ -71,19 +78,26 @@ class RaceFetcher:
         # Create log file path
         log_file = os.path.join(log_dir, f"race_fetcher_{self.db_name}.log")
 
-        # Configure logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(log_file),
-                logging.StreamHandler()
-            ],
-            force=True  # Reset existing loggers
-        )
-
+        # Get or create logger
         self.logger = logging.getLogger("RaceFetcher")
-        self.logger.info(f"Logging initialized to {log_file}")
+
+        # Remove existing handlers
+        for handler in list(self.logger.handlers):
+            self.logger.removeHandler(handler)
+
+        # Set level based on verbose flag
+        self.logger.setLevel(logging.INFO if self.verbose else logging.WARNING)
+
+        # Add file handler (always)
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(file_handler)
+
+        # Add console handler only if verbose
+        if self.verbose:
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
+            self.logger.addHandler(console_handler)
 
     def _ensure_database(self):
         """Create database tables if they don't exist."""

@@ -22,12 +22,12 @@ from utils.model_manager import get_model_manager
 class HorseRaceModel:
     """Horse race prediction model that combines random forest and LSTM for predictions."""
 
-    def __init__(self, config_path: str = 'config.yaml', model_name: str = 'hybrid',
+    def __init__(self, config_path: str = 'config.yaml', model_type: str = 'hybrid',
                  sequence_length: int = 5, embedding_dim: int = None,
                  verbose: bool = False):
         """Initialize the model with configuration."""
         self.config = AppConfig(config_path)
-        self.model_name = model_name
+        self.model_type = model_type
         self.model_paths = self.config.get_model_paths()
         self.sequence_length = sequence_length
         self.verbose = verbose
@@ -719,13 +719,16 @@ class HorseRaceModel:
         self.log_info("\nTraining process completed!")
         return results
 
-    def save_models(self, save_rf: bool = True, save_lstm: bool = True) -> None:
+    def save_models(self, save_rf: bool = True, save_lstm: bool = True) -> Dict[str, Path]:
         """
         Save the trained models and metadata.
 
         Args:
             save_rf: Whether to save RF model
             save_lstm: Whether to save LSTM model
+
+        Returns:
+            Dictionary with paths to saved artifacts
         """
         # Get the model manager
         model_manager = get_model_manager()
@@ -734,9 +737,9 @@ class HorseRaceModel:
         version = model_manager.get_version_path(self.db_type, train_type='full')
 
         # Resolve the base path
-        save_dir = model_manager.get_model_path(self.model_name) / version
+        save_dir = model_manager.get_model_path(self.model_type) / version
 
-        self.log_info(f"Saving models to: {save_dir}")
+        print(f"Saving models to: {save_dir}")
 
         # Prepare orchestrator state
         orchestrator_state = {
@@ -749,7 +752,7 @@ class HorseRaceModel:
         # Prepare model configuration
         model_config = {
             'version': version,
-            'model_name': self.model_name,
+            'model_type': self.model_type,
             'db_type': self.db_type,
             'train_type': 'full',  # Explicitly mark as full training
             'sequence_length': self.sequence_length,
@@ -763,20 +766,22 @@ class HorseRaceModel:
             'evaluation_results': self.models.get('test_evaluation', {})
         }
 
-        # Save all artifacts at once
+        # Save all artifacts at once using the simplified method
+        rf_model_to_save = self.rf_model if save_rf else None
+        lstm_model_to_save = self.lstm_model if save_lstm else None
+
         saved_paths = model_manager.save_model_artifacts(
             base_path=save_dir,
-            rf_model=self.rf_model if save_rf else None,
-            lstm_model=self.lstm_model if save_lstm else None,
+            rf_model=rf_model_to_save,
+            lstm_model=lstm_model_to_save,
             orchestrator_state=orchestrator_state,
             history=self.history,
             model_config=model_config,
             db_type=self.db_type,
-            train_type='full',
-            update_config=True  # Update config.yaml with reference to this model
+            train_type='full'
         )
 
-        self.log_info(f"All models and components saved successfully to {save_dir}")
+        print(f"All models and components saved successfully to {save_dir}")
         return saved_paths
 
     def _update_config_with_latest_model(self, version: str) -> None:
@@ -823,6 +828,9 @@ class HorseRaceModel:
         Returns:
             Whether loading was successful
         """
+        # Get model manager
+        model_manager = get_model_manager()
+
         # Determine model directory
         if model_dir is None:
             model_dir = self.model_paths['model_path']
@@ -863,89 +871,55 @@ class HorseRaceModel:
 
         self.log_info(f"Loading models from {version_path}")
 
-        success = True
+        # Use model manager to load all artifacts
+        artifacts = model_manager.load_model_artifacts(
+            base_path=version_path,
+            load_rf=True,
+            load_lstm=True,
+            load_feature_config=True
+        )
 
-        # Load RF model if available
-        rf_path = version_path / self.model_paths['artifacts']['rf_model']
-        if rf_path.exists():
-            try:
-                # Try to load with CalibratedRegressor.load first
-                try:
-                    from model_training.regressions.isotonic_calibration import CalibratedRegressor
-                    self.rf_model = CalibratedRegressor.load(rf_path)
-                    self.models['rf'] = self.rf_model
-                    self.log_info(f"Loaded RF model with CalibratedRegressor from {rf_path}")
-                except:
-                    # Fall back to joblib load if CalibratedRegressor.load fails
-                    rf_metadata = joblib.load(rf_path)
+        # Process the loaded artifacts
+        if 'rf_model' in artifacts:
+            self.rf_model = artifacts['rf_model']
+            self.models['rf'] = self.rf_model
+            self.log_info("Loaded RF model successfully")
 
-                    if isinstance(rf_metadata, dict) and 'model' in rf_metadata:
-                        self.rf_model = rf_metadata['model']
-                        self.models['rf'] = self.rf_model
-                        self.models['rf_metadata'] = rf_metadata
-                        self.log_info(f"Loaded RF model from metadata dictionary at {rf_path}")
-                    else:
-                        # Direct model object
-                        self.rf_model = rf_metadata
-                        self.models['rf'] = self.rf_model
-                        self.log_info(f"Loaded RF model directly from {rf_path}")
-            except Exception as e:
-                self.log_info(f"Error loading RF model: {str(e)}")
-                success = False
+        if 'lstm_model' in artifacts:
+            self.lstm_model = artifacts['lstm_model']
+            self.models['lstm'] = self.lstm_model
+            self.log_info("Loaded LSTM model successfully")
 
-        # Load LSTM model if available
-        lstm_path = version_path / self.model_paths['artifacts']['lstm_model']
-        if lstm_path.exists():
-            try:
-                from tensorflow.keras.models import load_model
-                self.lstm_model = load_model(lstm_path)
-                self.models['lstm'] = self.lstm_model
-                self.log_info(f"Loaded LSTM model from {lstm_path}")
+            # If history was loaded
+            if 'history' in artifacts:
+                self.history = artifacts['history']
 
-                # Try to load history
-                history_path = version_path / 'lstm_history.joblib'
-                if history_path.exists():
-                    self.history = joblib.load(history_path)
-            except Exception as e:
-                self.log_info(f"Error loading LSTM model: {str(e)}")
-                success = False
+        if 'feature_config' in artifacts:
+            # Update orchestrator with loaded state
+            feature_config = artifacts['feature_config']
+            if isinstance(feature_config, dict):
+                if 'preprocessing_params' in feature_config:
+                    self.data_orchestrator.preprocessing_params.update(feature_config['preprocessing_params'])
+                if 'target_info' in feature_config:
+                    self.data_orchestrator.target_info = feature_config['target_info']
 
-        # Load orchestrator state
-        feature_path = version_path / self.model_paths['artifacts']['feature_engineer']
-        if feature_path.exists():
-            try:
-                orchestrator_state = joblib.load(feature_path)
+                # Update embedding_dim and sequence_length if available
+                if 'embedding_dim' in feature_config:
+                    self.data_orchestrator.embedding_dim = feature_config['embedding_dim']
+                if 'sequence_length' in feature_config:
+                    self.data_orchestrator.sequence_length = feature_config['sequence_length']
+                    self.sequence_length = feature_config['sequence_length']
 
-                # Update orchestrator with loaded state
-                if isinstance(orchestrator_state, dict):
-                    if 'preprocessing_params' in orchestrator_state:
-                        self.data_orchestrator.preprocessing_params.update(
-                            orchestrator_state['preprocessing_params']
-                        )
-                    if 'target_info' in orchestrator_state:
-                        self.data_orchestrator.target_info = orchestrator_state['target_info']
+            self.feature_config = feature_config
+            self.log_info("Loaded feature engineering configuration")
 
-                    # Update embedding_dim and sequence_length if available
-                    if 'embedding_dim' in orchestrator_state:
-                        self.data_orchestrator.embedding_dim = orchestrator_state['embedding_dim']
-                    if 'sequence_length' in orchestrator_state:
-                        self.data_orchestrator.sequence_length = orchestrator_state['sequence_length']
+        # Load model config
+        if 'model_config' in artifacts:
+            self.model_config = artifacts['model_config']
+            self.log_info(f"Loaded model configuration")
 
-                self.log_info(f"Loaded feature engineering state from {feature_path}")
-            except Exception as e:
-                self.log_info(f"Error loading feature engineering state: {str(e)}")
+        return True
 
-        # Load model config if available
-        model_config_path = version_path / 'model_config.json'
-        if model_config_path.exists():
-            try:
-                with open(model_config_path, 'r') as f:
-                    self.model_config = json.load(f)
-                self.log_info(f"Loaded model configuration from {model_config_path}")
-            except Exception as e:
-                self.log_info(f"Error loading model configuration: {str(e)}")
-
-        return success
 
 
 def main():
@@ -961,7 +935,6 @@ def main():
     parser.add_argument('--no-cache', action='store_true', help='Disable caching of intermediate data')
     parser.add_argument('--sequence-length', type=int, default=5, help='Sequence length for LSTM')
     parser.add_argument('--embedding-dim', type=int, default=None, help='Dimension for entity embeddings')
-    parser.add_argument('--model-name', type=str, default='hybrid', help='Model architecture name')
     parser.add_argument('--model-type', type=str, default='hybrid', choices=['rf', 'lstm', 'hybrid'],
                         help='Type of model to train')
     parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
@@ -976,7 +949,7 @@ def main():
     # Create and train the model
     trainer = HorseRaceModel(
         config_path=args.config,
-        model_name=args.model_name,
+        model_type=args.model_type,
         sequence_length=args.sequence_length,
         embedding_dim=args.embedding_dim,
         verbose=args.verbose

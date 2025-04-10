@@ -1,51 +1,46 @@
-# Root directory - uncomment the appropriate line for your environment
 base:
-  rootdir: '/Users/mattg0/Docs/HorseAIv2/'
-  # Active database configuration
-  active_db: "dev"  # Can be "full", "2years", or "5years"
-
-# Database configurations
-databases:
-  - name: "full"
-    type: "sqlite"
-    path: "data/hippique.db"
-    description: "Full historical database"
-  - name: "2years"
-    type: "sqlite"
-    path: "data/hippique2.db"
-    description: "Last 2 years of data"
-  - name: "5years"
-    type: "sqlite"
-    path: "data/hippique5.db"
-    description: "Last 5 years of data"
-  - name: "dev"
-    type: "sqlite"
-    path: "data/test_lite.db"
-    description: "Dev DB"
-  - name: "mysql"
-    type: "mysql"
-    host: "localhost"
-    user: "turfai"
-    password: "welcome123"
-    dbname: "pturf2024"
-    description: "MySQL datasource"
-
+  active_db: dev
+  rootdir: /Users/mattg0/Docs/HorseAIv2/
 cache:
-  base_path: 'cache'
+  base_path: cache
   types:
-    historical_data: "historical_data.parquet"
-    processed_data: "processed_data.parquet"
-    features: "features.parquet"
-    models: "models.parquet"
-    predictions: "predictions.parquet"
-
+    features: features.parquet
+    historical_data: historical_data.parquet
+    models: models.parquet
+    predictions: predictions.parquet
+    processed_data: processed_data.parquet
+databases:
+- description: Full historical database
+  name: full
+  path: data/hippique.db
+  type: sqlite
+- description: Last 2 years of data
+  name: 2years
+  path: data/hippique2.db
+  type: sqlite
+- description: Last 5 years of data
+  name: 5years
+  path: data/hippique5.db
+  type: sqlite
+- description: Dev DB
+  name: dev
+  path: data/test_lite.db
+  type: sqlite
+- dbname: pturf2024
+  description: MySQL datasource
+  host: localhost
+  name: mysql
+  password: welcome123
+  type: mysql
+  user: turfai
 features:
-  features_dir: './data/feature_store'
+  default_task_type: regression
   embedding_dim: 8
-  default_task_type: 'regression'
-
+  features_dir: ./data/feature_store
 models:
-  latest_base_model: dev_full_v20250407
-  latest_full_model: dev_full_v20250407
-  latest_incremental_model: dev_incremental_v20250407
+  latest_base_model: 2years_full_v20250409
+  latest_full_model: 2years_full_v20250409
+  latest_hybrid_model: 2years_full_v20250409
+  latest_lstm_model: dev_20250407
+  latest_rf_model: dev_20250408
   model_dir: ./models

@@ -16,7 +16,150 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
 
 
+def report_evaluation_results(results):
+    """
+    Generate a formatted report for race evaluation results.
+
+    Args:
+        results: Evaluation results dictionary
+
+    Returns:
+        Formatted string with evaluation report
+    """
+    if not results or 'status' not in results:
+        return "Invalid results format"
+
+    if results['status'] != 'success':
+        return f"Error: {results.get('error', 'Unknown error')}"
+
+    # Extract metrics
+    metrics = results.get('metrics', {})
+    race_info = metrics.get('race_info', {})
+
+    # Format race information
+    race_header = (
+        f"\nEvaluation for race {race_info.get('comp')}: "
+        f"{race_info.get('hippo')} - {race_info.get('prix')} "
+        f"({race_info.get('jour')})"
+    )
+
+    # Format basic metrics
+    basic_metrics = (
+        f"Basic metrics:\n"
+        f"  Winner correctly predicted: {'✓' if metrics.get('winner_correct') else '✗'}\n"
+        f"  Podium accuracy: {metrics.get('podium_accuracy', 0):.2f}\n"
+        f"  Mean rank error: {metrics.get('mean_rank_error', 'N/A'):.2f}"
+    )
+
+    # Format PMU bet results
+    pmu_bets = metrics.get('pmu_bets', {})
+    winning_bets = metrics.get('winning_bets', [])
+
+    if not winning_bets:
+        bet_results = "PMU bet results: No winning bets"
+    else:
+        bet_results = "PMU bet results: ✓ " + ", ".join([
+            format_bet_name(bet_type) for bet_type in winning_bets
+        ])
+
+    # Format arrival orders
+    arrival_info = (
+        f"Arrival orders:\n"
+        f"  Predicted: {metrics.get('predicted_arriv', 'N/A')}\n"
+        f"  Actual: {metrics.get('actual_arriv', 'N/A')}"
+    )
+
+    # Combine all sections
+    report = f"{race_header}\n\n{basic_metrics}\n\n{bet_results}\n\n{arrival_info}"
+    return report
+
+
+def format_bet_name(bet_type):
+    """Format bet type names for display"""
+    name_mapping = {
+        'tierce_exact': 'Tiercé Exact',
+        'tierce_desordre': 'Tiercé Désordre',
+        'quarte_exact': 'Quarté Exact',
+        'quarte_desordre': 'Quarté Désordre',
+        'quinte_exact': 'Quinté+ Exact',
+        'quinte_desordre': 'Quinté+ Désordre',
+        'bonus4': 'Bonus 4',
+        'bonus3': 'Bonus 3',
+        'deuxsur4': '2 sur 4',
+        'multi4': 'Multi en 4'
+    }
+    return name_mapping.get(bet_type, bet_type)
+
+
+def report_summary_evaluation(summary):
+    """
+    Generate a formatted report for evaluation summary.
+
+    Args:
+        summary: Evaluation summary dictionary
+
+    Returns:
+        Formatted string with summary report
+    """
+    if not summary or 'summary_metrics' not in summary:
+        return "No summary metrics available"
+
+    metrics = summary['summary_metrics']
+    races_evaluated = metrics.get('races_evaluated', 0)
+
+    if races_evaluated == 0:
+        return "No races evaluated"
+
+    # Basic statistics
+    basic_stats = (
+        f"\nEvaluation Summary ({races_evaluated} races):\n"
+        f"  Winner accuracy: {metrics.get('winner_accuracy', 0):.2f} "
+        f"({int(metrics.get('winner_accuracy', 0) * races_evaluated)}/{races_evaluated})\n"
+        f"  Average podium accuracy: {metrics.get('avg_podium_accuracy', 0):.2f}\n"
+        f"  Average mean rank error: {metrics.get('avg_mean_rank_error', 'N/A'):.2f}"
+    )
+
+    # PMU bet statistics
+    bet_stats = metrics.get('bet_statistics', {})
+    pmu_summary = (
+        f"\nOverall PMU Bet Performance:\n"
+        f"  Races with at least one winning bet: {bet_stats.get('races_with_wins', 0)} "
+        f"({bet_stats.get('win_rate', 0):.2f})\n"
+        f"  Races with no winning bets: {bet_stats.get('races_with_no_wins', 0)}"
+    )
+
+    # Distribution of races by bet count
+    bet_counts = bet_stats.get('races_by_bet_count', {})
+    if bet_counts:
+        bet_count_lines = [
+            f"  Races winning {count} bet types: {bet_counts.get(count, 0)}"
+            for count in sorted(bet_counts.keys())
+        ]
+        bet_count_summary = "\n" + "\n".join(bet_count_lines)
+    else:
+        bet_count_summary = ""
+
+    # Detailed bet type performance
+    bet_type_summary = metrics.get('bet_type_summary', {})
+    if bet_type_summary:
+        bet_type_lines = []
+        for bet_type, stats in bet_type_summary.items():
+            bet_type_lines.append(
+                f"  {format_bet_name(bet_type)}: "
+                f"{stats.get('wins', 0)}/{stats.get('total_races', 0)} "
+                f"({stats.get('success_rate', 0):.1f}%)"
+            )
+        bet_type_report = "\n\nPMU Bet Type Success Rates:\n" + "\n".join(bet_type_lines)
+    else:
+        bet_type_report = ""
+
+    # Complete report
+    report = f"{basic_stats}\n{pmu_summary}{bet_count_summary}{bet_type_report}"
+    return report
+
+
 def main():
+    """Command-line interface for race prediction orchestration."""
     parser = argparse.ArgumentParser(description="Orchestrate race predictions workflow")
     parser.add_argument("--model", type=str, required=True, help="Path to the model directory")
     parser.add_argument("--db", type=str, help="Database name from config (defaults to active_db)")
@@ -40,27 +183,23 @@ def main():
 
     results = None
 
-    # Use today's date if none provided
-    date = args.date or datetime.now().strftime("%Y-%m-%d")
-
     # Process specific race if provided
     if args.race:
         comp = args.race
 
         if args.action == 'predict':
-            print(f"Generating predictions for race {comp}...")
+            if not args.verbose:
+                print(f"Generating predictions for race {comp}...")
             results = orchestrator.predict_race(comp, blend_weight=args.blend)
 
             if results['status'] == 'success':
                 print(f"\nPredictions for race {comp}:")
                 print(f"  Race: {results['metadata']['hippo']} - {results['metadata']['prix']}")
-                print(f"  Type: {results['metadata']['typec']}")
-                print(f"  Date: {results['metadata']['jour']}")
                 print(f"\nPredicted order of finish:")
 
                 for i, horse in enumerate(results['predictions'][:5]):
                     print(f"  {i + 1}. {horse['numero']} - {horse['cheval']} "
-                          f"(predicted position: {horse['predicted_position']:.2f})")
+                          f"(predicted: {horse['predicted_position']:.2f})")
 
                 if len(results['predictions']) > 5:
                     print(f"  ... and {len(results['predictions']) - 5} more horses")
@@ -68,35 +207,40 @@ def main():
                 print(f"Error: {results.get('error', 'Unknown error')}")
 
         elif args.action == 'evaluate':
-            print(f"Evaluating predictions for race {comp}...")
+            if not args.verbose:
+                print(f"Evaluating predictions for race {comp}...")
             results = orchestrator.evaluate_predictions(comp)
 
             if results['status'] == 'success':
                 metrics = results['metrics']
+                bet_results = metrics.get('winning_bets', [])
+
                 print(f"\nEvaluation for race {comp}:")
                 print(f"  Race: {metrics['race_info'].get('hippo')} - {metrics['race_info'].get('prix')}")
-                print(f"  Date: {metrics['race_info'].get('jour')}")
-                print(f"\nPerformance metrics:")
-                print(f"  Winner correctly predicted: {'✓' if metrics['winner_correct'] else '✗'}")
+                print(f"  Winner prediction: {'✓' if metrics['winner_correct'] else '✗'}")
                 print(f"  Podium accuracy: {metrics['podium_accuracy']:.2f}")
-                print(f"  Mean rank error: {metrics['mean_rank_error']:.2f}")
-                print(f"  Exacta correct: {'✓' if metrics['exacta_correct'] else '✗'}")
-                print(f"  Trifecta correct: {'✓' if metrics['trifecta_correct'] else '✗'}")
 
-                if not args.summary:
-                    print(f"\nDetailed results:")
-                    for i, horse in enumerate(metrics['details'][:10]):
-                        print(f"  {i + 1}. {horse['numero']} - {horse['cheval']}: "
-                              f"Predicted #{horse['predicted_rank']}, "
-                              f"Actual #{horse['actual_rank']} "
-                              f"(Error: {horse['rank_error']})")
+                if bet_results:
+                    print("\nWinning bets:")
+                    for bet in bet_results:
+                        print(f"  ✓ {format_bet_name(bet)}")
+                else:
+                    print("\nNo winning bets")
+
+                print(f"\nArrivals:")
+                print(f"  Predicted: {metrics['predicted_arriv']}")
+                print(f"  Actual:    {metrics['actual_arriv']}")
             else:
                 print(f"Error: {results.get('error', 'Unknown error')}")
 
     # Process all races for a date
     else:
+        # Use today's date if none provided
+        date = args.date or datetime.now().strftime("%Y-%m-%d")
+
         if args.action == 'predict':
-            print(f"Generating predictions for races on {date}...")
+            if not args.verbose:
+                print(f"Generating predictions for races on {date}...")
             results = orchestrator.predict_races_by_date(date, blend_weight=args.blend)
 
             print(f"\nPrediction summary for {date}:")
@@ -106,93 +250,72 @@ def main():
             print(f"  Skipped: {results['skipped']}")
 
             if not args.summary and results.get('results'):
-                print("\nRace details:")
+                print("\nPredicted races:")
                 for race in results['results']:
-                    status_icon = "✓" if race['status'] == 'success' else "✗" if race['status'] == 'error' else "⚠"
-                    print(f"  {status_icon} {race['comp']}: {race['status']}")
+                    if race['status'] == 'success':
+                        print(f"  ✓ {race['comp']}: {race.get('metadata', {}).get('hippo', 'Unknown')}")
+                    else:
+                        print(f"  ✗ {race['comp']}: {race.get('error', 'Failed')}")
 
         elif args.action == 'evaluate':
-            print(f"Evaluating predictions for races on {date}...")
+            if not args.verbose:
+                print(f"Evaluating predictions for races on {date}...")
             results = orchestrator.evaluate_predictions_by_date(date)
 
             if results.get('summary_metrics'):
                 metrics = results['summary_metrics']
-                pmu = metrics['pmu_bets']
-                print("\nPMU Bet Type Success Rates:")
+                races_evaluated = metrics.get('races_evaluated', 0)
+                bet_stats = metrics.get('bet_statistics', {})
+
+                print(f"\nEvaluation Summary ({races_evaluated} races):")
                 print(
-                    f"  Tiercé Exact: {pmu.get('tierce_exact_rate', 0):.2f} ({pmu.get('tierce_exact', 0)}/{metrics['races_evaluated']})")
+                    f"  Winner accuracy: {metrics.get('winner_accuracy', 0):.2f} ({int(metrics.get('winner_accuracy', 0) * races_evaluated)}/{races_evaluated})")
                 print(
-                    f"  Tiercé Désordre: {pmu.get('tierce_desordre_rate', 0):.2f} ({pmu.get('tierce_desordre', 0)}/{metrics['races_evaluated']})")
-                print(
-                    f"  Quarté Exact: {pmu.get('quarte_exact_rate', 0):.2f} ({pmu.get('quarte_exact', 0)}/{metrics['races_evaluated']})")
-                print(
-                    f"  Quarté Désordre: {pmu.get('quarte_desordre_rate', 0):.2f} ({pmu.get('quarte_desordre', 0)}/{metrics['races_evaluated']})")
-                print(
-                    f"  Quinté+ Exact: {pmu.get('quinte_exact_rate', 0):.2f} ({pmu.get('quinte_exact', 0)}/{metrics['races_evaluated']})")
-                print(
-                    f"  Quinté+ Désordre: {pmu.get('quinte_desordre_rate', 0):.2f} ({pmu.get('quinte_desordre', 0)}/{metrics['races_evaluated']})")
-                print(
-                    f"  Bonus 4: {pmu.get('bonus4_rate', 0):.2f} ({pmu.get('bonus4', 0)}/{metrics['races_evaluated']})")
-                print(
-                    f"  Bonus 3: {pmu.get('bonus3_rate', 0):.2f} ({pmu.get('bonus3', 0)}/{metrics['races_evaluated']})")
-                print(
-                    f"  2 sur 4: {pmu.get('deuxsur4_rate', 0):.2f} ({pmu.get('deuxsur4', 0)}/{metrics['races_evaluated']})")
-                print(
-                    f"  Multi en 4: {pmu.get('multi4_rate', 0):.2f} ({pmu.get('multi4', 0)}/{metrics['races_evaluated']})")
+                    f"  Races with winning bets: {bet_stats.get('races_with_wins', 0)}/{races_evaluated} ({bet_stats.get('win_rate', 0) * 100:.1f}%)")
+
+                # Show top 3 most successful bet types
+                bet_summary = metrics.get('bet_type_summary', {})
+                if bet_summary:
+                    sorted_bets = sorted(bet_summary.items(), key=lambda x: x[1]['success_rate'], reverse=True)[:3]
+                    print("\nTop performing bet types:")
+                    for bet_type, stats in sorted_bets:
+                        print(
+                            f"  {format_bet_name(bet_type)}: {stats['wins']}/{stats['total_races']} ({stats['success_rate']:.1f}%)")
 
                 if not args.summary and results.get('results'):
-                    print("\nRace details:")
+                    print("\nResults by race:")
                     for race in [r for r in results['results'] if r['status'] == 'success']:
-                        comp = race['comp']
-                        m = race['metrics']
-                        winner = "✓" if m['winner_correct'] else "✗"
-                        print(f"  {comp}: Winner {winner}, Podium {m['podium_accuracy']:.2f}, "
-                              f"Error {m['mean_rank_error']:.2f}")
+                        metrics = race['metrics']
+                        winning_bets = metrics.get('winning_bets', [])
+                        bet_count = len(winning_bets)
+
+                        print(f"  {race['comp']}: W{'✓' if metrics['winner_correct'] else '✗'} "
+                              f"Bets:{bet_count}")
             else:
                 print("No metrics available. Races may not have been evaluated yet.")
 
         elif args.action == 'fetch':
-            print(f"Fetching races for {date}...")
+            if not args.verbose:
+                print(f"Fetching races for {date}...")
             results = orchestrator.race_fetcher.fetch_and_store_daily_races(date)
 
-            if results.get('total_races'):
-                print(f"\nFetch summary for {date}:")
-                print(f"  Total races: {results['total_races']}")
-                print(f"  Successfully processed: {results['successful']}")
-                print(f"  Failed: {results['failed']}")
-
-                if not args.summary and results.get('races'):
-                    print("\nRace details:")
-                    for race in results['races']:
-                        status_icon = "✓" if race['status'] == 'success' else "✗"
-                        print(
-                            f"  {status_icon} {race['comp']}: {race.get('hippo', '')} - {race.get('partant', 0)} runners")
-            else:
-                print(f"Error: {results.get('error', 'Unknown error')}")
+            print(f"\nFetch summary for {date}:")
+            print(f"  Total races: {results.get('total_races', 0)}")
+            print(f"  Successfully processed: {results.get('successful', 0)}")
+            print(f"  Failed: {results.get('failed', 0)}")
 
         elif args.action == 'fetchpredict':
-            print(f"Fetching and predicting races for {date}...")
+            if not args.verbose:
+                print(f"Fetching and predicting races for {date}...")
             results = orchestrator.fetch_and_predict_races(date, blend_weight=args.blend)
 
             fetch_results = results.get('fetch_results', {})
             prediction_results = results.get('prediction_results', {})
 
-            print(f"\nFetch summary for {date}:")
-            print(f"  Total races: {fetch_results.get('total_races', 0)}")
-            print(f"  Successfully processed: {fetch_results.get('successful', 0)}")
-            print(f"  Failed: {fetch_results.get('failed', 0)}")
-
-            print(f"\nPrediction summary for {date}:")
-            print(f"  Total races: {prediction_results.get('total_races', 0)}")
-            print(f"  Successfully predicted: {prediction_results.get('predicted', 0)}")
-            print(f"  Errors: {prediction_results.get('errors', 0)}")
-            print(f"  Skipped: {prediction_results.get('skipped', 0)}")
-
-            if not args.summary:
-                print("\nRace status details:")
-                for race in prediction_results.get('results', []):
-                    status_icon = "✓" if race['status'] == 'success' else "✗" if race['status'] == 'error' else "⚠"
-                    print(f"  {status_icon} {race['comp']}: {race['status']}")
+            print(f"\nFetch and predict for {date}:")
+            print(f"  Fetched: {fetch_results.get('total_races', 0)} races")
+            print(
+                f"  Predicted: {prediction_results.get('predicted', 0)}/{prediction_results.get('total_races', 0)} races")
 
     # Save results to file if requested
     if args.output and results:
@@ -205,6 +328,24 @@ def main():
         print(f"\nResults saved to {output_path}")
 
     return 0
+
+
+# Helper function for bet type formatting
+def format_bet_name(bet_type):
+    """Format bet type names for display"""
+    name_mapping = {
+        'tierce_exact': 'Tiercé Exact',
+        'tierce_desordre': 'Tiercé Désordre',
+        'quarte_exact': 'Quarté Exact',
+        'quarte_desordre': 'Quarté Désordre',
+        'quinte_exact': 'Quinté+ Exact',
+        'quinte_desordre': 'Quinté+ Désordre',
+        'bonus4': 'Bonus 4',
+        'bonus3': 'Bonus 3',
+        'deuxsur4': '2 sur 4',
+        'multi4': 'Multi en 4'
+    }
+    return name_mapping.get(bet_type, bet_type)
 
 
 if __name__ == "__main__":

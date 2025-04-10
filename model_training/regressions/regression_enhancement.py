@@ -963,7 +963,7 @@ class RegressionEnhancer:
             'paths': saved_paths,
             'feature_orchestrator': orchestrator
         }
-    def _train_correction_model(self, df: pd.DataFrame, model_name: str) -> Dict[str, Any]:
+    def _train_correction_model(self, df: pd.DataFrame, model_type: str) -> Dict[str, Any]:
         """
         Train a model to correct prediction errors.
 
@@ -1050,7 +1050,7 @@ class RegressionEnhancer:
         # Average improvement
         avg_improvement = (rmse_improvement + mae_improvement) / 2
 
-        self.logger.info(f"Model {model_name}: RMSE improved by {rmse_improvement:.2f}%, MAE by {mae_improvement:.2f}%")
+        self.logger.info(f"Model {model_type}: RMSE improved by {rmse_improvement:.2f}%, MAE by {mae_improvement:.2f}%")
 
         # Feature importance
         if hasattr(model, 'feature_importances_'):
@@ -1074,11 +1074,11 @@ class RegressionEnhancer:
                 ax.bar(range(top_n), top_importance)
                 ax.set_xticks(range(top_n))
                 ax.set_xticklabels(top_features, rotation=45, ha='right')
-                ax.set_title(f'Feature Importance for {model_name} Correction Model')
+                ax.set_title(f'Feature Importance for {model_type} Correction Model')
                 ax.set_ylabel('Importance')
 
                 plt.tight_layout()
-                fig.savefig(self.output_dir / f'correction_model_{model_name}_importance.png', dpi=300)
+                fig.savefig(self.output_dir / f'correction_model_{model_type}_importance.png', dpi=300)
                 plt.close(fig)
         else:
             feature_importance = []
@@ -1140,7 +1140,7 @@ class RegressionEnhancer:
         # Prepare model configuration
         model_config = {
             'version': version,
-            'model_name': 'hybrid',
+            'model_type': 'hybrid',
             'db_type': self.db_type,
             'train_type': 'incremental',  # Explicitly mark as incremental training
             'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -1152,7 +1152,7 @@ class RegressionEnhancer:
             'evaluation_results': evaluation_results or {}
         }
 
-        # Save all artifacts at once
+        # Save all artifacts using the simplified model manager
         saved_paths = model_manager.save_model_artifacts(
             base_path=save_dir,
             rf_model=rf_model,
@@ -1160,13 +1160,11 @@ class RegressionEnhancer:
             orchestrator_state=orchestrator_state,
             model_config=model_config,
             db_type=self.db_type,
-            train_type='incremental',
-            update_config=True  # Update config.yaml with reference to this incremental model
+            train_type='incremental'
         )
 
         print(f"Incremental model saved successfully to {save_dir}")
         return saved_paths
-
     def update_base_model(self, training_data: pd.DataFrame, blend_weight: float = 0.7) -> Dict[str, Any]:
         """
         Update the base prediction model with new training data.
