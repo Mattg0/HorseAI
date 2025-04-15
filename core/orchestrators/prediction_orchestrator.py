@@ -202,7 +202,7 @@ class PredictionOrchestrator:
             race_df = pd.DataFrame(participants)
 
             # Add race information to DataFrame
-            for field in ['typec', 'dist', 'natpis', 'meteo', 'temperature', 'forceVent', 'directionVent', 'corde']:
+            for field in ['typec', 'dist', 'natpis', 'meteo', 'temperature','jour', 'forceVent', 'directionVent', 'corde']:
                 if field in race_data and race_data[field] is not None:
                     race_df[field] = race_data[field]
 

@@ -74,8 +74,6 @@ def main():
                 print(f"No races found for {date}")
                 return
 
-            print(f"Evaluating {len(races)} races for {date}")
-
             evaluation_results = []
             for race in races:
                 comp = race['comp']

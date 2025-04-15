@@ -131,7 +131,7 @@ class ModelManager:
 
         # Load LSTM model
         if load_lstm:
-            lstm_path = base_path / "hybrid_lstm_model"
+            lstm_path = base_path / "hybrid_lstm_model.keras"
             if lstm_path.exists():
                 artifacts['lstm_model'] = load_model(lstm_path)
                 print(f"Loaded LSTM model from: {lstm_path}")

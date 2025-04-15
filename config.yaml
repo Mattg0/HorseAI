@@ -1,5 +1,5 @@
 base:
-  active_db: dev
+  active_db: 2years
   rootdir: /Users/mattg0/Docs/HorseAIv2/
 cache:
   base_path: cache

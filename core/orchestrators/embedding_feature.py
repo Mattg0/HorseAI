@@ -1593,10 +1593,10 @@ class FeatureEmbeddingOrchestrator:
             ]
 
         # Ensure required columns exist
-        required_cols = ['idche', 'jour']
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        if missing_cols:
-            raise ValueError(f"Required columns missing: {missing_cols}")
+ #       required_cols = ['idche', 'jour']
+ #       missing_cols = [col for col in required_cols if col not in df.columns]
+ #       if missing_cols:
+ #          raise ValueError(f"Required columns missing: {missing_cols}")
 
         # Filter to only include columns that exist in the dataframe
         sequential_features = [col for col in sequential_features if col in df.columns]

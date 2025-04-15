@@ -207,29 +207,26 @@ def main():
                 print(f"Error: {results.get('error', 'Unknown error')}")
 
         elif args.action == 'evaluate':
-            if not args.verbose:
-                print(f"Evaluating predictions for race {comp}...")
             results = orchestrator.evaluate_predictions(comp)
 
             if results['status'] == 'success':
                 metrics = results['metrics']
                 bet_results = metrics.get('winning_bets', [])
 
-                print(f"\nEvaluation for race {comp}:")
+                print(f"####Evaluation for race {comp}:#######")
                 print(f"  Race: {metrics['race_info'].get('hippo')} - {metrics['race_info'].get('prix')}")
+                print(f"Arrivals:")
+                print(f"  Predicted: {metrics['predicted_arriv']}")
+                print(f"  Actual:    {metrics['actual_arriv']}")
                 print(f"  Winner prediction: {'✓' if metrics['winner_correct'] else '✗'}")
                 print(f"  Podium accuracy: {metrics['podium_accuracy']:.2f}")
-
+                print(f"Bets:")
                 if bet_results:
-                    print("\nWinning bets:")
+                    print("  Winning bets:")
                     for bet in bet_results:
                         print(f"  ✓ {format_bet_name(bet)}")
                 else:
-                    print("\nNo winning bets")
-
-                print(f"\nArrivals:")
-                print(f"  Predicted: {metrics['predicted_arriv']}")
-                print(f"  Actual:    {metrics['actual_arriv']}")
+                    print("  No winning bets")
             else:
                 print(f"Error: {results.get('error', 'Unknown error')}")
 
@@ -289,8 +286,7 @@ def main():
                         winning_bets = metrics.get('winning_bets', [])
                         bet_count = len(winning_bets)
 
-                        print(f"  {race['comp']}: W{'✓' if metrics['winner_correct'] else '✗'} "
-                              f"Bets:{bet_count}")
+                        print(f"  {race['comp']}: Winning Bets {'✓' if bet_count> 0 else '0'} ")
             else:
                 print("No metrics available. Races may not have been evaluated yet.")
 
@@ -348,5 +344,61 @@ def format_bet_name(bet_type):
     return name_mapping.get(bet_type, bet_type)
 
 
+#if __name__ == "__main__":
+#    sys.exit(main())
+
+
+def debug_fetchpredict(race, model_path, db_name=None, blend_weight=0.7, verbose=False):
+    """
+    Debug function to execute fetchpredict for a specific date and model.
+    This can be called directly from the IDE for setting breakpoints.
+
+    Args:
+        date: Date string in format YYYY-MM-DD
+        model_path: Path to the model directory
+        db_name: Database name from config (defaults to active_db)
+        blend_weight: Weight for RF model in blend (0-1)
+        verbose: Whether to enable verbose output
+
+    Returns:
+        Results dictionary from fetch_and_predict_races
+    """
+    from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
+
+    print(f"Debug: Starting fetchpredict for date {race} with model {model_path}")
+
+    # Create orchestrator instance
+    orchestrator = PredictionOrchestrator(
+        model_path=model_path,
+        db_name=db_name,
+        verbose=verbose
+    )
+
+    # Execute fetch and predict
+    results = orchestrator.predict_race("1585081","0.7")
+
+    # Print summary results
+    fetch_results = results.get('fetch_results', {})
+    prediction_results = results.get('prediction_results', {})
+
+    print(f"\nFetch summary for {race}:")
+    print(f"  Total races: {fetch_results.get('total_races', 0)}")
+    print(f"  Successfully processed: {fetch_results.get('successful', 0)}")
+    print(f"  Failed: {fetch_results.get('failed', 0)}")
+
+    print(f"\nPrediction summary for {race}:")
+    print(f"  Total races: {prediction_results.get('total_races', 0)}")
+    print(f"  Successfully predicted: {prediction_results.get('predicted', 0)}")
+    print(f"  Errors: {prediction_results.get('errors', 0)}")
+    print(f"  Skipped: {prediction_results.get('skipped', 0)}")
+
+    return results
+
+
+# This can be used at the end of the file for direct execution in IDE
 if __name__ == "__main__":
-    sys.exit(main())
+    # For debug via IDE - uncomment the line below to use
+     debug_fetchpredict( "1585081", "models/2years/hybrid/2years_full_v20250409", verbose=True)
+
+    # For normal CLI execution
+    #sys.exit(main())

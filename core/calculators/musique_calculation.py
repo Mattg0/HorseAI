@@ -11,11 +11,11 @@ class MusiqueFeatureExtractor:
     def __init__(self):
         # Race type mapping
         self.race_types = {
-            'A': 'Attele',
-            'M': 'Monte',
+            'A': 'Attelé',
+            'M': 'Monté',
             'P': 'Plat',
             'H': 'Haies',
-            'S': 'Steeple',
+            'S': 'Steeple-Chase',
             'T': 'Trot'
         }
 

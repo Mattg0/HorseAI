@@ -76,7 +76,7 @@ class RaceDataConverter:
 
         conn.commit()
         conn.close()
-        print(f"Database structure ensured at {self.db_path}")
+        #print(f"Database structure ensured at {self.db_path}")
 
 
 
@@ -195,8 +195,8 @@ class RaceDataConverter:
             print(f"Applied static feature calculations on {len(processed_df)} participants")
 
             # Remove typec from final result if it was temporarily added
-            if 'typec' in processed_df.columns and race_typec:
-                processed_df = processed_df.drop(columns=['typec'])
+            #if 'typec' in processed_df.columns and race_typec:
+            #    processed_df = processed_df.drop(columns=['typec'])
 
         except Exception as e:
             print(f"Error applying static feature calculations: {str(e)}")
