@@ -348,7 +348,7 @@ def format_bet_name(bet_type):
 #    sys.exit(main())
 
 
-def debug_fetchpredict(race, model_path, db_name=None, blend_weight=0.7, verbose=False):
+def debug_fetchpredict(date, model_path, db_name=None, blend_weight=0.7, verbose=False):
     """
     Debug function to execute fetchpredict for a specific date and model.
     This can be called directly from the IDE for setting breakpoints.
@@ -365,7 +365,7 @@ def debug_fetchpredict(race, model_path, db_name=None, blend_weight=0.7, verbose
     """
     from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
 
-    print(f"Debug: Starting fetchpredict for date {race} with model {model_path}")
+    print(f"Debug: Starting fetchpredict for date {date} with model {model_path}")
 
     # Create orchestrator instance
     orchestrator = PredictionOrchestrator(
@@ -375,18 +375,19 @@ def debug_fetchpredict(race, model_path, db_name=None, blend_weight=0.7, verbose
     )
 
     # Execute fetch and predict
-    results = orchestrator.predict_race("1585081","0.7")
+    results= orchestrator.fetch_and_predict_races(date,"0.7")
+    #results = orchestrator.predict_races_by_date(date,"0.7")
 
     # Print summary results
     fetch_results = results.get('fetch_results', {})
     prediction_results = results.get('prediction_results', {})
 
-    print(f"\nFetch summary for {race}:")
+    print(f"\nFetch summary for {date}:")
     print(f"  Total races: {fetch_results.get('total_races', 0)}")
     print(f"  Successfully processed: {fetch_results.get('successful', 0)}")
     print(f"  Failed: {fetch_results.get('failed', 0)}")
 
-    print(f"\nPrediction summary for {race}:")
+    print(f"\nPrediction summary for {date}:")
     print(f"  Total races: {prediction_results.get('total_races', 0)}")
     print(f"  Successfully predicted: {prediction_results.get('predicted', 0)}")
     print(f"  Errors: {prediction_results.get('errors', 0)}")
@@ -398,7 +399,7 @@ def debug_fetchpredict(race, model_path, db_name=None, blend_weight=0.7, verbose
 # This can be used at the end of the file for direct execution in IDE
 if __name__ == "__main__":
     # For debug via IDE - uncomment the line below to use
-     debug_fetchpredict( "1585081", "models/2years/hybrid/2years_full_v20250409", verbose=True)
+     debug_fetchpredict( "2025-04-04", "models/2years/hybrid/2years_full_v20250409", verbose=True)
 
     # For normal CLI execution
     #sys.exit(main())

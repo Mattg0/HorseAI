@@ -422,94 +422,159 @@ class RaceFetcher:
 
     def fetch_and_store_daily_races(self, date: str = None) -> Dict:
         """
-        Fetch all races for a day, process them, and store in the database.
+        Main pipeline function that orchestrates the entire process:
+        fetch > process > filter (is_in_france) > store
 
         Args:
             date: Date string in format YYYY-MM-DD (default: today)
 
         Returns:
-            Dictionary with results
+            Dictionary with summary results
         """
         # Use today's date if none provided
         if date is None:
             date = datetime.datetime.now().strftime("%Y-%m-%d")
 
         try:
-            # Fetch races from API
+            # Step 1: Fetch races from API
+            self.logger.info(f"Fetching races for {date}")
             api_data = self.fetch_races(date)
 
-            # Group participants by race
+            # Step 2: Group participants by race
             grouped_races = self._group_races_by_comp(api_data)
-
             self.logger.info(f"Found {len(grouped_races)} races for {date}")
 
-            # Process and store each race
-            results = []
-            for comp, participants in grouped_races.items():
-                try:
-                    # Process the race using RaceDataConverter
-                    processed_result = self.process_race(participants)
+            # Step 3-5: Process, filter, and store each race
+            results = self._process_filter_and_store_races(grouped_races, date)
 
-                    # Store race with processed features
+            return results
+
+        except Exception as e:
+            self.logger.error(f"Error in fetch_and_store_daily_races: {str(e)}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+
+            return {
+                'date': date,
+                'status': 'error',
+                'error': str(e),
+                'total_races': 0,
+                'successful': 0,
+                'failed': 0,
+                'skipped': 0,
+                'races': []
+            }
+
+    def _process_filter_and_store_races(self, grouped_races: Dict, date: str) -> Dict:
+        """
+        Process, filter, and store races.
+
+        Args:
+            grouped_races: Dictionary mapping race IDs to lists of participants
+            date: Date string for the races
+
+        Returns:
+            Dictionary with processing results
+        """
+        results = []
+
+        for comp, participants in grouped_races.items():
+            try:
+                # Step 3: Process the race
+                self.logger.info(f"Processing race {comp}")
+                processed_result = self.process_race(participants)
+
+                if processed_result['status'] == 'error':
+                    self.logger.warning(f"Failed to process race {comp}: {processed_result.get('error')}")
+                    results.append({
+                        'comp': comp,
+                        'status': 'error',
+                        'error': processed_result.get('error', 'Unknown processing error')
+                    })
+                    continue
+
+                # Step 4: Filter - Check if race is in France
+                hippo = processed_result['race_info'].get('hippo', 'Unknown')
+                if not self.is_race_in_france(hippo):
+                    self.logger.info(f"Race {comp} at {hippo} skipped as it is not in France")
+                    results.append({
+                        'comp': comp,
+                        'status': 'skipped',
+                        'reason': 'not_in_france',
+                        'hippo': hippo
+                    })
+                    continue
+
+                # Step 5: Store the race
+                try:
                     race_id = self.store_race(processed_result['race_info'])
 
                     # Build result object
                     result = {
                         'race_id': race_id,
                         'comp': comp,
-                        'hippo': processed_result['race_info']['hippo'],
-                        'prix': processed_result['race_info']['prix'],
-                        'partant': processed_result['race_info']['partant'],
-                        'status': processed_result['status']
+                        'hippo': hippo,
+                        'prix': processed_result['race_info'].get('prix', 'Unknown'),
+                        'partant': processed_result['race_info'].get('partant', 0),
+                        'status': 'success'
                     }
 
-                    # Add error message if processing failed
-                    if processed_result['status'] == 'error':
-                        result['error'] = processed_result.get('error')
-                    else:
-                        result['feature_count'] = len(processed_result['processed_df'].columns) if processed_result[
-                                                                                                       'processed_df'] is not None else 0
+                    # Add feature count if available
+                    if processed_result['processed_df'] is not None:
+                        result['feature_count'] = len(processed_result['processed_df'].columns)
 
                     results.append(result)
-
-                    self.logger.info(f"Stored race {comp}" + (
-                        f" with {result['feature_count']} preprocessed features"
-                        if processed_result['status'] == 'success' else
-                        f" with error: {processed_result.get('error')}"
-                    ))
+                    self.logger.info(f"Stored race {comp} with {result.get('feature_count', 0)} features")
 
                 except Exception as e:
                     self.logger.error(f"Error storing race {comp}: {str(e)}")
                     results.append({
                         'comp': comp,
                         'status': 'error',
-                        'error': str(e)
+                        'error': f"Storage error: {str(e)}"
                     })
 
-            # Generate summary
-            successful = sum(1 for r in results if r['status'] == 'success')
-            failed = sum(1 for r in results if r['status'] == 'error')
+            except Exception as e:
+                self.logger.error(f"Error processing race {comp}: {str(e)}")
+                import traceback
+                self.logger.error(traceback.format_exc())
 
-            summary = {
-                'date': date,
-                'total_races': len(results),
-                'successful': successful,
-                'failed': failed,
-                'races': results
-            }
+                results.append({
+                    'comp': comp,
+                    'status': 'error',
+                    'error': str(e)
+                })
 
-            self.logger.info(f"Completed fetching and storing races for {date}: "
-                             f"{successful} successful, {failed} failed")
+        # Generate summary
+        successful = sum(1 for r in results if r['status'] == 'success')
+        failed = sum(1 for r in results if r['status'] == 'error')
+        skipped = sum(1 for r in results if r['status'] == 'skipped')
 
-            return summary
+        summary = {
+            'date': date,
+            'total_races': len(results),
+            'successful': successful,
+            'failed': failed,
+            'skipped': skipped,
+            'races': results
+        }
 
-        except Exception as e:
-            self.logger.error(f"Error in fetch_and_store_daily_races: {str(e)}")
-            return {
-                'date': date,
-                'status': 'error',
-                'error': str(e)
-            }
+        self.logger.info(f"Completed processing races for {date}: "
+                         f"{successful} successful, {failed} failed, {skipped} skipped")
+
+        return summary
+
+    def is_race_in_france(self, hippo: str) -> bool:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT Pays FROM hippodromes WHERE hippo = ?", (hippo,))
+        result = cursor.fetchone()
+        conn.close()
+
+        if result and result[0] == 'France':
+            return True
+        else:
+            return False
 
     def get_races_by_date(self, date: str) -> List[Dict]:
         """

@@ -1,529 +1,803 @@
-# test.py
 import os
+import sys
+import json
+import pandas as pd
+import numpy as np
+import sqlite3
+from datetime import datetime, timedelta
+from pathlib import Path
+import matplotlib.pyplot as plt
 import argparse
+import logging
+from typing import List, Dict, Any, Tuple
+import warnings
+
+# Filter specific warnings
+warnings.filterwarnings("ignore", category=FutureWarning, message=".*Downcasting behavior in `replace` is deprecated.*")
+warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*Mean of empty slice.*")
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+# Import core components
 from utils.env_setup import AppConfig
-from utils.cache_manager import CacheManager
-from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
+from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
+from core.connectors.api_daily_sync import RaceFetcher
+from race_prediction.race_predict import RacePredictor
 
 
-def test_cache_manager():
-    """Test the CacheManager functionality."""
-    from utils.cache_manager import CacheManager
-    import pandas as pd
+class BlendingComparison:
+    """
+    Class to compare race prediction results with different blending values.
+    """
 
-    # Create a test DataFrame
-    test_df = pd.DataFrame({
-        'id': [1, 2, 3],
-        'value': ['a', 'b', 'c']
-    })
+    def __init__(self, model_path: str, db_name: str = None, output_dir: str = None,
+                 blending_values: List[float] = None, verbose: bool = False):
+        """
+        Initialize the blending comparison tool.
 
-    # Initialize cache manager
-    cache_manager = CacheManager()
+        Args:
+            model_path: Path to the model or model name
+            db_name: Database name from config (default: active_db from config)
+            output_dir: Directory to save result files
+            blending_values: List of blending values to test (default: [0.0, 0.25, 0.5, 0.75, 1.0])
+            verbose: Whether to output verbose logs
+        """
+        # Initialize config
+        self.config = AppConfig()
 
-    # Test cache type
-    cache_type = "test_cache"
-
-    # Clear any existing cache
-    cache_manager.clear_cache(cache_type)
-
-    # Test saving
-    print(f"Saving DataFrame to cache type '{cache_type}'...")
-    saved_df = cache_manager.save_dataframe(test_df, cache_type)
-    print(f"Saved DataFrame")
-
-    # Test loading
-    print(f"Loading DataFrame from cache type '{cache_type}'...")
-    loaded_df = cache_manager.load_dataframe(cache_type)
-
-    if loaded_df is not None:
-        print("Successfully loaded cached data:")
-        print(loaded_df)
-        return True
-    else:
-        print("Failed to load cached data")
-        return False
-
-
-def test_data_loading(orchestrator, args):
-    """Test basic data loading functionality."""
-    print("\n=== Testing data loading ===")
-    # Checking for correct method name for loading data
-    if hasattr(orchestrator, 'load_historical_races'):
-        df = orchestrator.load_historical_races(limit=args.limit, race_filter=args.race_type)
-    else:
-        print("Error: 'load_historical_races' method not found")
-        return None
-
-    print(f"Successfully loaded {len(df)} participant records from {df['comp'].nunique()} races")
-    print(f"Sample columns: {list(df.columns[:5])}")
-    return df
-
-
-def test_feature_preparation(orchestrator, df, args):
-    """Test feature preparation and embedding."""
-    print("\n=== Testing feature preparation ===")
-    try:
-        # Check for correct preprocessing method
-        if hasattr(orchestrator, 'prepare_features'):
-            print("Using prepare_features method...")
-            processed_df = orchestrator.prepare_features(df, use_cache=not args.no_cache)
-        elif hasattr(orchestrator, 'preprocess_data'):
-            print("Using preprocess_data method...")
-            processed_df = orchestrator.preprocess_data(df, use_cache=not args.no_cache)
+        # Set database
+        if db_name is None:
+            self.db_name = self.config._config.base.active_db
         else:
-            print("Error: No preprocessing method found")
-            return None
+            self.db_name = db_name
 
-        print(f"Successfully preprocessed data: {processed_df.shape}")
+        # Get database path
+        self.db_path = self.config.get_sqlite_dbpath(self.db_name)
 
-        # Apply embeddings
-        if hasattr(orchestrator, 'apply_embeddings'):
-            embedded_df = orchestrator.apply_embeddings(processed_df, use_cache=not args.no_cache)
-            print(f"Successfully applied embeddings: {embedded_df.shape}")
+        # Set model path
+        self.model_path = model_path
 
-            # Check for embedding columns
-            embedding_cols = [col for col in embedded_df.columns if '_emb_' in col]
-            print(f"Found {len(embedding_cols)} embedding columns")
+        # Set blending values
+        self.blending_values = blending_values or [0.0, 0.25, 0.5, 0.75, 1.0]
 
-            for prefix in ['horse', 'jockey', 'couple', 'course']:
-                cols = [col for col in embedding_cols if col.startswith(f"{prefix}_emb_")]
-                if cols:
-                    print(f"  - {prefix.capitalize()} embeddings: {len(cols)}")
+        # Set verbosity
+        self.verbose = verbose
 
-            return embedded_df
-        else:
-            print("No 'apply_embeddings' method found, using processed data")
-            return processed_df  # Return processed data if embedding not available
-
-    except Exception as e:
-        print(f"Error preparing features: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return None
-
-
-def test_feature_store(orchestrator, embedded_df, args):
-    """Test feature store saving and loading."""
-    print("\n=== Testing feature store functionality ===")
-    try:
-        # Prepare training dataset
-        print("Preparing training dataset...")
-        if hasattr(orchestrator, 'prepare_training_dataset'):
-            X, y = orchestrator.prepare_training_dataset(embedded_df)
-        else:
-            print("Error: No 'prepare_training_dataset' method found")
-            return False
-
-        print(f"Successfully prepared dataset with {X.shape[1]} features and {len(y)} samples")
-
-        # Split dataset
-        print("Splitting dataset...")
-        if hasattr(orchestrator, 'split_dataset'):
-            X_train, X_val, X_test, y_train, y_val, y_test = orchestrator.split_dataset(X, y)
-        else:
-            # Use scikit-learn directly if the method doesn't exist
-            print("No 'split_dataset' method found, using scikit-learn directly")
-            from sklearn.model_selection import train_test_split
-
-            # First split: train+val vs test (0.2)
-            X_trainval, X_test, y_trainval, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42
-            )
-
-            # Second split: train vs val (0.125 of original = 0.1/0.8)
-            X_train, X_val, y_train, y_val = train_test_split(
-                X_trainval, y_trainval, test_size=0.125, random_state=42
-            )
-
-        print(f"Successfully split dataset:")
-        print(f"  - Training: {X_train.shape[0]} samples")
-        print(f"  - Validation: {X_val.shape[0]} samples")
-        print(f"  - Testing: {X_test.shape[0]} samples")
-
-        # Save feature store
-        print("\n=== Testing feature store saving ===")
-        if hasattr(orchestrator, 'save_feature_store'):
-            feature_store_path = orchestrator.save_feature_store(
-                X_train, X_val, X_test, y_train, y_val, y_test,
-                prefix=f"{args.db}_test_"
-            )
-        else:
-            print("Error: No 'save_feature_store' method found")
-            return False
-
-        print(f"Successfully saved feature store to {feature_store_path}")
-
-        # Load feature store
-        print("\n=== Testing feature store loading ===")
-        if hasattr(orchestrator, 'load_feature_store'):
-            loaded_data = orchestrator.load_feature_store(feature_store_path=feature_store_path)
-        else:
-            print("Error: No 'load_feature_store' method found")
-            return False
-
-        if len(loaded_data) >= 6:  # Ensure we got at least 6 elements: X_train...y_test
-            loaded_X_train, loaded_X_val, loaded_X_test, loaded_y_train, loaded_y_val, loaded_y_test = loaded_data[:6]
-            metadata = loaded_data[6] if len(loaded_data) > 6 else {}
-
-            print(f"Successfully loaded feature store from {feature_store_path}")
-            print(f"Loaded data shapes match original: "
-                  f"{loaded_X_train.shape == X_train.shape}, "
-                  f"{loaded_y_train.shape == y_train.shape}")
-
-            # Print some metadata
-            if metadata:
-                print("\nFeature store metadata:")
-                if 'created_at' in metadata:
-                    print(f"  - Created: {metadata['created_at']}")
-                if 'dataset_info' in metadata:
-                    info = metadata['dataset_info']
-                    print(f"  - Training samples: {info.get('train_samples')}")
-                    print(f"  - Feature count: {info.get('feature_count')}")
-
-                    # Count embedding features
-                    if 'embedding_features' in info:
-                        embedding_types = {
-                            'horse': [col for col in info['embedding_features'] if col.startswith('horse_emb_')],
-                            'jockey': [col for col in info['embedding_features'] if col.startswith('jockey_emb_')],
-                            'couple': [col for col in info['embedding_features'] if col.startswith('couple_emb_')],
-                            'course': [col for col in info['embedding_features'] if col.startswith('course_emb_')]
-                        }
-
-                        print(f"  - Embedding features:")
-                        for entity, cols in embedding_types.items():
-                            if cols:
-                                print(f"    - {entity.capitalize()}: {len(cols)} dimensions")
-
-            return True
-        else:
-            print(f"Error: Unexpected format returned from load_feature_store")
-            return False
-    except Exception as e:
-        print(f"Error in feature store testing: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-
-def test_lstm_data_preparation(orchestrator, embedded_df, args):
-    """Test LSTM sequence data preparation."""
-    print("\n=== Testing LSTM data preparation ===")
-    try:
-        # Prepare sequence data
-        sequence_length = 3  # Use a small value for testing
-        print(f"Preparing sequence data with length={sequence_length}...")
-
-        if not hasattr(orchestrator, 'prepare_sequence_data'):
-            print("Error: No 'prepare_sequence_data' method found")
-            return False
-
-        try:
-            X_sequences, X_static, y = orchestrator.prepare_sequence_data(
-                embedded_df,
-                sequence_length=sequence_length,
-                step_size=1
-            )
-
-            print(f"Successfully prepared sequence data:")
-            print(f"  - Sequences shape: {X_sequences.shape}")
-            print(f"  - Static features shape: {X_static.shape}")
-            print(f"  - Targets shape: {y.shape}")
-
-            # Split the data (simple random split for testing)
-            from sklearn.model_selection import train_test_split
-
-            print("Splitting sequence data...")
-            # Split data
-            X_seq_train, X_seq_test, X_static_train, X_static_test, y_train, y_test = train_test_split(
-                X_sequences, X_static, y, test_size=0.2, random_state=42
-            )
-
-            # Further split training data into train and validation
-            X_seq_train, X_seq_val, X_static_train, X_static_val, y_train, y_val = train_test_split(
-                X_seq_train, X_static_train, y_train, test_size=0.2, random_state=42
-            )
-
-            print(f"Split sequence data:")
-            print(f"  - Train: {X_seq_train.shape[0]} sequences")
-            print(f"  - Validation: {X_seq_val.shape[0]} sequences")
-            print(f"  - Test: {X_seq_test.shape[0]} sequences")
-
-            # Save LSTM feature store
-            print("\n=== Testing LSTM feature store saving ===")
-            import numpy as np
-            from datetime import datetime
-            import json
-
-            # Create output directory
-            output_dir = os.path.join(orchestrator.feature_store_dir, 'lstm')
-            os.makedirs(output_dir, exist_ok=True)
-
-            # Create timestamp for directory
+        # Set output directory
+        if output_dir is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            feature_store_dir = os.path.join(output_dir, f"{args.db}_test_lstm_feature_store_{timestamp}")
-            os.makedirs(feature_store_dir, exist_ok=True)
+            self.output_dir = Path(f"results/blend_comparison_{timestamp}")
+        else:
+            self.output_dir = Path(output_dir)
 
-            print(f"Saving LSTM data to {feature_store_dir}...")
+        # Create output directory if it doesn't exist
+        self.output_dir.mkdir(parents=True, exist_ok=True)
 
-            # Save numpy arrays
-            np.save(os.path.join(feature_store_dir, "X_seq_train.npy"), X_seq_train)
-            np.save(os.path.join(feature_store_dir, "X_seq_val.npy"), X_seq_val)
-            np.save(os.path.join(feature_store_dir, "X_seq_test.npy"), X_seq_test)
+        # Set up logging
+        self._setup_logging()
 
-            np.save(os.path.join(feature_store_dir, "X_static_train.npy"), X_static_train)
-            np.save(os.path.join(feature_store_dir, "X_static_val.npy"), X_static_val)
-            np.save(os.path.join(feature_store_dir, "X_static_test.npy"), X_static_test)
+        # Initialize race fetcher for database access
+        self.race_fetcher = RaceFetcher(db_name=self.db_name)
 
-            np.save(os.path.join(feature_store_dir, "y_train.npy"), y_train)
-            np.save(os.path.join(feature_store_dir, "y_val.npy"), y_val)
-            np.save(os.path.join(feature_store_dir, "y_test.npy"), y_test)
+        # Store results
+        self.results = {}
 
-            # Save metadata
-            metadata = {
-                'created_at': datetime.now().isoformat(),
-                'sequence_length': sequence_length,
-                'step_size': 1,
-                'embedding_dim': orchestrator.embedding_dim,
-                'dataset_info': {
-                    'train_samples': len(X_seq_train),
-                    'val_samples': len(X_seq_val),
-                    'test_samples': len(X_seq_test),
-                    'sequence_shape': list(X_seq_train.shape),
-                    'static_shape': list(X_static_train.shape),
-                },
-                'feature_columns': orchestrator.preprocessing_params.get('feature_columns', []),
+        print(f"Blending comparison initialized:")
+        print(f"  - Model path: {self.model_path}")
+        print(f"  - Database: {self.db_name} ({self.db_path})")
+        print(f"  - Output directory: {self.output_dir}")
+        print(f"  - Blending values: {self.blending_values}")
+        self.logger.info(f"Blending comparison initialized:")
+        self.logger.info(f"  - Model path: {self.model_path}")
+        self.logger.info(f"  - Database: {self.db_name} ({self.db_path})")
+        self.logger.info(f"  - Output directory: {self.output_dir}")
+        self.logger.info(f"  - Blending values: {self.blending_values}")
+
+    def _setup_logging(self):
+        """Set up logging."""
+        log_dir = self.output_dir / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        log_file = log_dir / f"blend_comparison_{datetime.now().strftime('%Y%m%d')}.log"
+
+        logging.basicConfig(
+            level=logging.DEBUG if self.verbose else logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_file),
+                logging.StreamHandler()
+            ],
+            force=True  # Reset existing loggers
+        )
+
+        self.logger = logging.getLogger("BlendingComparison")
+        self.logger.info(f"Logging initialized to {log_file}")
+
+    def _clear_predictions(self):
+        """Clear prediction results from the database."""
+        print("Clearing existing prediction results from database...")
+        self.logger.info("Clearing existing prediction results from database...")
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Update all daily_race entries to clear prediction_results
+        cursor.execute("UPDATE daily_race SET prediction_results = NULL")
+
+        # Commit and close
+        conn.commit()
+        count = cursor.rowcount
+        conn.close()
+
+        print(f"Cleared prediction results from {count} races")
+        self.logger.info(f"Cleared prediction results from {count} races")
+
+    def _get_evaluation_dates(self, start_date: str = None, num_days: int = 3) -> List[str]:
+        """
+        Get dates for evaluation.
+
+        Args:
+            start_date: Starting date in YYYY-MM-DD format (default: 3 days ago)
+            num_days: Number of days to evaluate
+
+        Returns:
+            List of date strings in YYYY-MM-DD format
+        """
+        if start_date is None:
+            # Default to 3 days ago
+            start_dt = datetime.now() - timedelta(days=num_days)
+            start_date = start_dt.strftime("%Y-%m-%d")
+
+        # Convert to datetime
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+
+        # Generate list of dates
+        dates = [
+            (start_dt + timedelta(days=i)).strftime("%Y-%m-%d")
+            for i in range(num_days)
+        ]
+
+        return dates
+
+    def _check_race_availability(self, dates: List[str]) -> Tuple[bool, int]:
+        """
+        Check if races are available for the specified dates.
+
+        Args:
+            dates: List of date strings
+
+        Returns:
+            Tuple of (all_have_results, total_race_count)
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        all_have_results = True
+        total_race_count = 0
+
+        for date in dates:
+            # Check if races exist for the date
+            cursor.execute(
+                "SELECT COUNT(*) FROM daily_race WHERE jour = ?",
+                (date,)
+            )
+            race_count = cursor.fetchone()[0]
+
+            # Check if they have results
+            cursor.execute(
+                "SELECT COUNT(*) FROM daily_race WHERE jour = ? AND actual_results IS NOT NULL AND actual_results != 'pending'",
+                (date,)
+            )
+            results_count = cursor.fetchone()[0]
+
+            if race_count == 0:
+                print(f"Warning: No races found for date {date}")
+                self.logger.warning(f"No races found for date {date}")
+                all_have_results = False
+            elif results_count < race_count:
+                print(f"Warning: Only {results_count}/{race_count} races have results for date {date}")
+                self.logger.warning(f"Only {results_count}/{race_count} races have results for date {date}")
+                all_have_results = False
+            else:
+                print(f"Found {race_count} races with results for date {date}")
+                self.logger.info(f"Found {race_count} races with results for date {date}")
+
+            total_race_count += race_count
+
+        conn.close()
+
+        return all_have_results, total_race_count
+
+    def evaluate_blending_values(self, dates: List[str] = None, num_days: int = 3) -> Dict[str, Any]:
+        """
+        Evaluate prediction performance for different blending values.
+
+        Args:
+            dates: List of dates to evaluate (default: last 3 days)
+            num_days: Number of days to evaluate if dates not provided
+
+        Returns:
+            Dictionary with evaluation results for each blending value
+        """
+        # Get dates for evaluation if not provided
+        if dates is None:
+            dates = self._get_evaluation_dates(num_days=num_days)
+
+        print(f"Evaluating blending values for dates: {dates}")
+        self.logger.info(f"Evaluating blending values for dates: {dates}")
+
+        # Check if races are available
+        all_have_results, total_race_count = self._check_race_availability(dates)
+
+        if total_race_count == 0:
+            print("Error: No races found for the specified dates. Aborting.")
+            self.logger.error("No races found for the specified dates. Aborting.")
+            return {"status": "error", "message": "No races found"}
+
+        if not all_have_results:
+            print("Warning: Some races may not have results. Evaluation may be incomplete.")
+            self.logger.warning("Some races may not have results. Evaluation may be incomplete.")
+
+        # Evaluate each blending value
+        for blend_value in self.blending_values:
+            print(f"\n{'-' * 40}")
+            print(f"Evaluating blending value: {blend_value}")
+            self.logger.info(f"\n{'=' * 40}")
+            self.logger.info(f"Evaluating blending value: {blend_value}")
+
+            # Clear previous predictions
+            self._clear_predictions()
+
+            # Initialize orchestrator with the current blending value
+            orchestrator = PredictionOrchestrator(
+                model_path=self.model_path,
+                db_name=self.db_name,
+                verbose=self.verbose
+            )
+
+            # Process each date
+            date_results = []
+            for date in dates:
+                print(f"Predicting races for date: {date}")
+                self.logger.info(f"Predicting races for date: {date}")
+
+                # Predict races for the date with current blend value
+                prediction_results = orchestrator.predict_races_by_date(date, blend_weight=blend_value)
+
+                # Evaluate predictions
+                print(f"Evaluating predictions for date: {date}")
+                self.logger.info(f"Evaluating predictions for date: {date}")
+                evaluation_results = orchestrator.evaluate_predictions_by_date(date)
+
+                date_results.append({
+                    "date": date,
+                    "prediction_results": prediction_results,
+                    "evaluation_results": evaluation_results
+                })
+
+            # Store results for this blending value
+            self.results[str(blend_value)] = {
+                "blend_value": blend_value,
+                "date_results": date_results,
+                "summary": self._calculate_summary(date_results)
             }
 
-            with open(os.path.join(feature_store_dir, "metadata.json"), 'w') as f:
-                json.dump(metadata, f, indent=2, default=str)
+            # Save intermediate results
+            self._save_results()
 
-            print(f"Successfully saved LSTM feature store to {feature_store_dir}")
+        # Generate comparison report
+        comparison = self._generate_comparison()
 
-            # Test loading LSTM feature store if the method exists
-            if hasattr(orchestrator, 'load_lstm_feature_store'):
-                print("\n=== Testing LSTM feature store loading ===")
-                try:
-                    result = orchestrator.load_lstm_feature_store(feature_store_path=feature_store_dir)
+        # Visualize results
+        self._visualize_results()
 
-                    if len(result) >= 9:  # We expect at least 9 elements
-                        loaded_X_seq_train = result[0]
-                        loaded_X_static_train = result[3]
-                        loaded_y_train = result[6]
+        return comparison
 
-                        print(f"Successfully loaded LSTM feature store")
-                        print(f"Loaded data shapes match original:")
-                        print(f"  - X_sequences: {loaded_X_seq_train.shape == X_seq_train.shape}")
-                        print(f"  - X_static: {loaded_X_static_train.shape == X_static_train.shape}")
-                        print(f"  - y: {loaded_y_train.shape == y_train.shape}")
-                    else:
-                        print(f"Unexpected format returned from load_lstm_feature_store")
+    def _calculate_summary(self, date_results: List[Dict]) -> Dict[str, Any]:
+        """
+        Calculate summary metrics across all evaluated dates.
 
-                except Exception as e:
-                    print(f"Error loading LSTM feature store: {str(e)}")
+        Args:
+            date_results: List of results for each date
 
-            print("\nLSTM feature store testing completed successfully!")
-            return True
-        except ValueError as ve:
-            print(f"ValueError in sequence preparation: {str(ve)}")
-            print("This might be normal if there aren't enough sequences for the given horses.")
-            return False
+        Returns:
+            Dictionary with summary metrics
+        """
+        # Initialize counters and accumulators
+        total_races = 0
+        total_evaluated = 0
+        total_correct_winner = 0
+        total_podium_accuracy = 0
+        total_races_with_metrics = 0  # Count races that actually have metrics
 
-    except Exception as e:
-        print(f"Unexpected error in LSTM data preparation: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
+        # PMU bet types - initialize counters
+        pmu_bets = {
+            'tierce_exact': 0, 'tierce_desordre': 0,
+            'quarte_exact': 0, 'quarte_desordre': 0,
+            'quinte_exact': 0, 'quinte_desordre': 0,
+            'bonus4': 0, 'bonus3': 0,
+            'deuxsur4': 0, 'multi4': 0
+        }
 
+        # Process each date
+        for date_result in date_results:
+            eval_result = date_result.get('evaluation_results', {})
 
-def test_full_pipeline(orchestrator, args):
-    """Test the full pipeline with the orchestrator."""
-    print("\n=== Testing full pipeline ===")
-    try:
-        # Call the existing run_pipeline method if it exists
-        if hasattr(orchestrator, 'run_pipeline'):
-            print("Running full pipeline...")
-            result = orchestrator.run_pipeline(
-                limit=args.limit,
-                race_filter=args.race_type,
-                use_cache=not args.no_cache
-            )
+            # Get summary metrics if available
+            if 'summary_metrics' in eval_result:
+                metrics = eval_result['summary_metrics']
 
-            if isinstance(result, tuple) and len(result) >= 6:  # Ensure we got at least 6 elements (X_train...y_test)
-                X_train, X_val, X_test, y_train, y_val, y_test = result[:6]
-                feature_store_path = result[6] if len(result) > 6 else None
+                # Add to totals
+                races_evaluated = metrics.get('races_evaluated', 0)
+                total_races_with_metrics += races_evaluated
 
-                print(f"\nPipeline results:")
-                print(f"  - Training set: {X_train.shape[0]} samples, {X_train.shape[1]} features")
-                print(f"  - Validation set: {X_val.shape[0]} samples")
-                print(f"  - Test set: {X_test.shape[0]} samples")
+                if races_evaluated > 0:
+                    # Calculate proportional metrics
+                    winner_accuracy = metrics.get('winner_accuracy', 0)
+                    podium_accuracy = metrics.get('avg_podium_accuracy', 0)
 
-                # Print some embedding statistics
-                embedding_cols = {
-                    'horse': [col for col in X_train.columns if col.startswith('horse_emb_')],
-                    'jockey': [col for col in X_train.columns if col.startswith('jockey_emb_')],
-                    'couple': [col for col in X_train.columns if col.startswith('couple_emb_')],
-                    'course': [col for col in X_train.columns if col.startswith('course_emb_')]
-                }
+                    total_correct_winner += winner_accuracy * races_evaluated
+                    total_podium_accuracy += podium_accuracy * races_evaluated
 
-                print("\nEmbedding features:")
-                for entity, cols in embedding_cols.items():
-                    if cols:
-                        print(f"  - {entity.capitalize()}: {len(cols)} dimensions")
+                    # Add PMU bet counts
+                    for bet_type in pmu_bets.keys():
+                        pmu_bets[bet_type] += metrics.get('pmu_bets', {}).get(bet_type, 0)
 
-                if feature_store_path:
-                    print(f"\nFeature store saved to: {feature_store_path}")
+            # Count total races
+            pred_result = date_result.get('prediction_results', {})
+            total_races += pred_result.get('total_races', 0)
+            total_evaluated += pred_result.get('predicted', 0)
 
-                print("\nFull pipeline test completed successfully!")
-                return True
-            else:
-                print(f"Unexpected format returned from run_pipeline")
-                return False
+        # Calculate averages
+        if total_races_with_metrics > 0:
+            avg_winner_accuracy = total_correct_winner / total_races_with_metrics
+            avg_podium_accuracy = total_podium_accuracy / total_races_with_metrics
+
+            # Calculate PMU bet rates
+            pmu_rates = {f"{k}_rate": v / total_races_with_metrics for k, v in pmu_bets.items()}
+
+            return {
+                "total_races": total_races,
+                "total_evaluated": total_evaluated,
+                "total_with_metrics": total_races_with_metrics,
+                "winner_accuracy": avg_winner_accuracy,
+                "podium_accuracy": avg_podium_accuracy,
+                "pmu_bets": {**pmu_bets, **pmu_rates}
+            }
         else:
-            # If run_pipeline doesn't exist, run the steps manually
-            print("run_pipeline method not found. Running steps manually...")
+            return {
+                "total_races": total_races,
+                "total_evaluated": total_evaluated,
+                "total_with_metrics": total_races_with_metrics,
+                "winner_accuracy": 0,
+                "podium_accuracy": 0,
+                "pmu_bets": {k: 0 for k in pmu_bets.keys()}
+            }
 
-            # 1. Load data
-            df = test_data_loading(orchestrator, args)
-            if df is None:
-                return False
+    def _generate_comparison(self) -> Dict[str, Any]:
+        """
+        Generate a comparison of results for different blending values.
 
-            # 2. Preprocess data
-            embedded_df = test_feature_preparation(orchestrator, df, args)
-            if embedded_df is None:
-                return False
+        Returns:
+            Dictionary with comparison results
+        """
+        comparison = {
+            "blending_values": self.blending_values,
+            "metrics": {}
+        }
 
-            # 3. Save feature store
-            feature_store_result = test_feature_store(orchestrator, embedded_df, args)
+        # Collect key metrics for each blending value
+        winner_accuracy = []
+        podium_accuracy = []
+        tierce_exact_rate = []
+        tierce_desordre_rate = []
+        quarte_exact_rate = []
 
-            print("\nFull pipeline test completed by running individual steps")
-            return feature_store_result
+        # Find best values for each metric
+        best_winner = {"value": 0, "blend": None}
+        best_podium = {"value": 0, "blend": None}
+        best_tierce_exact = {"value": 0, "blend": None}
+        best_tierce_desordre = {"value": 0, "blend": None}
+        best_quarte_exact = {"value": 0, "blend": None}
 
-    except Exception as e:
-        print(f"Error in full pipeline test: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
+        for blend_str, result in self.results.items():
+            blend_value = float(blend_str)
+            summary = result.get('summary', {})
 
+            # Extract key metrics
+            win_acc = summary.get('winner_accuracy', 0)
+            pod_acc = summary.get('podium_accuracy', 0)
+            t_exact = summary.get('pmu_bets', {}).get('tierce_exact_rate', 0)
+            t_desordre = summary.get('pmu_bets', {}).get('tierce_desordre_rate', 0)
+            q_exact = summary.get('pmu_bets', {}).get('quarte_exact_rate', 0)
+
+            # Store for comparison
+            winner_accuracy.append(win_acc)
+            podium_accuracy.append(pod_acc)
+            tierce_exact_rate.append(t_exact)
+            tierce_desordre_rate.append(t_desordre)
+            quarte_exact_rate.append(q_exact)
+
+            # Update best values
+            if win_acc > best_winner["value"]:
+                best_winner = {"value": win_acc, "blend": blend_value}
+            if pod_acc > best_podium["value"]:
+                best_podium = {"value": pod_acc, "blend": blend_value}
+            if t_exact > best_tierce_exact["value"]:
+                best_tierce_exact = {"value": t_exact, "blend": blend_value}
+            if t_desordre > best_tierce_desordre["value"]:
+                best_tierce_desordre = {"value": t_desordre, "blend": blend_value}
+            if q_exact > best_quarte_exact["value"]:
+                best_quarte_exact = {"value": q_exact, "blend": blend_value}
+
+        # Store metric arrays
+        comparison["metrics"]["winner_accuracy"] = winner_accuracy
+        comparison["metrics"]["podium_accuracy"] = podium_accuracy
+        comparison["metrics"]["tierce_exact_rate"] = tierce_exact_rate
+        comparison["metrics"]["tierce_desordre_rate"] = tierce_desordre_rate
+        comparison["metrics"]["quarte_exact_rate"] = quarte_exact_rate
+
+        # Store best values
+        comparison["best"] = {
+            "winner": best_winner,
+            "podium": best_podium,
+            "tierce_exact": best_tierce_exact,
+            "tierce_desordre": best_tierce_desordre,
+            "quarte_exact": best_quarte_exact
+        }
+
+        # Calculate overall recommendation (weighted average)
+        weights = {
+            "winner": 0.3,
+            "podium": 0.3,
+            "tierce_exact": 0.2,
+            "tierce_desordre": 0.1,
+            "quarte_exact": 0.1
+        }
+
+        # Create a score for each blending value
+        scores = {}
+        for blend_str, result in self.results.items():
+            blend_value = float(blend_str)
+            summary = result.get('summary', {})
+
+            # Handle zero case for best values (avoid division by zero)
+            normalized_scores = []
+
+            if best_winner["value"] > 0:
+                normalized_scores.append(weights["winner"] * summary.get('winner_accuracy', 0) / best_winner["value"])
+
+            if best_podium["value"] > 0:
+                normalized_scores.append(weights["podium"] * summary.get('podium_accuracy', 0) / best_podium["value"])
+
+            if best_tierce_exact["value"] > 0:
+                normalized_scores.append(
+                    weights["tierce_exact"] * summary.get('pmu_bets', {}).get('tierce_exact_rate', 0) /
+                    best_tierce_exact["value"])
+
+            if best_tierce_desordre["value"] > 0:
+                normalized_scores.append(
+                    weights["tierce_desordre"] * summary.get('pmu_bets', {}).get('tierce_desordre_rate', 0) /
+                    best_tierce_desordre["value"])
+
+            if best_quarte_exact["value"] > 0:
+                normalized_scores.append(
+                    weights["quarte_exact"] * summary.get('pmu_bets', {}).get('quarte_exact_rate', 0) /
+                    best_quarte_exact["value"])
+
+            # Calculate score as sum of normalized values
+            if normalized_scores:
+                scores[blend_value] = sum(normalized_scores)
+            else:
+                scores[blend_value] = 0
+
+        # Find best overall blend value
+        if scores:
+            best_blend = max(scores.items(), key=lambda x: x[1])
+        else:
+            best_blend = (self.blending_values[0], 0)  # Default to first value if no scores
+
+        comparison["recommendation"] = {
+            "blend_value": best_blend[0],
+            "score": best_blend[1],
+            "scores": scores
+        }
+
+        # Save comparison to file
+        with open(self.output_dir / "comparison.json", 'w') as f:
+            json.dump(comparison, f, indent=2)
+
+        print(f"Comparison generated and saved to {self.output_dir / 'comparison.json'}")
+        self.logger.info(f"Comparison generated and saved to {self.output_dir / 'comparison.json'}")
+
+        # Print recommendation
+        print("\n" + "=" * 50)
+        print("BLENDING COMPARISON RESULTS:")
+        print(f"Best winner accuracy:     {best_winner['value']:.4f} (blend={best_winner['blend']})")
+        print(f"Best podium accuracy:     {best_podium['value']:.4f} (blend={best_podium['blend']})")
+        print(f"Best Tiercé (exact):      {best_tierce_exact['value']:.4f} (blend={best_tierce_exact['blend']})")
+        print(f"Best Tiercé (désordre):   {best_tierce_desordre['value']:.4f} (blend={best_tierce_desordre['blend']})")
+        print(f"Best Quarté (exact):      {best_quarte_exact['value']:.4f} (blend={best_quarte_exact['blend']})")
+        print("\nRECOMMENDED BLENDING VALUE:")
+        print(f"   {best_blend[0]:.2f} (weighted score: {best_blend[1]:.4f})")
+        print("=" * 50)
+
+        self.logger.info("\n" + "=" * 50)
+        self.logger.info("BLENDING COMPARISON RESULTS:")
+        self.logger.info(f"Best winner accuracy:     {best_winner['value']:.4f} (blend={best_winner['blend']})")
+        self.logger.info(f"Best podium accuracy:     {best_podium['value']:.4f} (blend={best_podium['blend']})")
+        self.logger.info(
+            f"Best Tiercé (exact):      {best_tierce_exact['value']:.4f} (blend={best_tierce_exact['blend']})")
+        self.logger.info(
+            f"Best Tiercé (désordre):   {best_tierce_desordre['value']:.4f} (blend={best_tierce_desordre['blend']})")
+        self.logger.info(
+            f"Best Quarté (exact):      {best_quarte_exact['value']:.4f} (blend={best_quarte_exact['blend']})")
+        self.logger.info("\nRECOMMENDED BLENDING VALUE:")
+        self.logger.info(f"   {best_blend[0]:.2f} (weighted score: {best_blend[1]:.4f})")
+        self.logger.info("=" * 50)
+
+        return comparison
+
+    def _save_results(self):
+        """Save current results to file."""
+        results_file = self.output_dir / "results.json"
+
+        with open(results_file, 'w') as f:
+            json.dump(self.results, f, indent=2, default=str)
+
+        print(f"Results saved to {results_file}")
+        self.logger.info(f"Results saved to {results_file}")
+
+    def _visualize_results(self):
+        """Create visualizations of the results."""
+        visualizations_dir = self.output_dir / "visualizations"
+        visualizations_dir.mkdir(exist_ok=True)
+
+        # Extract data for plotting
+        blend_values = self.blending_values
+        winner_accuracy = []
+        podium_accuracy = []
+        tierce_exact_rate = []
+        tierce_desordre_rate = []
+
+        for blend_value in blend_values:
+            blend_str = str(blend_value)
+            if blend_str in self.results:
+                summary = self.results[blend_str].get('summary', {})
+                winner_accuracy.append(summary.get('winner_accuracy', 0))
+                podium_accuracy.append(summary.get('podium_accuracy', 0))
+                tierce_exact_rate.append(summary.get('pmu_bets', {}).get('tierce_exact_rate', 0))
+                tierce_desordre_rate.append(summary.get('pmu_bets', {}).get('tierce_desordre_rate', 0))
+
+        # Plot 1: Winner and Podium Accuracy
+        plt.figure(figsize=(12, 6))
+        plt.plot(blend_values, winner_accuracy, 'o-', label='Winner Accuracy')
+        plt.plot(blend_values, podium_accuracy, 's-', label='Podium Accuracy')
+        plt.xlabel('RF Model Weight')
+        plt.ylabel('Accuracy')
+        plt.title('Winner and Podium Accuracy vs. RF Weight')
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.xticks(blend_values)
+
+        # Annotate values
+        for i, val in enumerate(winner_accuracy):
+            plt.annotate(f"{val:.3f}", (blend_values[i], val), xytext=(0, 10),
+                         textcoords='offset points', ha='center')
+        for i, val in enumerate(podium_accuracy):
+            plt.annotate(f"{val:.3f}", (blend_values[i], val), xytext=(0, -15),
+                         textcoords='offset points', ha='center')
+
+        plt.savefig(visualizations_dir / "accuracy_plot.png", dpi=300, bbox_inches='tight')
+        plt.close()
+
+        # Plot 2: Tiercé Rates
+        plt.figure(figsize=(12, 6))
+        plt.plot(blend_values, tierce_exact_rate, 'o-', label='Tiercé Exact Rate')
+        plt.plot(blend_values, tierce_desordre_rate, 's-', label='Tiercé Désordre Rate')
+        plt.xlabel('RF Model Weight')
+        plt.ylabel('Rate')
+        plt.title('Tiercé Hit Rates vs. RF Weight')
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.xticks(blend_values)
+
+        # Annotate values
+        for i, val in enumerate(tierce_exact_rate):
+            plt.annotate(f"{val:.3f}", (blend_values[i], val), xytext=(0, 10),
+                         textcoords='offset points', ha='center')
+        for i, val in enumerate(tierce_desordre_rate):
+            plt.annotate(f"{val:.3f}", (blend_values[i], val), xytext=(0, -15),
+                         textcoords='offset points', ha='center')
+
+        plt.savefig(visualizations_dir / "tierce_rates_plot.png", dpi=300, bbox_inches='tight')
+        plt.close()
+
+        # Plot 3: Combined metrics on radar chart
+        metrics_names = ['Winner Accuracy', 'Podium Accuracy', 'Tiercé Exact', 'Tiercé Désordre', 'Quarté Exact']
+
+        # Prepare data for radar chart
+        radar_data = []
+        for blend_value in blend_values:
+            blend_str = str(blend_value)
+            if blend_str in self.results:
+                summary = self.results[blend_str].get('summary', {})
+                radar_data.append([
+                    summary.get('winner_accuracy', 0),
+                    summary.get('podium_accuracy', 0),
+                    summary.get('pmu_bets', {}).get('tierce_exact_rate', 0),
+                    summary.get('pmu_bets', {}).get('tierce_desordre_rate', 0),
+                    summary.get('pmu_bets', {}).get('quarte_exact_rate', 0)
+                ])
+
+        if radar_data:
+            try:
+                # Create radar chart
+                self._create_radar_chart(
+                    radar_data,
+                    metrics_names,
+                    [f"RF Weight {v}" for v in blend_values],
+                    visualizations_dir / "radar_chart.png"
+                )
+            except Exception as e:
+                print(f"Error creating radar chart: {str(e)}")
+                self.logger.error(f"Error creating radar chart: {str(e)}")
+
+        print(f"Visualizations saved to {visualizations_dir}")
+        self.logger.info(f"Visualizations saved to {visualizations_dir}")
+
+    def _create_radar_chart(self, data, labels, legend, output_file):
+        """
+        Create a radar chart for the metrics.
+
+        Args:
+            data: List of data series to plot
+            labels: Labels for each axis
+            legend: Legend entries for each data series
+            output_file: Output file path
+        """
+        # Number of metrics
+        N = len(labels)
+
+        # Create angles for each metric
+        angles = np.linspace(0, 2 * np.pi, N, endpoint=False).tolist()
+
+        # Close the polygon
+        angles += angles[:1]
+
+        # Create figure
+        plt.figure(figsize=(10, 10))
+        ax = plt.subplot(111, polar=True)
+
+        # Plot each data series
+        for i, series in enumerate(data):
+            # Close the polygon
+            values = series + [series[0]]
+
+            # Plot values
+            ax.plot(angles, values, 'o-', linewidth=2, label=legend[i])
+            ax.fill(angles, values, alpha=0.1)
+
+        # Set labels
+        ax.set_thetagrids(np.degrees(angles[:-1]), labels)
+
+        # Add legend
+        plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
+
+        plt.title("Metric Comparison Across RF Weights", size=15)
+        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        plt.close()
+
+    @classmethod
+    def load_results(cls, results_dir: str) -> 'BlendingComparison':
+        """
+        Load results from a previous comparison run.
+
+        Args:
+            results_dir: Directory with saved results
+
+        Returns:
+            BlendingComparison instance with loaded results
+        """
+        results_path = Path(results_dir)
+        results_file = results_path / "results.json"
+
+        if not results_file.exists():
+            raise FileNotFoundError(f"Results file not found: {results_file}")
+
+            # Load results
+        with open(results_file, 'r') as f:
+            results = json.load(f)
+
+            # Create instance
+        comparison = cls(
+            model_path="dummy_path",  # Will be overridden
+            output_dir=str(results_path),
+            blending_values=[float(k) for k in results.keys()]
+        )
+
+        # Set results
+        comparison.results = results
+
+        # Generate comparison and visualizations
+        comparison._generate_comparison()
+        comparison._visualize_results()
+
+        return comparison
 
 def main():
-    parser = argparse.ArgumentParser(description="Test the FeatureEmbeddingOrchestrator")
-    parser.add_argument('--limit', type=int, default=10, help='Limit the number of races to process')
-    parser.add_argument('--race-type', type=str, default=None, help='Filter by race type (e.g., "A" for Attele)')
-    parser.add_argument('--run-full', action='store_true', help='Run the full pipeline')
-    parser.add_argument('--test-load', action='store_true', help='Test only feature store loading')
-    parser.add_argument('--test-lstm', action='store_true', help='Test LSTM data preparation')
-    parser.add_argument('--no-cache', action='store_true', help='Disable use of cache')
-    parser.add_argument('--clear-cache', action='store_true', help='Clear cache before running')
-    parser.add_argument('--db', type=str, default="dev", help='Database to use from config')
-    parser.add_argument('--embedding-dim', type=int, default=8, help='Embedding dimension to use')
-    parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
+    parser = argparse.ArgumentParser(description="Compare race prediction results with different blending values")
+    parser.add_argument("--model", type=str, required=True, help="Path to the model or model name")
+    parser.add_argument("--db", type=str, help="Database name from config (defaults to active_db)")
+    parser.add_argument("--output", type=str, help="Output directory for results")
+    parser.add_argument("--blend-values", type=str, help="Comma-separated list of blending values to test")
+    parser.add_argument("--start-date", type=str, help="Start date for evaluation (YYYY-MM-DD)")
+    parser.add_argument("--days", type=int, default=3, help="Number of days to evaluate")
+    parser.add_argument("--load", type=str, help="Load and analyze results from specified directory")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
-
-    # Initialize orchestrator with specified database
-    config = AppConfig()
-    sqlite_path = config.get_sqlite_dbpath(args.db)
-
-    # Create orchestrator with only arguments we know exist
-    try:
-        # Try with all parameters first
-        orchestrator = FeatureEmbeddingOrchestrator(
-            sqlite_path=sqlite_path,
-            embedding_dim=args.embedding_dim,
-            verbose=args.verbose
-        )
-    except TypeError:
-        # If verbose is not supported, try without it
-        print("Note: 'verbose' parameter not supported, creating orchestrator without it.")
-        orchestrator = FeatureEmbeddingOrchestrator(
-            sqlite_path=sqlite_path,
-            embedding_dim=args.embedding_dim
-        )
-
-    print(f"Testing orchestrator with database: {args.db} ({sqlite_path})")
-    print(f"Using embedding dimension: {args.embedding_dim}")
-
-    # Clear cache if requested
-    if args.clear_cache and hasattr(orchestrator, 'cache_manager') and hasattr(orchestrator.cache_manager,
-                                                                               'clear_cache'):
-        print("Clearing cache...")
-        orchestrator.cache_manager.clear_cache()
-
-    # Test only loading if requested
-    if args.test_load:
-        print("\n=== Testing feature store loading only ===")
+    if args.load:
+        # Load previous results
         try:
-            # Check for list_feature_stores method
-            if hasattr(orchestrator, '_list_feature_stores'):
-                feature_stores = orchestrator._list_feature_stores()
-            else:
-                # Try direct path if method doesn't exist
-                feature_store_dir = orchestrator.feature_store_dir
-                if os.path.exists(feature_store_dir):
-                    feature_stores = [d for d in os.listdir(feature_store_dir)
-                                      if os.path.isdir(os.path.join(feature_store_dir, d))
-                                      and d.startswith('feature_store_')]
-                    feature_stores.sort(reverse=True)  # Most recent first
-                else:
-                    feature_stores = []
-
-            if not feature_stores:
-                print("No feature stores found. Run the test first to create a feature store.")
-                return
-
-            # Load the most recent feature store
-            feature_store_path = os.path.join(orchestrator.feature_store_dir, feature_stores[0])
-            print(f"Loading most recent feature store: {feature_store_path}")
-
-            if hasattr(orchestrator, 'load_feature_store'):
-                result = orchestrator.load_feature_store(feature_store_path=feature_store_path)
-                if len(result) >= 6:
-                    X_train, X_val, X_test, y_train, y_val, y_test = result[:6]
-
-                    print(f"Successfully loaded feature store")
-                    print(f"Loaded data shapes:")
-                    print(f"  - X_train: {X_train.shape}")
-                    print(f"  - y_train: {y_train.shape}")
-
-                    print("\nFeature store loading test completed successfully!")
-                else:
-                    print(f"Unexpected format returned from load_feature_store")
-            else:
-                print("Error: No 'load_feature_store' method found")
-            return
+            comparison = BlendingComparison.load_results(args.load)
+            print(f"Loaded and analyzed results from {args.load}")
+            return 0
         except Exception as e:
-            print(f"Error loading feature store: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return
-
-    # If running full pipeline test
-    if args.run_full:
-        test_full_pipeline(orchestrator, args)
-        return
-
-    # Otherwise run step by step tests
-
-    # Test data loading
-    df = test_data_loading(orchestrator, args)
-    if df is None:
-        print("Data loading failed, stopping tests.")
-        return
-
-    # Test feature preparation
-    embedded_df = test_feature_preparation(orchestrator, df, args)
-    if embedded_df is None:
-        print("Feature preparation failed, stopping tests.")
-        return
-
-    # Test feature store functionality
-    feature_store_result = test_feature_store(orchestrator, embedded_df, args)
-
-    # Test LSTM data preparation if requested
-    if args.test_lstm:
-        test_lstm_data_preparation(orchestrator, embedded_df, args)
-
-    print("\nAll tests completed!")
-
-
-if __name__ == '__main__':
-    main()
+            print(f"Error loading results: {str(e)}")
+            return 1
+    # Parse blend values
+    if args.blend_values:
+        blend_values = [float(v) for v in args.blend_values.split(",")]
+    else:
+        blend_values = [0.0, 0.25, 0.5, 0.7, 0.85, 1.0]  # Default values
+    # Create dates list
+    if args.start_date:
+        start_date = args.start_date
+        # Parse date to check format
+        try:
+            datetime.strptime(start_date, "%Y-%m-%d")
+        except ValueError:
+            print(f"Invalid date format: {start_date}. Use YYYY-MM-DD format.")
+            return 1
+        # Generate dates
+        dates = []
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        for i in range(args.days):
+            date_str = (start_dt + timedelta(days=i)).strftime("%Y-%m-%d")
+            dates.append(date_str)
+    else:
+        dates = None
+    # Create comparison object
+    comparison = BlendingComparison(
+        model_path=args.model,
+        db_name=args.db,
+        output_dir=args.output,
+        blending_values=blend_values,
+        verbose=args.verbose
+    )
+    # Run evaluation
+    if dates:
+        result = comparison.evaluate_blending_values(dates=dates)
+    else:
+        result = comparison.evaluate_blending_values(num_days=args.days)
+    print("\nBlending value comparison completed!")
+    print(f"Results saved to: {comparison.output_dir}")
+    print("\nRecommended blending value: " +
+          f"{result['recommendation']['blend_value']:.2f} (score: {result['recommendation']['score']:.4f})")
+    # Print best values for each metric
+    best = result.get('best', {})
+    print("\nBest values by metric:")
+    metrics = [
+        ("Winner Accuracy", best.get('winner', {})),
+        ("Podium Accuracy", best.get('podium', {})),
+        ("Tiercé Exact", best.get('tierce_exact', {})),
+        ("Tiercé Désordre", best.get('tierce_desordre', {})),
+        ("Quarté Exact", best.get('quarte_exact', {}))
+    ]
+    for metric_name, metric_data in metrics:
+        value = metric_data.get('value', 0)
+        blend = metric_data.get('blend')
+        print(f"  - {metric_name}: {value:.4f} (blend={blend})")
+    return 0
+if __name__ == "__main__":
+    sys.exit(main())

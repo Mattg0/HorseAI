@@ -296,6 +296,7 @@ class RacePredictor:
 
         # Connect to the database
         try:
+            import sqlite3
             conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row  # This enables column access by name
             cursor = conn.cursor()
@@ -497,6 +498,12 @@ class RacePredictor:
             self.log_error(traceback.format_exc())
             return None, None, None
 
+        except Exception as e:
+            self.log_error(f"Error in fetch_horse_sequences: {str(e)}")
+            import traceback
+            self.log_error(traceback.format_exc())
+            return None, None, None
+
     def prepare_lstm_race_data(self, race_df: pd.DataFrame) -> Tuple[
         Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]:
         """
@@ -521,7 +528,6 @@ class RacePredictor:
             sequence_length = self.feature_config.get('sequence_length', 5) if self.feature_config else 5
 
             self.log_info(f"Trying standard sequence preparation with length {sequence_length}...")
-            # Note: Removed the '*' which might be a typo in your original code
             X_seq, X_static, _ = self.orchestrator.prepare_sequence_data(
                 df, sequence_length=sequence_length
             )
@@ -556,7 +562,6 @@ class RacePredictor:
             import traceback
             self.log_error(traceback.format_exc())
             return None, None, None
-
     def predict_with_rf(self, X: pd.DataFrame) -> np.ndarray:
         """
         Make predictions using the Random Forest model with feature name alignment.
@@ -645,53 +650,87 @@ class RacePredictor:
             return np.zeros(len(X_seq))
 
     def predict(self, X: pd.DataFrame, X_seq: Optional[np.ndarray] = None,
-                X_static: Optional[np.ndarray] = None, blend_weight: float = 0.7) -> np.ndarray:
+                X_static: Optional[np.ndarray] = None, horse_ids: Optional[np.ndarray] = None,
+                blend_weight: float = 0.7) -> np.ndarray:
         """
         Make predictions using available models, optionally blending results.
+        Enhanced to handle mapping LSTM predictions to the correct horses.
 
         Args:
             X: Feature DataFrame for RF model
             X_seq: Sequence features for LSTM model (optional)
             X_static: Static features for LSTM model (optional)
+            horse_ids: Horse IDs corresponding to LSTM sequences (optional)
             blend_weight: Weight for RF model in blended predictions (0-1)
 
         Returns:
             NumPy array with predictions
         """
-        # Get RF predictions
+        # If LSTM model is None, no blending will occur
         if self.lstm_model is None:
             self.log_info("LSTM model is None, no blending will occur")
-        if X_seq is None:
-            self.log_info("X_seq is None, no blending will occur")
-        if X_static is None:
-            self.log_info("X_static is None, no blending will occur")
 
+        # If sequence data is None, no blending will occur
+        if X_seq is None or X_static is None:
+            self.log_info("Sequence data is None, no blending will occur")
+
+        # Get RF predictions
         rf_preds = self.predict_with_rf(X)
+
+        # Initialize final predictions with RF predictions
+        final_preds = rf_preds.copy()
 
         # Get LSTM predictions if possible
         lstm_preds = None
         if self.lstm_model is not None and X_seq is not None and X_static is not None:
             lstm_preds = self.predict_with_lstm(X_seq, X_static)
-            self.log_info(f"lstm prediction is {lstm_preds}")
+            self.log_info(f"LSTM predictions generated: {lstm_preds}")
 
-            # Make sure shapes match
-            if len(lstm_preds) != len(rf_preds):
-                self.log_error(f"Shape mismatch: RF {len(rf_preds)}, LSTM {len(lstm_preds)}")
-                lstm_preds = None
+        # Handle mapping LSTM predictions to horses when we have horse IDs
+        if lstm_preds is not None and horse_ids is not None:
+            try:
+                # Create mapping from horse IDs to indices in X DataFrame
+                horse_id_to_idx = {}
 
-        # Blend predictions if both models are available
-        if lstm_preds is not None:
-            self.log_info(f"Blending predictions with weight {blend_weight} for RF")
+                # Try to extract horse IDs from X DataFrame
+                if 'idche' in X.columns:
+                    for i, horse_id in enumerate(X['idche']):
+                        try:
+                            horse_id_to_idx[int(horse_id)] = i
+                        except (ValueError, TypeError):
+                            # Skip if horse_id can't be converted to int
+                            pass
+
+                # Map LSTM predictions to the correct horses and blend with RF predictions
+                for i, horse_id in enumerate(horse_ids):
+                    if horse_id in horse_id_to_idx:
+                        idx = horse_id_to_idx[horse_id]
+                        # Blend RF and LSTM predictions
+                        final_preds[idx] = rf_preds[idx] * blend_weight + lstm_preds[i] * (1 - blend_weight)
+                        self.log_info(
+                            f"Blending for horse {horse_id}: RF={rf_preds[idx]:.2f}, LSTM={lstm_preds[i]:.2f}, Final={final_preds[idx]:.2f}")
+
+                # Log how many horses were blended
+                blended_count = sum(1 for horse_id in horse_ids if horse_id in horse_id_to_idx)
+                self.log_info(
+                    f"Blended predictions for {blended_count}/{len(rf_preds)} horses using weight {blend_weight}")
+
+            except Exception as e:
+                self.log_error(f"Error mapping LSTM predictions to horses: {str(e)}")
+                import traceback
+                self.log_error(traceback.format_exc())
+
+        # Direct blending when we don't have horse IDs but sequence shapes match
+        elif lstm_preds is not None and len(lstm_preds) == len(rf_preds):
+            self.log_info(f"Direct blending of predictions with weight {blend_weight}")
             final_preds = rf_preds * blend_weight + lstm_preds * (1 - blend_weight)
-            self.log_info(f"Predict before blending: RF= {rf_preds} | LSTM={lstm_preds} and after: {final_preds} with weight {blend_weight}")
-        else:
-            final_preds = rf_preds
 
         return final_preds
 
     def predict_race(self, race_df: pd.DataFrame, blend_weight: float = 0.7) -> pd.DataFrame:
         """
         Predict race outcome with arrival string format.
+        Enhanced to use historical horse sequences when possible.
 
         Args:
             race_df: DataFrame with race data
@@ -701,10 +740,25 @@ class RacePredictor:
             DataFrame with predictions
         """
         # Prepare data for prediction
-        X, X_seq, X_static = self.prepare_race_data(race_df)
+        X, X_seq, X_static = self._prepare_rf_features(race_df)
+
+        # Prepare LSTM data if model is available
+        horse_ids = None
+        if self.lstm_model is not None:
+            try:
+                # Try to get LSTM data with historical sequences
+                lstm_X_seq, lstm_X_static, horse_ids = self.prepare_lstm_race_data(race_df)
+
+                # If we got valid LSTM data, use it
+                if lstm_X_seq is not None and lstm_X_static is not None:
+                    X_seq = lstm_X_seq
+                    X_static = lstm_X_static
+                    self.log_info(f"Using LSTM data: {X_seq.shape}, {X_static.shape}")
+            except Exception as e:
+                self.log_error(f"Error preparing LSTM data: {str(e)}")
 
         # Make predictions
-        predictions = self.predict(X, X_seq, X_static, blend_weight)
+        predictions = self.predict(X, X_seq, X_static, horse_ids, blend_weight)
 
         # Add predictions to original data
         result_df = race_df.copy()

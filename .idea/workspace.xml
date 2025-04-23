@@ -4,16 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="ModelManager">
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="Well... Final Version!!">
+      <change afterPath="$PROJECT_DIR$/race_prediction/race_prediction_pipeline.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/compare_table.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/model_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/model_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,7 +28,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="LightGBM" />
+        <entry key="$PROJECT_DIR$" value="main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -67,6 +65,7 @@
     "Python.mysql_sqlite_sync.executor": "Run",
     "Python.mysql_to_sqlite.executor": "Run",
     "Python.predict_daily_races.executor": "Run",
+    "Python.predict_orchestrator_cli.executor": "Debug",
     "Python.prediction_orchestrator.executor": "Run",
     "Python.regression_enhancement.executor": "Run",
     "Python.test.executor": "Debug",
@@ -74,7 +73,7 @@
     "Python.train_race_model.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main"
+    "git-widget-placeholder": "data__processingV2"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -82,7 +81,7 @@
       <recent name="$PROJECT_DIR$/core/connectors" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.train_race_model">
+  <component name="RunManager" selected="Python.predict_orchestrator_cli">
     <configuration name="api_daily_sync" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
@@ -105,7 +104,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="predict_daily_races" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="predict_orchestrator_cli" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -118,7 +117,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/race_prediction/predict_daily_races.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -194,26 +193,26 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.predict_orchestrator_cli" />
       <item itemvalue="Python.train_race_model" />
       <item itemvalue="Python.regression_enhancement" />
-      <item itemvalue="Python.predict_daily_races" />
       <item itemvalue="Python.prediction_orchestrator" />
       <item itemvalue="Python.api_daily_sync" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.predict_orchestrator_cli" />
         <item itemvalue="Python.train_race_model" />
         <item itemvalue="Python.regression_enhancement" />
         <item itemvalue="Python.api_daily_sync" />
         <item itemvalue="Python.prediction_orchestrator" />
-        <item itemvalue="Python.predict_daily_races" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-fb887030ada0-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.21565.199" />
+        <option value="bundled-python-sdk-4f4e415b4190-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.26053.29" />
       </set>
     </attachedChunks>
   </component>
@@ -402,7 +401,23 @@
       <option name="project" value="LOCAL" />
       <updated>1744176790455</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Final Version!!">
+      <option name="closed" value="true" />
+      <created>1744279324131</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1744279324131</updated>
+    </task>
+    <task id="LOCAL-00024" summary="Well... Final Version!!">
+      <option name="closed" value="true" />
+      <created>1744702346043</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1744702346043</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -420,26 +435,13 @@
     <MESSAGE value="fixed feature embedding" />
     <MESSAGE value="adding daily races sync" />
     <MESSAGE value="ModelManager" />
-    <option name="LAST_COMMIT_MESSAGE" value="ModelManager" />
+    <MESSAGE value="Final Version!!" />
+    <MESSAGE value="Well... Final Version!!" />
+    <option name="LAST_COMMIT_MESSAGE" value="Well... Final Version!!" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
-          <line>55</line>
-          <option name="timeStamp" value="27" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
-          <line>56</line>
-          <option name="timeStamp" value="28" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
-          <line>57</line>
-          <option name="timeStamp" value="29" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
           <line>169</line>
@@ -451,19 +453,9 @@
           <option name="timeStamp" value="55" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
-          <line>315</line>
-          <option name="timeStamp" value="97" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/race_prediction/predict_daily_races.py</url>
-          <line>127</line>
+          <line>125</line>
           <option name="timeStamp" value="98" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
-          <line>1595</line>
-          <option name="timeStamp" value="114" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>
@@ -484,6 +476,56 @@
           <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>
           <line>465</line>
           <option name="timeStamp" value="128" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
+          <line>288</line>
+          <option name="timeStamp" value="137" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
+          <line>292</line>
+          <option name="timeStamp" value="138" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
+          <line>93</line>
+          <option name="timeStamp" value="139" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
+          <line>155</line>
+          <option name="timeStamp" value="140" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
+          <line>298</line>
+          <option name="timeStamp" value="142" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/race_prediction/predict_daily_races.py</url>
+          <line>54</line>
+          <option name="timeStamp" value="166" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
+          <line>1448</line>
+          <option name="timeStamp" value="167" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
+          <line>1407</line>
+          <option name="timeStamp" value="168" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
+          <line>1572</line>
+          <option name="timeStamp" value="169" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
+          <line>565</line>
+          <option name="timeStamp" value="174" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
