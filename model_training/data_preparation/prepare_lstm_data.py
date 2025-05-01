@@ -53,7 +53,7 @@ def main():
 
     # 3. Apply embeddings
     print("\n=== Step 3: Applying embeddings ===")
-    embedded_df = orchestrator.apply_embeddings(processed_df, use_cache=not args.no_cache)
+    embedded_df = orchestrator.apply_embeddings(processed_df, use_cache=not args.no_cache, lstm_mode=True)
     print(f"Embedded data shape: {embedded_df.shape}")
 
     # 4. Prepare sequence data

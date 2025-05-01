@@ -208,7 +208,7 @@ class BlendingComparison:
 
         return all_have_results, total_race_count
 
-    def evaluate_blending_values(self, dates: List[str] = None, num_days: int = 3) -> Dict[str, Any]:
+    def evaluate_blending_values(self, dates: List[str] = None, num_days: int = 3, limit=None) -> Dict[str, Any]:
         """
         Evaluate prediction performance for different blending values.
 
@@ -261,9 +261,50 @@ class BlendingComparison:
                 print(f"Predicting races for date: {date}")
                 self.logger.info(f"Predicting races for date: {date}")
 
-                # Predict races for the date with current blend value
-                prediction_results = orchestrator.predict_races_by_date(date, blend_weight=blend_value)
+                # Get races for this date if we need to limit them
+                if limit is not None and limit > 0:
+                    # Get all races for this date
+                    all_races = orchestrator.race_fetcher.get_races_by_date(date)
 
+                    # If we need to limit, only predict/evaluate specific races
+                    if len(all_races) > limit:
+                        limited_races = all_races[:limit]
+                        print(f"DEBUG MODE: Limiting from {len(all_races)} to {limit} races for {date}")
+
+                        # Predict only the limited set of races
+                        for race in limited_races:
+                            comp = race['comp']
+                            prediction_results=orchestrator.predict_race(comp, blend_weight=blend_value)
+
+                        # Evaluate only the races we predicted
+                        evaluation_results = {
+                            'date': date,
+                            'results': []
+                        }
+
+                        for race in limited_races:
+                            comp = race['comp']
+                            result = orchestrator.evaluate_predictions(comp)
+                            if result['status'] == 'success':
+                                evaluation_results['results'].append(result)
+
+                        # Set summary metrics by calculating them ourselves
+                        if evaluation_results['results']:
+                            evaluation_results['summary_metrics'] = orchestrator._calculate_summary_metrics(
+                                evaluation_results['results'])
+                        else:
+                            evaluation_results['summary_metrics'] = {}
+
+                    else:
+                        # Not enough races to limit, proceed normally
+                        prediction_results = orchestrator.predict_races_by_date(date, blend_weight=blend_value)
+                        evaluation_results = orchestrator.evaluate_predictions_by_date(date)
+                else:
+                    # No limit, proceed normally
+                    prediction_results = orchestrator.predict_races_by_date(date, blend_weight=blend_value)
+                    evaluation_results = orchestrator.evaluate_predictions_by_date(date)
+
+                # Predict races for the date with current blend value
                 # Evaluate predictions
                 print(f"Evaluating predictions for date: {date}")
                 self.logger.info(f"Evaluating predictions for date: {date}")
@@ -735,6 +776,8 @@ def main():
     parser.add_argument("--days", type=int, default=3, help="Number of days to evaluate")
     parser.add_argument("--load", type=str, help="Load and analyze results from specified directory")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("--limit", type=int, help="Limit number of races to process (for debugging)")
+
     args = parser.parse_args()
     if args.load:
         # Load previous results
@@ -777,9 +820,9 @@ def main():
     )
     # Run evaluation
     if dates:
-        result = comparison.evaluate_blending_values(dates=dates)
+        result = comparison.evaluate_blending_values(dates=dates,limit=args.limit)
     else:
-        result = comparison.evaluate_blending_values(num_days=args.days)
+        result = comparison.evaluate_blending_values(num_days=args.days,limit=args.limit)
     print("\nBlending value comparison completed!")
     print(f"Results saved to: {comparison.output_dir}")
     print("\nRecommended blending value: " +
@@ -800,4 +843,11 @@ def main():
         print(f"  - {metric_name}: {value:.4f} (blend={blend})")
     return 0
 if __name__ == "__main__":
+    sys.argv = [
+        "test.py",
+        "--model", "models/2years/hybrid/2years_full_v20250430"
+        "--start-date", "2025-04-29",  # 7 days ago
+        "--days", '1' # Process only 3 races for debugging
+
+    ]
     sys.exit(main())
