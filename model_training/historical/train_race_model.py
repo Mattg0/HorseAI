@@ -16,7 +16,8 @@ from model_training.regressions.isotonic_calibration import CalibratedRegressor,
 # Import consolidated orchestrator
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from utils.env_setup import AppConfig, get_sqlite_dbpath
-from utils.model_manager import get_model_manager
+from utils.model_manager import get_model_manager, ModelManager
+
 
 
 class HorseRaceModel:
@@ -28,19 +29,40 @@ class HorseRaceModel:
         """Initialize the model with configuration."""
         self.config = AppConfig(config_path)
         self.model_type = model_type
-        self.model_paths = self.config.get_model_paths()
-        self.sequence_length = sequence_length
         self.verbose = verbose
+
+        # Get model manager for proper path handling
+        self.model_manager = get_model_manager()
+
+        # Get active database configuration
+        self.db_type = self.config._config.base.active_db
+        db_path = get_sqlite_dbpath(self.db_type)
+
+        # Get base model path with correct model type
+        model_base_path = self.model_manager.get_model_path(model_type, self.db_type)
+
+        # Set up model paths dictionary with proper log path
+        self.model_paths = {
+            'model_path': model_base_path,
+            'logs': model_base_path / 'logs',
+            'artifacts': {
+                'rf_model': f"hybrid_rf_model.joblib",
+                'lstm_model': f"hybrid_lstm_model",
+                'feature_engineer': f"hybrid_feature_engineer.joblib"
+            }
+        }
+
+        # Create logs directory if it doesn't exist
+        self.model_paths['logs'].mkdir(parents=True, exist_ok=True)
+
+        # Set sequence length
+        self.sequence_length = sequence_length
 
         # Initialize model components
         self.models = {}
         self.rf_model = None
         self.lstm_model = None
         self.history = None
-
-        # Get active database configuration
-        self.db_type = self.config._config.base.active_db
-        db_path = get_sqlite_dbpath(self.db_type)
 
         # Initialize data orchestrator for all data preparation
         self.data_orchestrator = FeatureEmbeddingOrchestrator(
@@ -212,7 +234,7 @@ class HorseRaceModel:
                 self.log_info(f"{i + 1}. {feature}: {importance:.4f}")
 
             # Save feature importance
-            importance_path = Path(self.model_paths['logs']) / f'rf_feature_importance_{self.db_type}.csv'
+            importance_path = Path(self.model_paths['logs'])/ f'rf_feature_importance_{self.db_type}.csv'
             importance_path.parent.mkdir(parents=True, exist_ok=True)
             feature_importance.to_csv(importance_path, index=False)
             self.log_info(f"Feature importance saved to {importance_path}")
@@ -237,7 +259,9 @@ class HorseRaceModel:
             y_targets: Target values
         """
         self.log_info("\n===== TRAINING LSTM MODEL =====")
-
+        print(f"[DEBUG-LSTM] Training data: X_seq={X_sequences.shape}, X_static={X_static.shape}, y={y_targets.shape}")
+        print(
+            f"[DEBUG-LSTM] Target values range: min={y_targets.min():.4f}, max={y_targets.max():.4f}, mean={y_targets.mean():.4f}")
         # Get LSTM parameters from configuration
         lstm_params = self.training_config['lstm_params']
 
@@ -318,6 +342,10 @@ class HorseRaceModel:
 
         training_time = time.time() - start_time
         self.log_info(f"LSTM model training completed in {training_time:.2f} seconds")
+        print(f"[DEBUG-LSTM] Training complete. Final val_loss: {history.history['val_loss'][-1]:.4f}")
+        sample_pred = self.lstm_model.predict([X_sequences[:5], X_static[:5]], verbose=0)
+        print(f"[DEBUG-LSTM] Sample predictions after training: {sample_pred.flatten()}")
+        print(f"[DEBUG-LSTM] Corresponding targets: {y_targets[:5]}")
 
         # Store training history
         self.history = history.history

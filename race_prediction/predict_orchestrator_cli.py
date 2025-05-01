@@ -74,6 +74,116 @@ def report_evaluation_results(results):
     return report
 
 
+def report_quinte_evaluation(quinte_analysis):
+    """
+    Generate a formatted report for quinte race evaluation results.
+
+    Args:
+        quinte_analysis: Quinte analysis section from evaluation results
+
+    Returns:
+        Formatted string with quinte evaluation report
+    """
+    if not quinte_analysis or quinte_analysis.get('quinte_races', 0) == 0:
+        return "No quinte races were evaluated."
+
+    quinte_count = quinte_analysis['quinte_races']
+    winner_accuracy = quinte_analysis['winner_accuracy']
+    quinte_bet_win_rate = quinte_analysis['quinte_bet_win_rate']
+    any_bet_win_rate = quinte_analysis['any_bet_win_rate']
+
+    # Format race count and winner accuracy
+    race_header = (
+        f"\n===== QUINTE RACES ANALYSIS ({quinte_count} races) =====\n"
+        f"Winner accuracy: {winner_accuracy:.2f} "
+        f"({int(winner_accuracy * quinte_count)}/{quinte_count})\n"
+        f"Races with any quinte bet won: {quinte_bet_win_rate:.2f} "
+        f"({int(quinte_bet_win_rate * quinte_count)}/{quinte_count})\n"
+        f"Races with any bet type won: {any_bet_win_rate:.2f} "
+        f"({int(any_bet_win_rate * quinte_count)}/{quinte_count})"
+    )
+
+    # Format performance by bet type
+    bet_type_labels = {
+        'tierce_exact': 'Tiercé Exact',
+        'tierce_desordre': 'Tiercé Désordre',
+        'quarte_exact': 'Quarté Exact',
+        'quarte_desordre': 'Quarté Désordre',
+        'quinte_exact': 'Quinté+ Exact',
+        'quinte_desordre': 'Quinté+ Désordre',
+        'bonus4': 'Bonus 4',
+        'bonus3': 'Bonus 3',
+        'deuxsur4': '2 sur 4',
+        'multi4': 'Multi en 4'
+    }
+
+    bet_details = []
+    bet_details.append("\nPerformance by bet type:")
+
+    # First sort by success rate
+    bet_types = sorted(
+        quinte_analysis['bet_type_details'].items(),
+        key=lambda x: x[1]['rate'],
+        reverse=True
+    )
+
+    for bet_type, stats in bet_types:
+        label = bet_type_labels.get(bet_type, bet_type)
+        bet_details.append(
+            f"  {label}: {stats['wins']}/{stats['total_races']} ({stats['rate']:.2f})"
+        )
+
+    # Format distribution of bets won per race
+    bets_per_race = quinte_analysis.get('bets_per_race', {})
+    if bets_per_race:
+        bet_dist = ["\nBet types won per race:"]
+        for bet_count, race_count in sorted(bets_per_race.items()):
+            if bet_count == 0:
+                text = "No bets won"
+            elif bet_count == 1:
+                text = "1 bet type won"
+            else:
+                text = f"{bet_count} bet types won"
+            bet_dist.append(f"  {text}: {race_count} races")
+    else:
+        bet_dist = []
+
+    # Format race details for races with winning bets
+    race_details = quinte_analysis.get('race_details', [])
+
+    # Sort races by number of winning bets (highest first)
+    race_details.sort(key=lambda x: x.get('winning_bet_count', 0), reverse=True)
+
+    races_with_wins = [r for r in race_details if r.get('winning_bet_count', 0) > 0]
+
+    if races_with_wins:
+        race_output = ["\nQuinte races with winning bets:"]
+        for race in races_with_wins:
+            win_indicator = "✓" if race['winner_correct'] else "✗"
+            bet_count = race.get('winning_bet_count', 0)
+
+            # Format winning bets more concisely
+            bet_names = []
+            for bet in race.get('winning_bets', []):
+                short_name = bet_type_labels.get(bet, bet)
+                # Use shorter names
+                short_name = short_name.replace('Désordre', 'Dés')
+                short_name = short_name.replace('Exact', 'Ex')
+                bet_names.append(short_name)
+
+            bet_text = ", ".join(bet_names)
+
+            race_output.append(
+                f"  [{win_indicator}] {race['jour']} {race['hippo']} - {race['prix']}: "
+                f"{bet_count} bets ({bet_text})"
+            )
+    else:
+        race_output = ["\nNo quinte races with winning bets"]
+
+    # Combine all sections
+    report = "\n".join([race_header] + bet_details + bet_dist + race_output)
+    return report
+
 def format_bet_name(bet_type):
     """Format bet type names for display"""
     name_mapping = {
@@ -124,7 +234,7 @@ def report_summary_evaluation(summary):
     pmu_summary = (
         f"\nOverall PMU Bet Performance:\n"
         f"  Races with at least one winning bet: {bet_stats.get('races_with_wins', 0)} "
-        f"({bet_stats.get('win_rate', 0):.2f})\n"
+        f"({bet_stats.get('win_rate', 0):.2f})\n",
         f"  Races with no winning bets: {bet_stats.get('races_with_no_wins', 0)}"
     )
 
@@ -279,6 +389,11 @@ def main():
                         print(
                             f"  {format_bet_name(bet_type)}: {stats['wins']}/{stats['total_races']} ({stats['success_rate']:.1f}%)")
 
+                # Always show quinte analysis if available
+                if 'quinte_analysis' in results:
+                    quinte_report = report_quinte_evaluation(results['quinte_analysis'])
+                    print(quinte_report)
+
                 if not args.summary and results.get('results'):
                     print("\nResults by race:")
                     for race in [r for r in results['results'] if r['status'] == 'success']:
@@ -286,7 +401,11 @@ def main():
                         winning_bets = metrics.get('winning_bets', [])
                         bet_count = len(winning_bets)
 
-                        print(f"  {race['comp']}: Winning Bets {'✓' if bet_count> 0 else '0'} ")
+                        # Highlight quinte races
+                        is_quinte = race.get('is_quinte', False)
+                        quinte_marker = "[Q] " if is_quinte else ""
+
+                        print(f"  {quinte_marker}{race['comp']}: Winning Bets {'✓' if bet_count > 0 else '0'} ")
             else:
                 print("No metrics available. Races may not have been evaluated yet.")
 
@@ -323,32 +442,12 @@ def main():
 
         print(f"\nResults saved to {output_path}")
 
-    return 0
-
-
-# Helper function for bet type formatting
-def format_bet_name(bet_type):
-    """Format bet type names for display"""
-    name_mapping = {
-        'tierce_exact': 'Tiercé Exact',
-        'tierce_desordre': 'Tiercé Désordre',
-        'quarte_exact': 'Quarté Exact',
-        'quarte_desordre': 'Quarté Désordre',
-        'quinte_exact': 'Quinté+ Exact',
-        'quinte_desordre': 'Quinté+ Désordre',
-        'bonus4': 'Bonus 4',
-        'bonus3': 'Bonus 3',
-        'deuxsur4': '2 sur 4',
-        'multi4': 'Multi en 4'
-    }
-    return name_mapping.get(bet_type, bet_type)
-
 
 #if __name__ == "__main__":
 #    sys.exit(main())
 
 
-def debug_fetchpredict(race, model_path, db_name=None, blend_weight=0.7, verbose=False):
+def debug_fetchpredict(date, model_path, db_name=None, blend_weight=0.7, verbose=False):
     """
     Debug function to execute fetchpredict for a specific date and model.
     This can be called directly from the IDE for setting breakpoints.
@@ -365,7 +464,7 @@ def debug_fetchpredict(race, model_path, db_name=None, blend_weight=0.7, verbose
     """
     from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
 
-    print(f"Debug: Starting fetchpredict for date {race} with model {model_path}")
+    print(f"Debug: Starting fetchpredict for date {date} with model {model_path}")
 
     # Create orchestrator instance
     orchestrator = PredictionOrchestrator(
@@ -375,18 +474,19 @@ def debug_fetchpredict(race, model_path, db_name=None, blend_weight=0.7, verbose
     )
 
     # Execute fetch and predict
-    results = orchestrator.predict_race("1585081","0.7")
+    results= orchestrator.fetch_and_predict_races(date,"0.7")
+    #results = orchestrator.predict_races_by_date(date,"0.7")
 
     # Print summary results
     fetch_results = results.get('fetch_results', {})
     prediction_results = results.get('prediction_results', {})
 
-    print(f"\nFetch summary for {race}:")
+    print(f"\nFetch summary for {date}:")
     print(f"  Total races: {fetch_results.get('total_races', 0)}")
     print(f"  Successfully processed: {fetch_results.get('successful', 0)}")
     print(f"  Failed: {fetch_results.get('failed', 0)}")
 
-    print(f"\nPrediction summary for {race}:")
+    print(f"\nPrediction summary for {date}:")
     print(f"  Total races: {prediction_results.get('total_races', 0)}")
     print(f"  Successfully predicted: {prediction_results.get('predicted', 0)}")
     print(f"  Errors: {prediction_results.get('errors', 0)}")
@@ -398,7 +498,7 @@ def debug_fetchpredict(race, model_path, db_name=None, blend_weight=0.7, verbose
 # This can be used at the end of the file for direct execution in IDE
 if __name__ == "__main__":
     # For debug via IDE - uncomment the line below to use
-     debug_fetchpredict( "1585081", "models/2years/hybrid/2years_full_v20250409", verbose=True)
+    # debug_fetchpredict( "2025-04-04", "models/2years/hybrid/2years_full_v20250409", verbose=True)
 
     # For normal CLI execution
-    #sys.exit(main())
+    sys.exit(main())

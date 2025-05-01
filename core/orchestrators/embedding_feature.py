@@ -16,6 +16,9 @@ from model_training.features.horse_embedding import HorseEmbedding
 from model_training.features.jockey_embedding import JockeyEmbedding
 from model_training.features.course_embedding import CourseEmbedding
 from model_training.features.couple_embedding import CoupleEmbedding
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Dense, LSTM, Dropout, concatenate, Lambda
+from tensorflow.keras.optimizers import Adam
 
 
 class FeatureEmbeddingOrchestrator:
@@ -210,6 +213,7 @@ class FeatureEmbeddingOrchestrator:
         Returns:
             Expanded DataFrame with one row per participant
         """
+
         race_dfs = []
 
         for _, race in df_races.iterrows():
@@ -224,7 +228,8 @@ class FeatureEmbeddingOrchestrator:
 
                 # Create DataFrame for this race's participants
                 race_df = pd.DataFrame(participants)
-
+                if 'cl' in race_df.columns:
+                    race_df['cl'] = self.convert_race_results_to_numeric(race_df['cl'], drop_empty=False)
                 # Add race information to each participant row
                 for col in df_races.columns:
                     if col != 'participants' and col != 'ordre_arrivee':
@@ -335,14 +340,14 @@ class FeatureEmbeddingOrchestrator:
         # Cache embeddings status
         if use_cache:
             try:
-                embeddings_status = {'embeddings_fitted': True}
+                # FIX: Convert dictionary to DataFrame before saving to cache
+                embeddings_status = pd.DataFrame({'embeddings_fitted': [True]})
                 # FIX: Pass the cache_key directly as the cache_type
                 self.cache_manager.save_dataframe(embeddings_status, cache_key)
             except Exception as e:
                 print(f"Warning: Could not cache embedding status: {str(e)}")
 
         return self
-
     def prepare_features(self, df, use_cache=True):
         """
         Prepare features for training, applying embeddings and handling categorical variables.
@@ -887,7 +892,7 @@ class FeatureEmbeddingOrchestrator:
             try:
                 # Get unique courses
                 courses = embedded_df[
-                    ['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature', 'natpis']].drop_duplicates('comp')
+                    ['comp', 'hippo', 'typec', 'dist', 'meteo', 'temperature', 'natpis','jour']].drop_duplicates('comp')
                 if len(courses) > 0:
                     # Transform courses
                     course_embeddings = self.course_embedder.transform(courses)
@@ -1687,7 +1692,7 @@ class FeatureEmbeddingOrchestrator:
     def create_hybrid_model(self, sequence_shape, static_shape, lstm_units=64, dropout_rate=0.2):
         """
         Create a hybrid model architecture with LSTM for sequential data and dense layers for static features.
-        This consolidates the model creation logic from train_model.py.
+        Modified to ensure positive outputs for race positions.
 
         Args:
             sequence_shape: Shape of sequence input (seq_length, features)
@@ -1698,38 +1703,61 @@ class FeatureEmbeddingOrchestrator:
         Returns:
             Dictionary with model components
         """
+        # Debug output
+        print(f"[DEBUG-LSTM] Creating LSTM model with sequence_shape={sequence_shape}, static_shape={static_shape}")
+
         try:
             from tensorflow.keras.models import Model
-            from tensorflow.keras.layers import Input, Dense, LSTM, Dropout, concatenate
+            from tensorflow.keras.layers import Input, Dense, LSTM, Dropout, concatenate, Lambda
             from tensorflow.keras.optimizers import Adam
-        except ImportError:
-            self.log_info("TensorFlow/Keras not available. Cannot create model.")
-            return None
+            import tensorflow as tf
 
-        # LSTM branch
-        sequence_input = Input(shape=(sequence_shape[1], sequence_shape[2]), name='sequence_input')
-        lstm = LSTM(lstm_units, return_sequences=False)(sequence_input)
-        lstm = Dropout(dropout_rate)(lstm)
+            # LSTM branch
+            sequence_input = Input(shape=(sequence_shape[1], sequence_shape[2]), name='sequence_input')
+            lstm = LSTM(lstm_units, return_sequences=False)(sequence_input)
+            lstm = Dropout(dropout_rate)(lstm)
 
-        # Static features branch
-        static_input = Input(shape=(static_shape[1],), name='static_input')
-        static_dense = Dense(32, activation='relu')(static_input)
-        static_dense = Dropout(dropout_rate)(static_dense)
+            # Static features branch
+            static_input = Input(shape=(static_shape[1],), name='static_input')
+            static_dense = Dense(32, activation='relu')(static_input)
+            static_dense = Dropout(dropout_rate)(static_dense)
 
-        # Combine branches
-        combined = concatenate([lstm, static_dense])
+            # Combine branches
+            combined = concatenate([lstm, static_dense])
 
-        # Output layers
-        dense = Dense(32, activation='relu')(combined)
-        dense = Dropout(dropout_rate)(dense)
-        output = Dense(1, activation='linear')(dense)
+            # Output layers
+            dense = Dense(32, activation='relu')(combined)
+            dense = Dropout(dropout_rate)(dense)
 
-        # Create model
-        model = Model(inputs=[sequence_input, static_input], outputs=output)
-        model.compile(optimizer=Adam(learning_rate=0.001), loss='mse', metrics=['mae'])
+            # Option 1: Use ReLU activation directly (simplest approach)
+            output = Dense(1, activation='relu')(dense)
 
-        return {
-            'lstm': model,
-            'sequence_input': sequence_input,
-            'static_input': static_input
-        }
+            # Option 2: If you want to set a floor of 1.0 for race positions, use a custom activation
+            # This fixes the output_shape issue by using a custom activation instead of Lambda
+            # output = Dense(1, activation=lambda x: 1.0 + tf.nn.relu(x))(dense)
+
+            # Option 3: If you really need to use Lambda, specify the output_shape
+            # def one_plus_relu(x):
+            #     return 1.0 + tf.nn.relu(x)
+            # # The output shape will be the same as the input shape to this lambda
+            # output = Lambda(one_plus_relu, output_shape=(1,))(Dense(1)(dense))
+
+            # Create model
+            model = Model(inputs=[sequence_input, static_input], outputs=output)
+            model.compile(optimizer=Adam(learning_rate=0.001), loss='mse', metrics=['mae'])
+
+            # Debug output
+            print(
+                f"[DEBUG-LSTM] Model output layer: {model.layers[-1].name}, activation: {model.layers[-1].activation.__name__}")
+
+            return {
+                'lstm': model,
+                'sequence_input': sequence_input,
+                'static_input': static_input
+            }
+
+        except Exception as e:
+            print(f"[DEBUG-LSTM] Error creating model: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise

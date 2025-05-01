@@ -38,9 +38,9 @@ features:
   embedding_dim: 8
   features_dir: ./data/feature_store
 models:
-  latest_base_model: 2years_full_v20250409
-  latest_full_model: 2years_full_v20250409
-  latest_hybrid_model: 2years_full_v20250409
+  latest_base_model: 2years_full_v20250430
+  latest_full_model: 2years_full_v20250430
+  latest_hybrid_model: 2years_full_v20250430
   latest_lstm_model: dev_20250407
   latest_rf_model: dev_20250408
   model_dir: ./models

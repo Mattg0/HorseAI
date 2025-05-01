@@ -38,4 +38,4 @@ def sync_data(mysql_dbname=None):
 
 
 if __name__ == "__main__":
-    sync_data('pturf2020')
+    sync_data('pturf2025')

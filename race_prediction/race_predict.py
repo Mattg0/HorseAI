@@ -7,12 +7,13 @@ from pathlib import Path
 from typing import Dict, List, Union, Any, Optional, Tuple
 import logging
 from datetime import datetime
+import sqlite3
 
 # Import from existing code
 from utils.env_setup import AppConfig, get_sqlite_dbpath
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from model_training.regressions.isotonic_calibration import CalibratedRegressor
-
+from core.calculators.static_feature_calculator import FeatureCalculator
 
 class RacePredictor:
     """
@@ -163,21 +164,7 @@ class RacePredictor:
             self.model_config = artifacts['model_config']
             self.log_info(f"Loaded model configuration")
 
-    def prepare_race_data(self, race_df: pd.DataFrame) -> Tuple[
-        pd.DataFrame, Optional[np.ndarray], Optional[np.ndarray]]:
-        """
-        Prepare race data for prediction by applying feature engineering and embeddings.
-        """
-        # Prepare RF features
-        X = self._prepare_rf_features(race_df)  # Extract current RF preparation logic to this method
-
-        # Prepare LSTM features if the model is available
-        X_seq, X_static = None, None
-        if self.lstm_model is not None:
-            X_seq, X_static = self.prepare_lstm_race_data(race_df)
-
-        return X, X_seq, X_static
-    def _prepare_rf_features(self, race_df: pd.DataFrame) -> Tuple[
+    def prepare_rf_features(self, race_df: pd.DataFrame) -> Tuple[
         pd.DataFrame, Optional[np.ndarray], Optional[np.ndarray]]:
         """
         Prepare race data for prediction by applying feature engineering and embeddings.
@@ -223,340 +210,196 @@ class RacePredictor:
         self.log_info("Preparing features...")
 
         # First apply feature calculator for static features
-        try:
-            from core.calculators.static_feature_calculator import FeatureCalculator
-            df = FeatureCalculator.calculate_all_features(df)
-            self.log_info(f"Applied static feature calculations")
-        except Exception as e:
-            self.log_error(f"Error applying static feature calculations: {str(e)}")
 
-        # Apply embeddings
-        try:
-            df = self.orchestrator.apply_embeddings(df, clean_after_embedding=False)
-            self.log_info(f"Applied embeddings")
-        except Exception as e:
-            self.log_error(f"Error applying embeddings: {str(e)}")
+        df = FeatureCalculator.calculate_all_features(df)
+        df = self.orchestrator.apply_embeddings(df, clean_after_embedding=False)
 
         # Clean up features for RF model
         X = self.orchestrator.drop_embedded_raw_features(df)
         self.log_info(f"Prepared {len(X)} samples with {X.shape[1]} features for RF model")
 
-        # Prepare sequence data for LSTM model if available
-        X_seq = None
-        X_static = None
+        return X
 
-        if self.lstm_model is not None and hasattr(self.orchestrator, 'prepare_sequence_data'):
-            try:
-                # Get sequence length from model config or use default
-                sequence_length = self.feature_config.get('sequence_length', 5) if self.feature_config else 5
-
-                self.log_info(f"Preparing sequence data with length {sequence_length}...")
-                X_seq, X_static, _ = self.orchestrator.prepare_sequence_data(
-                    df, sequence_length=sequence_length
-                )
-                self.log_info(
-                    f"Prepared sequence data with shape {X_seq.shape} and static data with shape {X_static.shape}")
-            except Exception as e:
-                self.log_error(f"Error preparing sequence data: {str(e)}")
-                X_seq = None
-                X_static = None
-        self.log_info(f"X shape: {X.shape if X is not None else 'None'}")
-        self.log_info(f"X_seq shape: {X_seq.shape if X_seq is not None else 'None'}")
-        self.log_info(f"X_static shape: {X_static.shape if X_static is not None else 'None'}")
-        self.log_info(f"LSTM model available: {self.lstm_model is not None}")
-        return X, X_seq, X_static
-
-    def fetch_horse_sequences(self, race_df, sequence_length=None):
-        """
-        Fetch historical race sequences for all horses in a race to enable LSTM prediction.
-
-        Args:
-            race_df: DataFrame with the current race data (containing horses to predict)
-            sequence_length: Length of sequence to retrieve (uses default if None)
-
-        Returns:
-            Tuple of (X_seq, X_static, horse_ids) for sequence prediction
-        """
-        if sequence_length is None:
-            sequence_length = self.feature_config.get('sequence_length', 5) if self.feature_config else 5
-
-        self.log_info(f"Fetching historical sequences of length {sequence_length} for horses in race")
-
-        # Get all horse IDs from the race
-        horse_ids = []
-        if 'idche' in race_df.columns:
-            # Filter out missing or invalid IDs
-            horse_ids = [int(h) for h in race_df['idche'] if pd.notna(h)]
-
-        if not horse_ids:
-            self.log_error("No valid horse IDs found in race data")
-            return None, None, None
-
-        self.log_info(f"Found {len(horse_ids)} horses to fetch sequences for")
-
-        # Connect to the database
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row  # This enables column access by name
-            cursor = conn.cursor()
-
-            # Define sequence and static features (match training configuration)
-            # These should match what was used in training
-            sequential_features = [
-                'final_position', 'cotedirect', 'dist',
-                # Include embeddings if available
-                'horse_emb_0', 'horse_emb_1', 'horse_emb_2',
-                'jockey_emb_0', 'jockey_emb_1', 'jockey_emb_2',
-                # Add musique-derived features
-                'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_pct_top3',
-                'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3'
-            ]
-
-            static_features = [
-                'age', 'temperature', 'natpis', 'typec', 'meteo', 'corde',
-                'couple_emb_0', 'couple_emb_1', 'couple_emb_2',
-                'course_emb_0', 'course_emb_1', 'course_emb_2'
-            ]
-
-            # Prepare containers for sequences
-            all_sequences = []
-            all_static_features = []
-            all_horse_ids = []
-
-            # For each horse, retrieve its historical races
-            for horse_id in horse_ids:
-                self.log_info(f"Processing historical data for horse {horse_id}")
-
-                # Fetch historical races for this horse
-                # Note: SQL query filters races before the current race date
-                # to prevent data leakage
-
-                # First get the current race date to use as a cutoff
-                current_race_date = None
-                if 'jour' in race_df.columns:
-                    # Try to get the date from the current race data
-                    current_race_date = race_df['jour'].iloc[0] if len(race_df) > 0 else None
-
-                # Determine SQL date filter based on current race date
-                date_filter = ""
-                if current_race_date:
-                    # Convert to proper date format if needed
-                    if isinstance(current_race_date, str):
-                        date_filter = f" AND hr.jour < '{current_race_date}'"
-                    else:
-                        # Try to format as a date string
-                        try:
-                            date_str = current_race_date.strftime('%Y-%m-%d')
-                            date_filter = f" AND hr.jour < '{date_str}'"
-                        except:
-                            # If formatting fails, don't use a date filter
-                            pass
-
-                # Create query to find races with this horse
-                query = f"""
-                SELECT hr.* 
-                FROM historical_races hr
-                WHERE hr.participants LIKE ?
-                {date_filter}
-                ORDER BY hr.jour DESC
-                LIMIT 20
-                """
-
-                # Execute query
-                cursor.execute(query, (f'%"idche": {horse_id}%',))
-                horse_races = cursor.fetchall()
-
-                if not horse_races:
-                    self.log_info(f"No historical races found for horse {horse_id}")
-                    continue
-
-                self.log_info(f"Found {len(horse_races)} historical races for horse {horse_id}")
-
-                # Extract and process participant data for this horse
-                horse_data = []
-                for race in horse_races:
-                    try:
-                        # Parse participant JSON
-                        participants = json.loads(race['participants'])
-
-                        # Find this horse in the participants
-                        horse_entry = next((p for p in participants if int(p.get('idche', 0)) == horse_id), None)
-
-                        if horse_entry:
-                            # Add race attributes to horse entry
-                            for key in ['jour', 'hippo', 'dist', 'typec', 'temperature', 'natpis', 'meteo', 'corde']:
-                                if key in race:
-                                    horse_entry[key] = race[key]
-
-                            # If there's a race result, try to get the final position for this horse
-                            if 'ordre_arrivee' in race and race['ordre_arrivee']:
-                                try:
-                                    results = json.loads(race['ordre_arrivee'])
-                                    # Find this horse's position
-                                    horse_result = next((r for r in results if int(r.get('cheval', 0)) == horse_id),
-                                                        None)
-                                    if horse_result:
-                                        horse_entry['final_position'] = horse_result.get('narrivee')
-                                except:
-                                    # If we can't parse results, skip
-                                    pass
-
-                            horse_data.append(horse_entry)
-                    except:
-                        # If we can't parse participants, skip this race
-                        continue
-
-                # Convert to DataFrame for easier processing
-                if not horse_data:
-                    self.log_info(f"No historical data could be extracted for horse {horse_id}")
-                    continue
-
-                horse_df = pd.DataFrame(horse_data)
-
-                # Sort by date
-                if 'jour' in horse_df.columns:
-                    horse_df['jour'] = pd.to_datetime(horse_df['jour'], errors='coerce')
-                    horse_df = horse_df.sort_values('jour', ascending=False)
-
-                # Apply feature engineering to get embeddings
-                try:
-                    # Use orchestrator to process features
-                    processed_df = self.orchestrator.prepare_features(horse_df)
-                    embedded_df = self.orchestrator.apply_embeddings(processed_df, clean_after_embedding=False)
-
-                    # Check if we have enough races for a sequence
-                    if len(embedded_df) >= sequence_length:
-                        # Extract sequential features (only keep those that exist in the DataFrame)
-                        seq_features = [f for f in sequential_features if f in embedded_df.columns]
-
-                        if not seq_features:
-                            self.log_info(f"No sequential features found for horse {horse_id}")
-                            continue
-
-                        # Get sequence data (take first sequence_length races)
-                        seq_data = embedded_df[seq_features].head(sequence_length).values.astype(np.float32)
-
-                        # Make sure we have the right sequence length
-                        if len(seq_data) < sequence_length:
-                            # Pad with zeros if needed
-                            padding = np.zeros((sequence_length - len(seq_data), len(seq_features)), dtype=np.float32)
-                            seq_data = np.vstack([seq_data, padding])
-
-                        # Get static features from current race for this horse
-                        current_horse = race_df[race_df['idche'] == horse_id]
-
-                        if len(current_horse) > 0:
-                            # Start with empty array for static features
-                            static_data = np.zeros(len(static_features), dtype=np.float32)
-
-                            # Fill in available static features from current race
-                            for i, feature in enumerate(static_features):
-                                if feature in current_horse.columns:
-                                    try:
-                                        val = current_horse[feature].iloc[0]
-                                        if pd.notna(val):
-                                            static_data[i] = float(val)
-                                    except:
-                                        pass
-
-                            # Add to output containers
-                            all_sequences.append(seq_data)
-                            all_static_features.append(static_data)
-                            all_horse_ids.append(horse_id)
-
-                            self.log_info(f"Successfully created sequence for horse {horse_id}")
-                        else:
-                            self.log_info(f"Horse {horse_id} not found in current race data")
-                    else:
-                        self.log_info(
-                            f"Not enough historical races for horse {horse_id} (found {len(embedded_df)}, need {sequence_length})")
-                except Exception as e:
-                    self.log_error(f"Error processing horse {horse_id}: {str(e)}")
-                    import traceback
-                    self.log_error(traceback.format_exc())
-
-            conn.close()
-
-            # Convert to numpy arrays
-            if not all_sequences:
-                self.log_info(f"No valid sequences could be created for any horse")
-                return None, None, None
-
-            X_sequences = np.array(all_sequences, dtype=np.float32)
-            X_static = np.array(all_static_features, dtype=np.float32)
-            sequence_horse_ids = np.array(all_horse_ids)
-
-            self.log_info(f"Created {len(X_sequences)} sequences for {len(np.unique(sequence_horse_ids))} horses")
-            self.log_info(f"Sequence shape: {X_sequences.shape}, Static shape: {X_static.shape}")
-
-            return X_sequences, X_static, sequence_horse_ids
-
-        except Exception as e:
-            self.log_error(f"Error in fetch_horse_sequences: {str(e)}")
-            import traceback
-            self.log_error(traceback.format_exc())
-            return None, None, None
-
-    def prepare_lstm_race_data(self, race_df: pd.DataFrame) -> Tuple[
-        Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]:
+    def prepare_lstm_race_data(self, race_df: pd.DataFrame) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
         """
         Prepare race data specifically for LSTM prediction.
-        Enhanced to fetch historical sequences for horses.
 
         Args:
             race_df: DataFrame with race and participant data
 
         Returns:
-            Tuple of (sequence features, static features, horse_ids)
+            Tuple of (sequence features, static features)
         """
-        # Make a copy to avoid modifying the original
-        df = race_df.copy()
+        # Use sequence_length from the model
+        sequence_length = 5  # From model inspection
 
-        # Apply basic feature engineering but preserve 'jour' and 'idche'
-        df = self.orchestrator.apply_embeddings(df, clean_after_embedding=True, keep_identifiers=True)
+        # Define the sequence and static features the model expects
+        seq_features = ['cotedirect', 'horse_emb_0', 'horse_emb_1', 'horse_emb_2',
+                        'jockey_emb_0', 'jockey_emb_1', 'jockey_emb_2']
 
-        # Try preparing sequence data using the traditional method first (for backward compatibility)
-        try:
-            # Get sequence length from model config or use default
-            sequence_length = self.feature_config.get('sequence_length', 5) if self.feature_config else 5
+        static_features = ['couple_emb_0', 'couple_emb_1', 'couple_emb_2',
+                           'course_emb_0', 'course_emb_1', 'course_emb_2']
 
-            self.log_info(f"Trying standard sequence preparation with length {sequence_length}...")
-            # Note: Removed the '*' which might be a typo in your original code
-            X_seq, X_static, _ = self.orchestrator.prepare_sequence_data(
-                df, sequence_length=sequence_length
-            )
-            self.log_info(
-                f"Successfully prepared LSTM sequence data with shape {X_seq.shape} and static data with shape {X_static.shape}")
+        # Get embedded data
+        embedded_df = self.orchestrator.apply_embeddings(
+            race_df.copy(),
+            clean_after_embedding=True,
+            keep_identifiers=True
+        )
 
-            # This succeeded, so return the results without horse IDs (since the standard method doesn't provide them)
-            return X_seq, X_static, None
+        # Ensure all required features exist
+        for col in seq_features + static_features:
+            if col not in embedded_df.columns:
+                embedded_df[col] = 0.0
 
-        except Exception as e:
-            self.log_info(
-                f"Standard sequence preparation failed: {str(e)} - Attempting to fetch historical horse sequences")
+        # Create tensors with the correct shape
+        n_samples = len(embedded_df)
 
-        # If the standard method failed, try our new approach that fetches historical data
-        try:
-            # Get sequence length from model config or use default
-            sequence_length = self.feature_config.get('sequence_length', 5) if self.feature_config else 5
+        # Initialize arrays
+        X_seq = np.zeros((n_samples, sequence_length, len(seq_features)), dtype=np.float32)
+        X_static = np.zeros((n_samples, len(static_features)), dtype=np.float32)
 
-            self.log_info(f"Fetching historical horse sequences with length {sequence_length}...")
-            X_seq, X_static, horse_ids = self.fetch_horse_sequences(df, sequence_length=sequence_length)
+        # Fill static features from current race data
+        for i, (_, row) in enumerate(embedded_df.iterrows()):
+            for j, feat in enumerate(static_features):
+                if pd.notna(row[feat]):
+                    X_static[i, j] = row[feat]
 
-            if X_seq is not None and X_static is not None:
-                self.log_info(
-                    f"Successfully fetched LSTM sequence data with shape {X_seq.shape} and static data with shape {X_static.shape}")
-                return X_seq, X_static, horse_ids
-            else:
-                self.log_error("Could not create sequences from historical data")
-                return None, None, None
+        # For sequence features, use fetch_historical_data if implemented,
+        # otherwise use current data repeated
+        historical_data = self.fetch_historical_data(embedded_df, sequence_length)
 
-        except Exception as e:
-            self.log_error(f"Error preparing LSTM sequence data: {str(e)}")
-            import traceback
-            self.log_error(traceback.format_exc())
-            return None, None, None
+        if historical_data is not None:
+            # Use historical data for sequences
+            X_seq = historical_data
+        else:
+            # Use current data repeated for each timestep
+            for i, (_, row) in enumerate(embedded_df.iterrows()):
+                for t in range(sequence_length):
+                    for j, feat in enumerate(seq_features):
+                        if pd.notna(row[feat]):
+                            X_seq[i, t, j] = row[feat]
 
+        return X_seq, X_static
+
+    def fetch_historical_data(self, race_df, sequence_length):
+        """
+        Fetch historical race data for each horse to create proper sequences.
+
+        Args:
+            race_df: DataFrame with current race data
+            sequence_length: Length of sequences to create
+
+        Returns:
+            Array of shape (n_samples, sequence_length, n_features) or None if not enough data
+        """
+        # Check if we have horse IDs
+        if 'idche' not in race_df.columns:
+            return None
+
+        # Sequence features we need to extract
+        seq_features = ['cotedirect', 'horse_emb_0', 'horse_emb_1', 'horse_emb_2',
+                        'jockey_emb_0', 'jockey_emb_1', 'jockey_emb_2']
+
+        # Initialize result array
+        n_samples = len(race_df)
+        X_seq = np.zeros((n_samples, sequence_length, len(seq_features)), dtype=np.float32)
+
+        # Connect to database
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Current race date for filtering
+        current_date = None
+        if 'jour' in race_df.columns:
+            current_date = race_df['jour'].iloc[0]
+
+        # Track how many horses we process successfully
+        success_count = 0
+
+        # Process each horse
+        for i, (_, row) in enumerate(race_df.iterrows()):
+            if 'idche' not in row or pd.isna(row['idche']):
+                continue
+
+            horse_id = int(row['idche'])
+
+            # Build query to fetch historical races for this horse
+            query = """
+            SELECT hr.comp, hr.jour, hr.participants 
+            FROM historical_races hr
+            WHERE hr.participants LIKE ?
+            """
+
+            # Add date filter if available
+            params = [f'%"idche": {horse_id}%']
+            if current_date and isinstance(current_date, str):
+                query += " AND hr.jour < ?"
+                params.append(current_date)
+
+            # Order by date (newest first) and limit to get enough for sequence
+            query += " ORDER BY hr.jour DESC LIMIT ?"
+            params.append(sequence_length * 2)  # Get extra in case some can't be processed
+
+            # Execute query
+            cursor.execute(query, params)
+            races = cursor.fetchall()
+
+            # Skip if not enough races
+            if not races or len(races) < sequence_length:
+                continue
+
+            # Process historical races
+            seq_data = []
+
+            for race in races:
+                # Unpack row data (access by index)
+                comp = race[0]
+                jour = race[1]
+                participants_json = race[2]
+
+                try:
+                    # Parse participants JSON
+                    participants = json.loads(participants_json)
+
+                    # Find this horse in participants
+                    horse_entry = None
+                    for p in participants:
+                        if p.get('idche') == horse_id or str(p.get('idche')) == str(horse_id):
+                            horse_entry = p
+                            break
+
+                    if horse_entry:
+                        # Extract sequence features
+                        features = []
+                        for feat in seq_features:
+                            if feat in horse_entry and pd.notna(horse_entry[feat]):
+                                features.append(float(horse_entry[feat]))
+                            else:
+                                features.append(0.0)
+
+                        seq_data.append(features)
+                except:
+                    # Skip this race if any error occurs
+                    continue
+
+            # Check if we have enough sequence data
+            if len(seq_data) >= sequence_length:
+                # Take the first sequence_length entries
+                for t in range(sequence_length):
+                    if t < len(seq_data):
+                        X_seq[i, t] = seq_data[t]
+
+                success_count += 1
+
+        conn.close()
+
+        # Return sequences if we have enough successful horses
+        if success_count >= n_samples // 2:  # At least half
+            return X_seq
+        else:
+            return None
     def predict_with_rf(self, X: pd.DataFrame) -> np.ndarray:
         """
         Make predictions using the Random Forest model with feature name alignment.
@@ -645,47 +488,80 @@ class RacePredictor:
             return np.zeros(len(X_seq))
 
     def predict(self, X: pd.DataFrame, X_seq: Optional[np.ndarray] = None,
-                X_static: Optional[np.ndarray] = None, blend_weight: float = 0.7) -> np.ndarray:
+                X_static: Optional[np.ndarray] = None, horse_ids: Optional[np.ndarray] = None,
+                blend_weight: float = 0.7) -> np.ndarray:
         """
         Make predictions using available models, optionally blending results.
+        Enhanced to handle mapping LSTM predictions to the correct horses.
 
         Args:
             X: Feature DataFrame for RF model
             X_seq: Sequence features for LSTM model (optional)
             X_static: Static features for LSTM model (optional)
+            horse_ids: Horse IDs corresponding to LSTM sequences (optional)
             blend_weight: Weight for RF model in blended predictions (0-1)
 
         Returns:
             NumPy array with predictions
         """
-        # Get RF predictions
+        # If LSTM model is None, no blending will occur
         if self.lstm_model is None:
             self.log_info("LSTM model is None, no blending will occur")
-        if X_seq is None:
-            self.log_info("X_seq is None, no blending will occur")
-        if X_static is None:
-            self.log_info("X_static is None, no blending will occur")
 
+        # If sequence data is None, no blending will occur
+        if X_seq is None or X_static is None:
+            self.log_info("Sequence data is None, no blending will occur")
+
+        # Get RF predictions
         rf_preds = self.predict_with_rf(X)
+
+        # Initialize final predictions with RF predictions
+        final_preds = rf_preds.copy()
 
         # Get LSTM predictions if possible
         lstm_preds = None
         if self.lstm_model is not None and X_seq is not None and X_static is not None:
             lstm_preds = self.predict_with_lstm(X_seq, X_static)
-            self.log_info(f"lstm prediction is {lstm_preds}")
+            self.log_info(f"LSTM predictions generated: {lstm_preds}")
 
-            # Make sure shapes match
-            if len(lstm_preds) != len(rf_preds):
-                self.log_error(f"Shape mismatch: RF {len(rf_preds)}, LSTM {len(lstm_preds)}")
-                lstm_preds = None
+        # Handle mapping LSTM predictions to horses when we have horse IDs
+        if lstm_preds is not None and horse_ids is not None:
+            try:
+                # Create mapping from horse IDs to indices in X DataFrame
+                horse_id_to_idx = {}
 
-        # Blend predictions if both models are available
-        if lstm_preds is not None:
-            self.log_info(f"Blending predictions with weight {blend_weight} for RF")
+                # Try to extract horse IDs from X DataFrame
+                if 'idche' in X.columns:
+                    for i, horse_id in enumerate(X['idche']):
+                        try:
+                            horse_id_to_idx[int(horse_id)] = i
+                        except (ValueError, TypeError):
+                            # Skip if horse_id can't be converted to int
+                            pass
+
+                # Map LSTM predictions to the correct horses and blend with RF predictions
+                for i, horse_id in enumerate(horse_ids):
+                    if horse_id in horse_id_to_idx:
+                        idx = horse_id_to_idx[horse_id]
+                        # Blend RF and LSTM predictions
+                        final_preds[idx] = rf_preds[idx] * blend_weight + lstm_preds[i] * (1 - blend_weight)
+                        self.log_info(
+                            f"Blending for horse {horse_id}: RF={rf_preds[idx]:.2f}, LSTM={lstm_preds[i]:.2f}, Final={final_preds[idx]:.2f}")
+
+                # Log how many horses were blended
+                blended_count = sum(1 for horse_id in horse_ids if horse_id in horse_id_to_idx)
+                self.log_info(
+                    f"Blended predictions for {blended_count}/{len(rf_preds)} horses using weight {blend_weight}")
+
+            except Exception as e:
+                self.log_error(f"Error mapping LSTM predictions to horses: {str(e)}")
+                import traceback
+                self.log_error(traceback.format_exc())
+
+        # Direct blending when we don't have horse IDs but sequence shapes match
+        elif lstm_preds is not None and len(lstm_preds) == len(rf_preds):
+            self.log_info(f"Direct blending of predictions with weight {blend_weight}")
             final_preds = rf_preds * blend_weight + lstm_preds * (1 - blend_weight)
-            self.log_info(f"Predict before blending: RF= {rf_preds} | LSTM={lstm_preds} and after: {final_preds} with weight {blend_weight}")
-        else:
-            final_preds = rf_preds
 
         return final_preds
 
@@ -700,15 +576,40 @@ class RacePredictor:
         Returns:
             DataFrame with predictions
         """
-        # Prepare data for prediction
-        X, X_seq, X_static = self.prepare_race_data(race_df)
 
-        # Make predictions
-        predictions = self.predict(X, X_seq, X_static, blend_weight)
+        # Step 1: Prepare and predict with Random Forest model
+        rf_features = self.prepare_rf_features(race_df)
+        rf_predictions = self.predict_with_rf(rf_features)
 
-        # Add predictions to original data
+        # Step 2: Prepare and predict with LSTM model (if available)
+        lstm_predictions = None
+        if self.lstm_model is not None:
+            try:
+                X_seq, X_static = self.prepare_lstm_race_data(race_df)
+                if X_seq is not None and X_static is not None:
+                    lstm_predictions = self.predict_with_lstm(X_seq, X_static)
+                    if lstm_predictions is not None:
+                        # Create a simple mapping to log
+                        lstm_pred_map = {}
+                        for i, row in enumerate(race_df.itertuples()):
+                            if hasattr(row, 'idche') and i < len(lstm_predictions):
+                                lstm_pred_map[int(row.idche)] = float(lstm_predictions[i])
+
+                        # Log the mapping
+                        self.log_info(f"LSTM predictions by horse: {lstm_pred_map}")
+            except Exception as e:
+                self.log_error(f"Error in LSTM prediction: {str(e)}")
+
+
+        # Step 3: Blend predictions if both models produced results
+        final_predictions = rf_predictions
+        if lstm_predictions is not None and len(lstm_predictions) == len(rf_predictions):
+            self.log_info(f"Blending predictions with weight {blend_weight} for RF")
+            final_predictions = rf_predictions * blend_weight + lstm_predictions * (1 - blend_weight)
+
+        # Step 4: Add predictions to result DataFrame and format
         result_df = race_df.copy()
-        result_df['predicted_position'] = predictions
+        result_df['predicted_position'] = final_predictions
 
         # Sort by predicted position (ascending, better positions first)
         result_df = result_df.sort_values('predicted_position')
@@ -717,7 +618,6 @@ class RacePredictor:
         result_df['predicted_rank'] = range(1, len(result_df) + 1)
 
         # Create arrival string format (numero-numero-numero)
-        # This follows the same format as 'arriv' in actual results
         numeros_ordered = result_df['numero'].astype(str).tolist()
         predicted_arriv = '-'.join(numeros_ordered)
 

@@ -141,11 +141,7 @@ class PredictionOrchestrator:
             Dictionary with prediction results
         """
         start_time = datetime.now()
-        if not hasattr(self, 'logger'):
-            self.logger = logging.getLogger("PredictionOrchestrator")
-
         self.logger.info(f"Starting prediction for race {comp}")
-
 
         try:
             # Fetch race data from database
@@ -157,26 +153,6 @@ class PredictionOrchestrator:
                     'error': f'Race {comp} not found in database',
                     'comp': comp
                 }
-
-            # Check if race already has predictions
-            if race_data.get('prediction_results'):
-                try:
-                    if isinstance(race_data['prediction_results'], str):
-                        pred_results = json.loads(race_data['prediction_results'])
-                    else:
-                        pred_results = race_data['prediction_results']
-
-                    if pred_results:
-                        self.logger.info(f"Race {comp} already has predictions")
-                        return {
-                            'status': 'already_predicted',
-                            'message': 'Race already has predictions',
-                            'comp': comp,
-                            'predictions': pred_results
-                        }
-                except:
-                    # If we can't parse the predictions, proceed to generate new ones
-                    pass
 
             # Get participants data
             participants = race_data.get('participants')
@@ -200,6 +176,26 @@ class PredictionOrchestrator:
 
             # Process participants into feature DataFrame
             race_df = pd.DataFrame(participants)
+
+            # Add race information to each participant row - THIS IS THE KEY FIX
+            # Include all race-level attributes that are used for prediction
+            race_attributes = [
+                'typec', 'dist', 'natpis', 'meteo', 'temperature',
+                'forceVent', 'directionVent', 'corde', 'jour',
+                'hippo', 'quinte', 'pistegp'
+            ]
+
+            for field in race_attributes:
+                if field in race_data and race_data[field] is not None:
+                    race_df[field] = race_data[field]
+                    self.logger.info(f"Added race attribute {field}={race_data[field]} to all participants")
+
+            # Add comp to DataFrame
+
+            race_df['comp'] = comp
+
+            # Generate predictions using RacePredictor
+            result_df = self.race_predictor.predict_race(race_df, blend_weight=blend_weight)
 
             # Add race information to DataFrame
             for field in ['typec', 'dist', 'natpis', 'meteo', 'temperature','jour', 'forceVent', 'directionVent', 'corde']:
@@ -609,6 +605,99 @@ class PredictionOrchestrator:
                 'comp': comp
             }
 
+    def _calculate_quinte_analysis(self, quinte_results: List[Dict]) -> Dict:
+        """
+        Calculate specialized analysis metrics for quinte races.
+
+        Args:
+            quinte_results: List of evaluation results for quinte races
+
+        Returns:
+            Dictionary with quinte-specific metrics
+        """
+        quinte_count = len(quinte_results)
+
+        if quinte_count == 0:
+            return {
+                'quinte_races': 0,
+                'message': 'No quinte races found'
+            }
+
+        # Calculate basic metrics
+        winner_correct = sum(1 for r in quinte_results if r['metrics']['winner_correct'])
+
+        # Calculate bet success counts
+        bet_types = [
+            'tierce_exact', 'tierce_desordre',
+            'quarte_exact', 'quarte_desordre',
+            'quinte_exact', 'quinte_desordre',
+            'bonus4', 'bonus3', 'deuxsur4', 'multi4'
+        ]
+
+        bet_successes = {}
+        for bet_type in bet_types:
+            successes = sum(1 for r in quinte_results if r['metrics']['pmu_bets'].get(bet_type, False))
+            bet_successes[bet_type] = {
+                'wins': successes,
+                'rate': successes / quinte_count,
+                'total_races': quinte_count
+            }
+
+        # Count races with at least one winning quinte bet (any type)
+        races_with_quinte_bets = sum(
+            1 for r in quinte_results if any(
+                r['metrics']['pmu_bets'].get(bet, False) for bet in
+                ['quinte_exact', 'quinte_desordre', 'bonus4', 'bonus3']
+            )
+        )
+
+        # Count races with at least one winning bet of any type
+        races_with_any_bets = sum(
+            1 for r in quinte_results if any(
+                r['metrics']['pmu_bets'].get(bet, False) for bet in bet_types
+            )
+        )
+
+        # Count by number of bet types won per race
+        bets_per_race = {}
+        for r in quinte_results:
+            winning_count = sum(1 for bet in bet_types if r['metrics']['pmu_bets'].get(bet, False))
+            bets_per_race[winning_count] = bets_per_race.get(winning_count, 0) + 1
+
+        # Get detailed info for each race
+        race_details = []
+        for r in quinte_results:
+            metrics = r['metrics']
+            race_info = metrics.get('race_info', {})
+
+            # Get winning bets
+            winning_bets = [bet for bet in bet_types if metrics['pmu_bets'].get(bet, False)]
+
+            race_details.append({
+                'comp': race_info.get('comp', 'unknown'),
+                'hippo': race_info.get('hippo', 'unknown'),
+                'prix': race_info.get('prix', 'unknown'),
+                'jour': race_info.get('jour', 'unknown'),
+                'winner_correct': metrics['winner_correct'],
+                'podium_accuracy': metrics['podium_accuracy'],
+                'winning_bets': winning_bets,
+                'winning_bet_count': len(winning_bets),
+                'predicted_arriv': metrics.get('predicted_arriv', ''),
+                'actual_arriv': metrics.get('actual_arriv', '')
+            })
+
+        # Create summary
+        quinte_summary = {
+            'quinte_races': quinte_count,
+            'winner_accuracy': winner_correct / quinte_count,
+            'quinte_bet_win_rate': races_with_quinte_bets / quinte_count,
+            'any_bet_win_rate': races_with_any_bets / quinte_count,
+            'bet_type_details': bet_successes,
+            'bets_per_race': bets_per_race,
+            'race_details': race_details
+        }
+
+        return quinte_summary
     def _calculate_summary_metrics(self, results: List[Dict]) -> Dict:
         """
         Calculate summary metrics from a list of evaluation results with enhanced PMU bet reporting.
@@ -721,13 +810,14 @@ class PredictionOrchestrator:
 
     def evaluate_predictions_by_date(self, date: str = None) -> Dict:
         """
-        Evaluate stored predictions for all races on a given date.
+        Evaluate stored predictions for all races on a given date,
+        including specialized analysis for quinte races.
 
         Args:
             date: Date string in format YYYY-MM-DD (default: today)
 
         Returns:
-            Dictionary with evaluation results
+            Dictionary with evaluation results including quinte analysis
         """
         # Use today's date if none provided
         if date is None:
@@ -751,8 +841,11 @@ class PredictionOrchestrator:
 
             # Process each race
             results = []
+            quinte_results = []  # Always track quinte races
+
             for race in races:
                 comp = race['comp']
+                is_quinte = race.get('quinte', 0) == 1
 
                 # Skip races without predictions or results
                 if race.get('has_predictions', 0) == 0:
@@ -767,16 +860,36 @@ class PredictionOrchestrator:
                 evaluation_result = self.evaluate_predictions(comp)
                 results.append(evaluation_result)
 
+                # Add to quinte results if this is a quinte race
+                if is_quinte and evaluation_result['status'] == 'success':
+                    # Add quinte flag and race info
+                    evaluation_result['is_quinte'] = True
+                    quinte_results.append(evaluation_result)
+
             # Calculate summary metrics using our helper function
             summary_metrics = self._calculate_summary_metrics(results)
 
+            # Always calculate quinte analysis if quinte races exist
+            quinte_summary = self._calculate_quinte_analysis(quinte_results) if quinte_results else {
+                'quinte_races': 0,
+                'message': 'No quinte races found'
+            }
+
+            # Create the complete summary with quinte analysis always included
             summary = {
                 'date': date,
                 'total_races': len(races),
                 'evaluated': summary_metrics['races_evaluated'],
                 'summary_metrics': summary_metrics,
+                'quinte_analysis': quinte_summary,
                 'results': results
             }
+
+            # Log quinte info if we have quinte races
+            if quinte_results:
+                self.logger.info(f"Quinte races analysis for {date}: "
+                                 f"{len(quinte_results)} quinte races analyzed, "
+                                 f"Quinte bet win rate: {quinte_summary.get('quinte_bet_win_rate', 0):.2f}")
 
             self.logger.info(f"Completed evaluation for {date}: "
                              f"{summary_metrics['races_evaluated']} races evaluated, "
