@@ -5,13 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="Well... Final Version!!">
-      <change afterPath="$PROJECT_DIR$/race_prediction/race_prediction_pipeline.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/model_training/regressions/error_correction.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/race_prediction/enhanced_predictor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/compare_table.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,7 +62,7 @@
     "Python.mysql_sqlite_sync.executor": "Run",
     "Python.mysql_to_sqlite.executor": "Run",
     "Python.predict_daily_races.executor": "Run",
-    "Python.predict_orchestrator_cli.executor": "Debug",
+    "Python.predict_orchestrator_cli.executor": "Run",
     "Python.prediction_orchestrator.executor": "Run",
     "Python.regression_enhancement.executor": "Run",
     "Python.test.executor": "Debug",
@@ -73,7 +70,7 @@
     "Python.train_race_model.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "data__processingV2"
+    "git-widget-placeholder": "main"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -81,7 +78,7 @@
       <recent name="$PROJECT_DIR$/core/connectors" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.predict_orchestrator_cli">
+  <component name="RunManager" selected="Python.regression_enhancement">
     <configuration name="api_daily_sync" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
@@ -201,9 +198,9 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.regression_enhancement" />
         <item itemvalue="Python.predict_orchestrator_cli" />
         <item itemvalue="Python.train_race_model" />
-        <item itemvalue="Python.regression_enhancement" />
         <item itemvalue="Python.api_daily_sync" />
         <item itemvalue="Python.prediction_orchestrator" />
       </list>
@@ -526,6 +523,16 @@
           <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
           <line>565</line>
           <option name="timeStamp" value="174" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/model_training/regressions/error_correction.py</url>
+          <line>79</line>
+          <option name="timeStamp" value="234" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/model_training/regressions/regression_enhancement.py</url>
+          <line>1520</line>
+          <option name="timeStamp" value="235" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

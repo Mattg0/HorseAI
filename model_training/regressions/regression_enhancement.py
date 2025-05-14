@@ -18,6 +18,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from model_training.regressions.error_correction import build_correction_models
 
 # Add parent directory to path if needed
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -781,188 +782,185 @@ class RegressionEnhancer:
             "best_model": best_model_name
         }
 
-    def build_correction_model(
-            base_model_path: str = None,
-            new_data_db: str = "dev",
-            use_latest_base: bool = False,
-            output_dir: str = None,
-            verbose: bool = True
-    ):
+    def build_correction_models(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
-        Build an incremental model by updating a base model with new data.
+        Build error correction models to reduce systematic prediction errors.
 
         Args:
-            base_model_path: Path to base model (if not using latest_base)
-            new_data_db: Database to use for new data
-            use_latest_base: Whether to use latest base model from config
-            output_dir: Custom output directory (optional)
-            verbose: Whether to print verbose output
+            df: DataFrame with prediction data including actual and predicted positions
 
         Returns:
-            Dictionary with paths to saved artifacts
+            Dictionary with correction models and performance improvements
         """
-        # Import model manager
-        from utils.model_manager import get_model_manager
 
-        if verbose:
-            print("\n===== BUILDING INCREMENTAL MODEL =====")
+        self.logger.info("\n===== BUILDING ERROR CORRECTION MODELS =====")
 
-        # Initialize model manager
-        model_manager = get_model_manager()
+        # Call the implementation from error_correction module
+        result = build_correction_models(self,df)
 
-        # Resolve base model path
-        if not base_model_path and not use_latest_base:
-            raise ValueError("Either base_model_path or use_latest_base must be provided")
+        if result['status'] == 'success':
+            # Store models for later use
+            self.error_models = result['models']
 
-        try:
-            base_path = model_manager.resolve_model_path(
-                model_path=base_model_path,
-                use_latest_base=use_latest_base
-            )
+            # Calculate overall improvement
+            global_improvement = result['global_results']['avg_improvement']
 
-            if verbose:
-                print(f"Using base model from: {base_path}")
-        except ValueError as e:
-            raise ValueError(f"Could not resolve base model path: {str(e)}")
+            type_improvements = {
+                race_type: results['avg_improvement']
+                for race_type, results in result['type_results'].items()
+            }
 
-        # Load base model
-        artifacts = model_manager.load_model_artifacts(
-            base_path=base_path,
-            load_rf=True,
-            load_lstm=True,
-            load_feature_config=True,
-            verbose=verbose
-        )
+            # Log improvements
+            self.logger.info(f"Global error correction model improvement: {global_improvement:.2f}%")
 
-        base_rf_model = artifacts.get('rf_model')
-        base_feature_config = artifacts.get('feature_config')
+            if type_improvements:
+                avg_type_improvement = sum(type_improvements.values()) / len(type_improvements)
+                self.logger.info(f"Average race-type specific improvement: {avg_type_improvement:.2f}%")
 
-        if not base_rf_model:
-            raise ValueError("Base RF model could not be loaded")
-
-        # Load new data using orchestrator
-        from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
-
-        # Create orchestrator with same configuration as base model
-        if base_feature_config and isinstance(base_feature_config, dict):
-            embedding_dim = base_feature_config.get('embedding_dim', 8)
-            sequence_length = base_feature_config.get('sequence_length', 5)
+            return {
+                "status": "success",
+                "models_built": 1 + len(type_improvements),
+                "global_model": result['global_results'],
+                "type_models": result['type_results'],
+                "improvement_summary": {
+                    "global": global_improvement,
+                    "by_type": type_improvements
+                },
+                "error_models": self.error_models
+            }
         else:
-            embedding_dim = 8  # Default
-            sequence_length = 5  # Default
+            return result
 
-        orchestrator = FeatureEmbeddingOrchestrator(
-            sqlite_path=None,  # Will be set based on db_name
-            db_name=new_data_db,
-            embedding_dim=embedding_dim,
-            sequence_length=sequence_length,
-            verbose=verbose
+    def create_enhanced_model(self, blend_weight: float = 0.5) -> Dict[str, Any]:
+        """
+        Create an enhanced model that combines the base model with error correction.
+
+        Args:
+            blend_weight: Not used in this implementation (kept for API compatibility)
+
+        Returns:
+            Dictionary with enhanced model information
+        """
+        if not hasattr(self, 'error_models') or not self.error_models:
+            return {
+                "status": "error",
+                "message": "No error correction models available"
+            }
+
+        if self.rf_model is None:
+            return {
+                "status": "error",
+                "message": "No base model available"
+            }
+
+        self.logger.info("Creating enhanced prediction model with error correction")
+
+        # Create enhanced predictor
+        from .error_correction import EnhancedRegressionPredictor as EnhancedPredictor
+
+        enhanced_model = EnhancedPredictor(
+            base_model=self.rf_model,
+            error_models=self.error_models
         )
 
-        # Load recent data
-        # Note: We're only using the last month of data for incremental update
-        from datetime import datetime, timedelta
-        end_date = datetime.now().strftime('%Y-%m-%d')
-        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        # Save the model
+        model_path = self.output_dir / 'enhanced_model.joblib'
+        error_models_dir = self.output_dir / 'error_models'
 
-        date_filter = f"jour BETWEEN '{start_date}' AND '{end_date}'"
+        enhanced_model.save(model_path, error_models_dir)
 
-        if verbose:
-            print(f"Loading recent data from {start_date} to {end_date}")
-
-        # Load and prepare data
-        X_train, X_val, X_test, y_train, y_val, y_test = orchestrator.run_pipeline(
-            limit=None,
-            date_filter=date_filter,
-            use_cache=True,
-            clean_embeddings=True
-        )
-
-        if verbose:
-            print(f"Loaded {len(X_train) + len(X_val) + len(X_test)} samples for incremental update")
-
-        # Create a combined dataset for training
-        import pandas as pd
-        X_combined = pd.concat([X_train, X_val, X_test])
-        y_combined = pd.concat([y_train, y_val, y_test])
-
-        if verbose:
-            print(f"Combined dataset has {len(X_combined)} samples")
-
-        # Create and train incremental model
-        from model_training.regressions.isotonic_calibration import CalibratedRegressor
-
-        # Option 1: Train new model directly on new data
-        # incremental_rf = clone(base_rf_model)
-        # incremental_rf.fit(X_combined, y_combined)
-
-        # Option 2: Build upon existing model (better for continuous learning)
-        # This depends on your model type, here's a simple example
-        if hasattr(base_rf_model, 'base_regressor'):
-            # This is a CalibratedRegressor with a base model
-            base_regressor = base_rf_model.base_regressor
-
-            # For now, just retrain on new data
-            # In a real implementation, you might have more sophisticated
-            # incremental learning approaches
-            base_regressor.n_estimators += 20  # Add more trees
-            base_regressor.fit(X_combined, y_combined)
-
-            # Create a new calibrated regressor
-            incremental_rf = CalibratedRegressor(
-                base_regressor=base_regressor,
-                clip_min=1.0,
-                clip_max=None
-            )
-
-            # Fit the calibrator on validation data
-            incremental_rf.fit(X_combined, y_combined)
-        else:
-            # Direct model, just fit it again
-            base_rf_model.fit(X_combined, y_combined)
-            incremental_rf = base_rf_model
-
-        # Evaluate the incremental model
-        from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-        predictions = incremental_rf.predict(X_test)
-
-        eval_results = {
-            'rmse': float(np.sqrt(mean_squared_error(y_test, predictions))),
-            'mae': float(mean_absolute_error(y_test, predictions)),
-            'r2': float(r2_score(y_test, predictions)),
-            'test_size': len(X_test),
-            'date_range': f"{start_date} to {end_date}"
+        # Save metadata
+        metadata = {
+            "model_type": "EnhancedPredictor",
+            "base_model_version": self.model_config.get('version', 'unknown'),
+            "error_models": list(self.error_models.keys()),
+            "created_at": datetime.now().isoformat()
         }
 
-        if verbose:
-            print("\n===== INCREMENTAL MODEL EVALUATION =====")
-            print(f"RMSE: {eval_results['rmse']:.4f}")
-            print(f"MAE: {eval_results['mae']:.4f}")
-            print(f"R²: {eval_results['r2']:.4f}")
-            print(f"Test samples: {eval_results['test_size']}")
+        with open(self.output_dir / 'enhanced_model_metadata.json', 'w') as f:
+            json.dump(metadata, f, indent=4)
 
-        # Save the incremental model
-        from race_prediction.daily_training import DailyModelTrainer
-
-        # Create a trainer instance
-        daily_trainer = DailyModelTrainer(db_name=new_data_db, verbose=verbose)
-
-        # Call the new save_incremental_model method
-        saved_paths = daily_trainer.save_incremental_model(
-            rf_model=incremental_rf,
-            lstm_model=None,  # We're not updating LSTM in this example
-            evaluation_results=eval_results
-        )
-
-        if verbose:
-            print(f"Incremental model saved to: {saved_paths}")
+        self.logger.info(f"Created and saved enhanced model with {len(self.error_models)} error correction models")
 
         return {
-            'model': incremental_rf,
-            'evaluation': eval_results,
-            'paths': saved_paths,
-            'feature_orchestrator': orchestrator
+            "status": "success",
+            "model_path": str(model_path),
+            "error_models_dir": str(error_models_dir),
+            "metadata": metadata
         }
+
+    # Update the run_regression_pipeline method to use the new approach
+    def run_regression_pipeline(self, date_from: str = None, date_to: str = None,
+                                limit: int = None, update_model: bool = True,
+                                create_enhanced: bool = True) -> Dict[str, Any]:
+        """
+        Run the full regression enhancement pipeline.
+
+        Args:
+            date_from: Start date for collecting data
+            date_to: End date for collecting data
+            limit: Maximum number of races to process
+            update_model: Whether to update the base model
+            create_enhanced: Whether to create enhanced model
+
+        Returns:
+            Dictionary with pipeline results
+        """
+        start_time = datetime.now()
+        self.logger.info(f"Starting regression enhancement pipeline for dates: {date_from} to {date_to}")
+
+        # 1. Collect prediction data
+        prediction_df = self.collect_prediction_data(date_from, date_to, limit)
+
+        if len(prediction_df) == 0:
+            return {
+                "status": "error",
+                "message": "No prediction data found for the specified dates"
+            }
+
+        # 2. Analyze prediction gaps
+        analysis_results = self.analyze_prediction_gaps(prediction_df)
+
+        # 3. Build correction models
+        correction_results = self.build_correction_models(prediction_df)
+
+        # 4. Update base model if requested
+        if update_model:
+            update_results = self.update_base_model(prediction_df)
+        else:
+            update_results = {"status": "skipped", "message": "Model update was disabled"}
+
+        # 5. Create enhanced model if requested
+        if create_enhanced and correction_results.get("status") == "success":
+            enhanced_results = self.create_enhanced_model()
+        else:
+            enhanced_results = {"status": "skipped", "message": "Enhanced model creation was disabled"}
+
+        # Calculate execution time
+        execution_time = (datetime.now() - start_time).total_seconds()
+
+        # Compile pipeline results
+        pipeline_results = {
+            "status": "success",
+            "execution_time": execution_time,
+            "data_processed": {
+                "races": prediction_df['race_id'].nunique(),
+                "predictions": len(prediction_df)
+            },
+            "analysis_results": analysis_results,
+            "correction_models": correction_results,
+            "model_update": update_results,
+            "enhanced_model": enhanced_results
+        }
+
+        # Save pipeline results summary
+        with open(self.output_dir / 'regression_pipeline_results.json', 'w') as f:
+            json.dump(pipeline_results, f, indent=4, default=str)
+
+        self.logger.info(f"Regression enhancement pipeline completed in {execution_time:.2f} seconds")
+
+        return pipeline_results
+
     def _train_correction_model(self, df: pd.DataFrame, model_type: str) -> Dict[str, Any]:
         """
         Train a model to correct prediction errors.
@@ -1112,6 +1110,9 @@ class RegressionEnhancer:
             Dictionary with paths to saved artifacts
         """
         from utils.model_manager import get_model_manager
+        from datetime import datetime
+        import os
+        from pathlib import Path
 
         print("===== SAVING INCREMENTAL MODEL =====")
 
@@ -1119,32 +1120,47 @@ class RegressionEnhancer:
         model_manager = get_model_manager()
 
         # Create version string based on date, database type, and training type (incremental)
-        version = model_manager.get_version_path(self.db_type, train_type='incremental')
+        db_type = self.db_name if hasattr(self, 'db_name') else "dev"
+        version = f"{db_type}_incremental_v{datetime.now().strftime('%Y%m%d')}"
 
         # Resolve the base path
         save_dir = model_manager.get_model_path('hybrid') / version
 
+        # Create directory if it doesn't exist
+        os.makedirs(save_dir, exist_ok=True)
+
         print(f"Saving incremental model to: {save_dir}")
 
         # Prepare orchestrator state (simplified for incremental training)
-        orchestrator_state = {
-            'preprocessing_params': self.feature_orchestrator.preprocessing_params,
-            'embedding_dim': self.feature_orchestrator.embedding_dim,
-            'sequence_length': 5,  # Default value for incremental training
-            'target_info': {
-                'column': 'final_position',
-                'type': 'regression'
+        orchestrator_state = {}
+        if hasattr(self, 'data_orchestrator') and self.data_orchestrator:
+            orchestrator_state = {
+                'preprocessing_params': self.data_orchestrator.preprocessing_params,
+                'embedding_dim': self.data_orchestrator.embedding_dim,
+                'sequence_length': 5,  # Default value for incremental training
+                'target_info': {
+                    'column': 'final_position',
+                    'type': 'regression'
+                }
             }
-        }
+        elif hasattr(self, 'feature_orchestrator') and self.feature_orchestrator:
+            orchestrator_state = {
+                'preprocessing_params': self.feature_orchestrator.preprocessing_params,
+                'embedding_dim': self.feature_orchestrator.embedding_dim,
+                'sequence_length': 5,  # Default value for incremental training
+                'target_info': {
+                    'column': 'final_position',
+                    'type': 'regression'
+                }
+            }
 
         # Prepare model configuration
         model_config = {
             'version': version,
             'model_type': 'hybrid',
-            'db_type': self.db_type,
+            'db_type': db_type,
             'train_type': 'incremental',  # Explicitly mark as incremental training
-            'training_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'base_model': model_manager.get_latest_base_model(),  # Reference to base model
+            'training_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'models_trained': {
                 'rf': rf_model is not None,
                 'lstm': lstm_model is not None
@@ -1152,14 +1168,14 @@ class RegressionEnhancer:
             'evaluation_results': evaluation_results or {}
         }
 
-        # Save all artifacts using the simplified model manager
+        # Save all artifacts using the model manager
         saved_paths = model_manager.save_model_artifacts(
             base_path=save_dir,
             rf_model=rf_model,
             lstm_model=lstm_model,
             orchestrator_state=orchestrator_state,
             model_config=model_config,
-            db_type=self.db_type,
+            db_type=db_type,
             train_type='incremental'
         )
 
@@ -1429,78 +1445,6 @@ class RegressionEnhancer:
             "metadata": metadata
         }
 
-    def run_regression_pipeline(self, date_from: str = None, date_to: str = None,
-                                limit: int = None, update_model: bool = True,
-                                create_combined: bool = True) -> Dict[str, Any]:
-        """
-        Run the full regression analysis and enhancement pipeline.
-
-        Args:
-            date_from: Start date for collecting data (YYYY-MM-DD)
-            date_to: End date for collecting data (YYYY-MM-DD)
-            limit: Maximum number of races to process
-            update_model: Whether to update the base model
-            create_combined: Whether to create a combined model
-
-        Returns:
-            Dictionary with pipeline results
-        """
-        start_time = datetime.now()
-        self.logger.info(f"Starting regression enhancement pipeline for dates: {date_from} to {date_to}")
-
-        # 1. Collect prediction data
-        prediction_df = self.collect_prediction_data(date_from, date_to, limit)
-
-        if len(prediction_df) == 0:
-            return {
-                "status": "error",
-                "message": "No prediction data found for the specified dates"
-            }
-
-        # 2. Analyze prediction gaps
-        analysis_results = self.analyze_prediction_gaps(prediction_df)
-
-        # 3. Build correction models
-        correction_results = self.build_correction_models(prediction_df)
-
-        # 4. Prepare training data for model update
-        if update_model:
-            # Use the prediction data directly as training data
-            # Don't try to transform it again - it's already in the right format
-            update_results = self.update_base_model(prediction_df)
-        else:
-            update_results = {"status": "skipped", "message": "Model update was disabled"}
-
-        # 5. Create combined model if requested
-        if create_combined and correction_results.get("status") == "success":
-            combined_results = self.create_combined_model(blend_weight=0.5)
-        else:
-            combined_results = {"status": "skipped", "message": "Combined model creation was disabled"}
-
-        # Calculate execution time
-        execution_time = (datetime.now() - start_time).total_seconds()
-
-        # Compile pipeline results
-        pipeline_results = {
-            "status": "success",
-            "execution_time": execution_time,
-            "data_processed": {
-                "races": prediction_df['race_id'].nunique(),
-                "predictions": len(prediction_df)
-            },
-            "analysis_results": analysis_results,
-            "correction_models": correction_results,
-            "model_update": update_results,
-            "combined_model": combined_results
-        }
-
-        # Save pipeline results summary
-        with open(self.output_dir / 'regression_pipeline_results.json', 'w') as f:
-            json.dump(pipeline_results, f, indent=4, default=str)
-
-        self.logger.info(f"Regression enhancement pipeline completed in {execution_time:.2f} seconds")
-
-        return pipeline_results
 
 
 def main():
@@ -1544,8 +1488,7 @@ def main():
         date_from=from_date,
         date_to=to_date,
         limit=args.limit,
-        update_model=not args.skip_update,
-        create_combined=not args.skip_combined
+        update_model=not args.skip_update
     )
 
     # Print summary results
@@ -1590,5 +1533,5 @@ def main():
 if __name__ == "__main__":
     # For debugging in IDE - uncomment and modify these lines as needed
     # import sys
-    sys.argv = [sys.argv[0], "--model", "models/hybrid/v20250407" , "--to-date", "2025-04-04"]
+    sys.argv = [sys.argv[0], "--model","models/2years/hybrid/2years_full_v20250430","--to-date", "2025-04-30"]
     sys.exit(main())
