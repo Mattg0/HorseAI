@@ -42,8 +42,6 @@ class ModelsConfig(BaseModel):
     """Models configuration"""
     model_dir: str
 
-
-
 class Config(BaseModel):
     """Complete application configuration"""
     cache: CacheConfig
@@ -64,7 +62,46 @@ class MySQLConfig(BaseModel):
     password: str
     dbname: str
 
+class LSTMConfig(BaseModel):
+    """LSTM configuration"""
+    sequence_length: int = 5
+    step_size: int = 1
+    sequential_features: List[str] = []
+    static_features: List[str] = []
 
+class FeaturesConfig(BaseModel):
+    """Features configuration"""
+    features_dir: str
+    embedding_dim: int
+    default_task_type: str
+    clean_after_embedding: bool = True
+    keep_identifiers: bool = False
+
+class DatasetConfig(BaseModel):
+    """Dataset splitting configuration"""
+    test_size: float = 0.2
+    val_size: float = 0.1
+    random_state: int = 42
+
+class CacheConfig(BaseModel):
+    """Cache configuration"""
+    base_path: str
+    types: Dict[str, str]
+    use_cache: bool = True
+
+class Config(BaseModel):
+    """Complete application configuration"""
+    cache: CacheConfig
+    features: FeaturesConfig
+    models: ModelsConfig
+    databases: List[Dict[str, Any]]
+    base: Baseconfig
+    lstm: Optional[LSTMConfig]
+    dataset: Optional[DatasetConfig]
+
+    # Allow additional fields for custom config values
+    class Config:
+        extra = "allow"
 
 class AppConfig:
     """
@@ -317,7 +354,90 @@ class AppConfig:
                 return db
         return None
 
+    def get_dataset_config(self) -> Dict[str, Any]:
+        """
+        Get dataset splitting configuration
 
+        Returns:
+            Dictionary with dataset splitting parameters
+        """
+        if hasattr(self._config, 'dataset'):
+            return {
+                'test_size': self._config.dataset.test_size,
+                'val_size': self._config.dataset.val_size,
+                'random_state': self._config.dataset.random_state
+            }
+
+        # Default values
+        return {
+            'test_size': 0.2,
+            'val_size': 0.1,
+            'random_state': 42
+        }
+
+    def get_features_config(self) -> Dict[str, Any]:
+        """
+        Get feature processing configuration
+
+        Returns:
+            Dictionary with feature processing parameters
+        """
+        features_config = {
+            'embedding_dim': self._config.features.embedding_dim,
+            'default_task_type': self._config.features.default_task_type,
+            'features_dir': self._config.features.features_dir
+        }
+
+        # Add optional parameters if available
+        if hasattr(self._config.features, 'clean_after_embedding'):
+            features_config['clean_after_embedding'] = self._config.features.clean_after_embedding
+
+        if hasattr(self._config.features, 'keep_identifiers'):
+            features_config['keep_identifiers'] = self._config.features.keep_identifiers
+
+        return features_config
+
+    def should_use_cache(self) -> bool:
+        """
+        Get global cache setting
+
+        Returns:
+            Boolean indicating whether to use cache by default
+        """
+        if hasattr(self._config.cache, 'use_cache'):
+            return self._config.cache.use_cache
+        return True
+
+    def get_lstm_config(self) -> Dict[str, Any]:
+        """
+        Get LSTM configuration parameters
+
+        Returns:
+            Dictionary with LSTM parameters
+        """
+        lstm_config = {}
+
+        # Get LSTM parameters from config if available
+        if hasattr(self._config, 'lstm'):
+            lstm_config = {
+                'sequence_length': self._config.lstm.sequence_length,
+                'step_size': self._config.lstm.step_size
+            }
+
+            # Add feature lists if defined
+            if hasattr(self._config.lstm, 'sequential_features') and self._config.lstm.sequential_features:
+                lstm_config['sequential_features'] = self._config.lstm.sequential_features
+
+            if hasattr(self._config.lstm, 'static_features') and self._config.lstm.static_features:
+                lstm_config['static_features'] = self._config.lstm.static_features
+        else:
+            # Default values
+            lstm_config = {
+                'sequence_length': 5,
+                'step_size': 1
+            }
+
+        return lstm_config
 # Convenience functions for backward compatibility
 def get_sqlite_dbpath(db_name: str = "full") -> str:
     """Get SQLite database path from config"""
@@ -327,6 +447,9 @@ def get_sqlite_dbpath(db_name: str = "full") -> str:
 def get_mysql_config(db_name: str = None) -> MySQLConfig:
     """Get MySQL configuration with optional db name override"""
     return AppConfig().get_mysql_config(db_name)
+
+
+
 
 
 # Direct testing function

@@ -28,32 +28,46 @@ class FeatureEmbeddingOrchestrator:
     from both embedding and model training components.
     """
 
-    def __init__(self, sqlite_path=None, embedding_dim=None, cache_dir=None, feature_store_dir=None,
-                 sequence_length=5, verbose=False):
+    def __init__(self, sqlite_path=None, verbose=False):
         """
         Initialize the orchestrator with embedding models and caching.
+        Most configuration now comes from config.yaml.
 
         Args:
             sqlite_path: Path to SQLite database, if None uses default from config
-            embedding_dim: Dimension size for entity embeddings, if None uses default from config
-            cache_dir: Directory to store cache files, if None uses default from config
-            feature_store_dir: Directory to store feature stores, if None uses default from config
-            sequence_length: Default sequence length for LSTM data preparation
             verbose: Whether to print verbose output
         """
         # Load application configuration
         self.config = AppConfig()
 
-        # Set paths from config or arguments
+        # Set path from config or argument
         self.sqlite_path = sqlite_path or self.config.get_active_db_path()
-        self.cache_dir = cache_dir or self.config.get_cache_dir()
-        self.feature_store_dir = feature_store_dir or self.config.get_feature_store_dir()
 
-        # Set embedding dimension from config or argument
-        self.embedding_dim = embedding_dim or self.config.get_default_embedding_dim()
+        # Load all configuration from config
+        self.cache_dir = self.config.get_cache_dir()
+        self.feature_store_dir = self.config.get_feature_store_dir()
 
-        # Set sequence length for LSTM data
-        self.sequence_length = sequence_length
+        # Get feature configuration
+        feature_config = self.config.get_features_config()
+        self.embedding_dim = feature_config['embedding_dim']
+        self.clean_after_embedding = feature_config.get('clean_after_embedding', True)
+        self.keep_identifiers = feature_config.get('keep_identifiers', False)
+
+        # Get LSTM configuration
+        lstm_config = self.config.get_lstm_config()
+        self.sequence_length = lstm_config['sequence_length']
+        self.step_size = lstm_config['step_size']
+        self.sequential_features = lstm_config.get('sequential_features', [])
+        self.static_features = lstm_config.get('static_features', [])
+
+        # Get dataset configuration
+        dataset_config = self.config.get_dataset_config()
+        self.test_size = dataset_config['test_size']
+        self.val_size = dataset_config['val_size']
+        self.random_state = dataset_config['random_state']
+
+        # Cache setting
+        self.use_cache = self.config.should_use_cache()
 
         # Set verbosity
         self.verbose = verbose
@@ -64,7 +78,7 @@ class FeatureEmbeddingOrchestrator:
         # Initialize embedding models (will be fitted later)
         self.horse_embedder = HorseEmbedding(embedding_dim=self.embedding_dim)
         self.jockey_embedder = JockeyEmbedding(embedding_dim=self.embedding_dim)
-        self.course_embedder = CourseEmbedding(embedding_dim=10)
+        self.course_embedder = CourseEmbedding(embedding_dim=10)  # Note: still hardcoded 10
         self.couple_embedder = CoupleEmbedding(embedding_dim=self.embedding_dim)
 
         # Track whether embeddings have been fitted
@@ -72,12 +86,12 @@ class FeatureEmbeddingOrchestrator:
 
         # Store preprocessing parameters
         self.preprocessing_params = {
-            'sequence_length': sequence_length
+            'sequence_length': self.sequence_length
         }
 
         self.target_info = {
             'column': 'final_position',
-            'type': 'regression'  # Options: 'regression', 'classification', 'ranking'
+            'type': feature_config['default_task_type']
         }
 
         # Create cache directory if it doesn't exist
@@ -91,6 +105,7 @@ class FeatureEmbeddingOrchestrator:
             print(f"  - Feature store directory: {self.feature_store_dir}")
             print(f"  - Embedding dimension: {self.embedding_dim}")
             print(f"  - Sequence length: {self.sequence_length}")
+            print(f"  - Cache enabled: {self.use_cache}")
 
     def log_info(self, message):
         """Simple logging method for backward compatibility."""
@@ -408,7 +423,7 @@ class FeatureEmbeddingOrchestrator:
             processed_df['dayofweek'] = processed_df['jour'].dt.dayofweek
 
         # Apply entity embeddings
-        processed_df = self.apply_embeddings(processed_df, use_cache=use_cache)
+        processed_df = self.apply_embeddings(processed_df)
 
         # Cache the result
         if use_cache:
@@ -786,17 +801,14 @@ class FeatureEmbeddingOrchestrator:
 
         return clean_df
 
-    def apply_embeddings(self, df, use_cache=True, clean_after_embedding=True,
-                         keep_identifiers=False, lstm_mode=False):
+    def apply_embeddings(self, df, lstm_mode=False):
         """
         Apply fitted embeddings to the data with caching.
+        Uses configuration values for cache, cleaning, and identifiers.
 
         Args:
             df: DataFrame with race and participant data
-            use_cache: Whether to use cached transformations
-            clean_after_embedding: Whether to drop raw features after embedding
-            keep_identifiers: Whether to keep identifier columns even when cleaning
-            lstm_mode: Whether this is being called for LSTM preparation (will preserve idche and jour)
+            lstm_mode: Whether this is for LSTM preparation (preserves idche and jour)
 
         Returns:
             DataFrame with embedded features added (and raw features optionally removed)
@@ -808,25 +820,22 @@ class FeatureEmbeddingOrchestrator:
             'embedding_dim': self.embedding_dim,
             'horse_count': df['idche'].nunique() if 'idche' in df.columns else 0,
             'jockey_count': df['idJockey'].nunique() if 'idJockey' in df.columns else 0,
-            'clean_after_embedding': clean_after_embedding,
-            'keep_identifiers': keep_identifiers,
-            'lstm_mode': lstm_mode  # Add to cache key
+            'clean_after_embedding': self.clean_after_embedding,
+            'keep_identifiers': self.keep_identifiers,
+            'lstm_mode': lstm_mode
         }
         cache_key = self._generate_cache_key('embedded_features', cache_params)
 
         # Try to get from cache
-        if use_cache:
-            try:
-                cached_df = self.cache_manager.load_dataframe(cache_key)
-                if cached_df is not None and isinstance(cached_df, pd.DataFrame):
-                    self.log_info("Using cached embedded features...")
-                    return cached_df
-            except Exception as e:
-                self.log_info(f"Warning: Could not load embedded features from cache: {str(e)}")
+        if self.use_cache:
+            cached_df = self.cache_manager.load_dataframe(cache_key)
+            if cached_df is not None and isinstance(cached_df, pd.DataFrame):
+                self.log_info("Using cached embedded features...")
+                return cached_df
 
         if not self.embeddings_fitted:
             self.log_info("Embeddings not fitted yet. Fitting now...")
-            self.fit_embeddings(df, use_cache=use_cache)
+            self.fit_embeddings(df)
 
         self.log_info("Applying entity embeddings...")
 
@@ -912,40 +921,34 @@ class FeatureEmbeddingOrchestrator:
                     self.log_info("Added course embeddings")
             except Exception as e:
                 self.log_info(f"Warning: Could not apply course embeddings: {str(e)}")
-
-        # Clean embedded data if requested
-        if clean_after_embedding:
-            # If in LSTM mode, make sure to keep idche and jour columns regardless
-            if lstm_mode:
+        if lstm_mode:
                 # Create a copy of embedded_df['idche'] and embedded_df['jour'] for safekeeping
-                idche_backup = None
-                jour_backup = None
+            idche_backup = None
+            jour_backup = None
 
-                if 'idche' in embedded_df.columns:
+            if 'idche' in embedded_df.columns:
                     idche_backup = embedded_df['idche'].copy()
-                if 'jour' in embedded_df.columns:
+            if 'jour' in embedded_df.columns:
                     jour_backup = embedded_df['jour'].copy()
 
                 # Perform the normal cleaning
-                embedded_df = self.drop_embedded_raw_features(embedded_df, keep_identifiers=keep_identifiers)
+            embedded_df = self.drop_embedded_raw_features(embedded_df)
 
-                # Restore the idche and jour columns if they were removed
-                if idche_backup is not None and 'idche' not in embedded_df.columns:
-                    embedded_df['idche'] = idche_backup
-                if jour_backup is not None and 'jour' not in embedded_df.columns:
-                    embedded_df['jour'] = jour_backup
-            else:
+            # Restore the idche and jour columns if they were removed
+            if idche_backup is not None and 'idche' not in embedded_df.columns:
+                embedded_df['idche'] = idche_backup
+            if jour_backup is not None and 'jour' not in embedded_df.columns:
+                embedded_df['jour'] = jour_backup
+        else:
                 # Normal cleaning without special handling
-                embedded_df = self.drop_embedded_raw_features(embedded_df, keep_identifiers=keep_identifiers)
+            embedded_df = self.drop_embedded_raw_features(embedded_df)
 
         # Cache the transformed DataFrame
-        if use_cache:
-            try:
-                self.cache_manager.save_dataframe(embedded_df, cache_key)
-            except Exception as e:
-                self.log_info(f"Warning: Could not cache embedded features: {str(e)}")
+        if self.use_cache:
+            self.cache_manager.save_dataframe(embedded_df, cache_key)
 
         return embedded_df
+
     def prepare_training_dataset(self, df, target_column=None, task_type=None, race_group_split=False):
         """
         Prepare the final dataset for training.
@@ -1552,27 +1555,46 @@ class FeatureEmbeddingOrchestrator:
 
         return X_sequences, X_static, y, horse_ids, race_dates
 
-    def prepare_sequence_data(self, df, sequence_length=None, step_size=1,
-                              sequential_features=None, static_features=None):
+    def prepare_sequence_data(self, df):
         """
-        Enhanced method for preparing sequential data for LSTM training that combines
-        functionality from both the orchestrator and train_model.py.
+        Prepare sequential data for LSTM training, using configuration values.
 
         Args:
             df: DataFrame with race and participant data
-            sequence_length: Number of races to include in each sequence (overrides instance value)
-            step_size: Step size for sliding window
-            sequential_features: List of features to use in sequences (None=auto-select)
-            static_features: List of static features to include (None=auto-select)
 
         Returns:
             Tuple of (sequences, static_features, targets)
         """
-        # Use instance sequence_length if not specified
-        if sequence_length is None:
-            sequence_length = self.sequence_length
+        # Use configuration feature lists
+        sequential_features = self.sequential_features
+        static_features = self.static_features
 
-        self.log_info(f"Preparing sequence data with length={sequence_length}")
+        # If no features defined in config, use defaults
+        if not sequential_features:
+            # Default features if not in config
+            sequential_features = [
+                'final_position', 'cotedirect', 'dist',
+                # Include embeddings if available
+                *[col for col in df.columns if col.startswith('horse_emb_')][:3],
+                *[col for col in df.columns if col.startswith('jockey_emb_')][:3]
+            ]
+            # Add musique-derived features if available
+            for prefix in ['che_global_', 'che_weighted_']:
+                for feature in ['avg_pos', 'recent_perf', 'consistency', 'pct_top3']:
+                    col = f"{prefix}{feature}"
+                    if col in df.columns:
+                        sequential_features.append(col)
+
+        if not static_features:
+            # Default features if not in config
+            static_features = [
+                'age', 'temperature', 'natpis', 'typec', 'meteo', 'corde',
+                # Include embeddings if available
+                *[col for col in df.columns if col.startswith('couple_emb_')][:3],
+                *[col for col in df.columns if col.startswith('course_emb_')][:3]
+            ]
+
+        self.log_info(f"Preparing sequence data with length={self.sequence_length}")
 
         # If feature lists not provided, use sensible defaults
         if sequential_features is None:

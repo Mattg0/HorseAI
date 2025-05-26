@@ -9,6 +9,7 @@ cache:
     models: models.parquet
     predictions: predictions.parquet
     processed_data: processed_data.parquet
+  use_cache: true
 databases:
 - description: Full historical database
   name: full
@@ -33,14 +34,50 @@ databases:
   password: welcome123
   type: mysql
   user: turfai
+dataset:
+  random_state: 42
+  test_size: 0.2
+  val_size: 0.1
 features:
+  clean_after_embedding: true
   default_task_type: regression
   embedding_dim: 8
   features_dir: ./data/feature_store
+  keep_identifiers: false
+lstm:
+  sequence_length: 5
+  sequential_features:
+  - final_position
+  - cotedirect
+  - dist
+  - horse_emb_0
+  - horse_emb_1
+  - horse_emb_2
+  - jockey_emb_0
+  - jockey_emb_1
+  - jockey_emb_2
+  - che_global_avg_pos
+  - che_global_recent_perf
+  - che_global_consistency
+  - che_global_pct_top3
+  static_features:
+  - age
+  - temperature
+  - natpis
+  - typec
+  - meteo
+  - corde
+  - couple_emb_0
+  - couple_emb_1
+  - couple_emb_2
+  - course_emb_0
+  - course_emb_1
+  - course_emb_2
+  step_size: 1
 models:
-  latest_base_model: 2years_full_v20250430
-  latest_full_model: 2years_full_v20250430
-  latest_hybrid_model: 2years_full_v20250430
+  latest_base_model: 2years_full_v20250526
+  latest_full_model: 2years_full_v20250526
+  latest_hybrid_model: 2years_full_v20250526
   latest_lstm_model: dev_20250407
   latest_rf_model: dev_20250408
   model_dir: ./models

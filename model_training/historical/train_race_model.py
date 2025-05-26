@@ -67,8 +67,6 @@ class HorseRaceModel:
         # Initialize data orchestrator for all data preparation
         self.data_orchestrator = FeatureEmbeddingOrchestrator(
             sqlite_path=db_path,
-            embedding_dim=embedding_dim or self.config._config.features.embedding_dim,
-            sequence_length=sequence_length,
             verbose=verbose
         )
 
