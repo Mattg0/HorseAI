@@ -4,11 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="Well... Final Version!!">
-      <change afterPath="$PROJECT_DIR$/model_training/regressions/error_correction.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/race_prediction/enhanced_predictor.py" afterDir="false" />
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="Trying new Regression training using existing transformation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/data_preparation/prepare_lstm_data.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,13 +65,14 @@
     "Python.predict_daily_races.executor": "Run",
     "Python.predict_orchestrator_cli.executor": "Run",
     "Python.prediction_orchestrator.executor": "Run",
+    "Python.prepare_lstm_data.executor": "Run",
     "Python.regression_enhancement.executor": "Run",
     "Python.test.executor": "Debug",
     "Python.train_model.executor": "Debug",
     "Python.train_race_model.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main"
+    "git-widget-placeholder": "Simplification"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -78,7 +80,7 @@
       <recent name="$PROJECT_DIR$/core/connectors" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.regression_enhancement">
+  <component name="RunManager" selected="Python.train_race_model">
     <configuration name="api_daily_sync" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
@@ -115,28 +117,6 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="prediction_orchestrator" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="HorseAIv2" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/core/orchestrators" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -193,16 +173,14 @@
       <item itemvalue="Python.predict_orchestrator_cli" />
       <item itemvalue="Python.train_race_model" />
       <item itemvalue="Python.regression_enhancement" />
-      <item itemvalue="Python.prediction_orchestrator" />
       <item itemvalue="Python.api_daily_sync" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.regression_enhancement" />
-        <item itemvalue="Python.predict_orchestrator_cli" />
         <item itemvalue="Python.train_race_model" />
+        <item itemvalue="Python.predict_orchestrator_cli" />
+        <item itemvalue="Python.regression_enhancement" />
         <item itemvalue="Python.api_daily_sync" />
-        <item itemvalue="Python.prediction_orchestrator" />
       </list>
     </recent_temporary>
   </component>
@@ -414,7 +392,23 @@
       <option name="project" value="LOCAL" />
       <updated>1744702346043</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="Trying new Regression training using existing transformation">
+      <option name="closed" value="true" />
+      <created>1747217206938</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1747217206938</updated>
+    </task>
+    <task id="LOCAL-00026" summary="Trying new Regression training using existing transformation">
+      <option name="closed" value="true" />
+      <created>1748265493231</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1748265493231</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -434,7 +428,8 @@
     <MESSAGE value="ModelManager" />
     <MESSAGE value="Final Version!!" />
     <MESSAGE value="Well... Final Version!!" />
-    <option name="LAST_COMMIT_MESSAGE" value="Well... Final Version!!" />
+    <MESSAGE value="Trying new Regression training using existing transformation" />
+    <option name="LAST_COMMIT_MESSAGE" value="Trying new Regression training using existing transformation" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -456,23 +451,8 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>
-          <line>966</line>
-          <option name="timeStamp" value="116" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>
-          <line>450</line>
-          <option name="timeStamp" value="126" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>
-          <line>457</line>
+          <line>100</line>
           <option name="timeStamp" value="127" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>
-          <line>465</line>
-          <option name="timeStamp" value="128" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
@@ -506,17 +486,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
-          <line>1448</line>
-          <option name="timeStamp" value="167" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
-          <line>1407</line>
-          <option name="timeStamp" value="168" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
-          <line>1572</line>
+          <line>1429</line>
           <option name="timeStamp" value="169" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -533,6 +503,21 @@
           <url>file://$PROJECT_DIR$/model_training/regressions/regression_enhancement.py</url>
           <line>1520</line>
           <option name="timeStamp" value="235" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
+          <line>1484</line>
+          <option name="timeStamp" value="244" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
+          <line>962</line>
+          <option name="timeStamp" value="248" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
+          <line>1002</line>
+          <option name="timeStamp" value="254" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
