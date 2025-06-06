@@ -1,5 +1,5 @@
 base:
-  active_db: 2years
+  active_db: 5years
   rootdir: /Users/mattg0/Docs/HorseAIv2/
 cache:
   base_path: cache
@@ -75,9 +75,9 @@ lstm:
   - course_emb_2
   step_size: 1
 models:
-  latest_base_model: 2years_full_v20250526
-  latest_full_model: 2years_full_v20250526
-  latest_hybrid_model: 2years_full_v20250526
+  latest_base_model: 5years_hybrid_v20250606_182331
+  latest_full_model: 5years_hybrid_v20250606_182331
+  latest_hybrid_model: 5years_hybrid_v20250606_182331
   latest_lstm_model: dev_20250407
   latest_rf_model: dev_20250408
   model_dir: ./models

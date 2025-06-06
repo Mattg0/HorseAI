@@ -288,7 +288,7 @@ class FeatureEmbeddingOrchestrator:
         """
         # Generate cache key
         cache_params = {
-            'race_count': df['comp'].nunique(),
+#            'race_count': df['comp'].nunique(),
             'participant_count': len(df),
             'columns': sorted(df.columns.tolist()),
             'embedding_dim': self.embedding_dim
@@ -422,8 +422,6 @@ class FeatureEmbeddingOrchestrator:
             processed_df['month'] = processed_df['jour'].dt.month
             processed_df['dayofweek'] = processed_df['jour'].dt.dayofweek
 
-        # Apply entity embeddings
-        processed_df = self.apply_embeddings(processed_df)
 
         # Cache the result
         if use_cache:
@@ -801,7 +799,7 @@ class FeatureEmbeddingOrchestrator:
 
         return clean_df
 
-    def apply_embeddings(self, df, lstm_mode=False):
+    def apply_embeddings(self, df, use_cache=True):
         """
         Apply fitted embeddings to the data with caching.
         Uses configuration values for cache, cleaning, and identifiers.
@@ -821,8 +819,7 @@ class FeatureEmbeddingOrchestrator:
             'horse_count': df['idche'].nunique() if 'idche' in df.columns else 0,
             'jockey_count': df['idJockey'].nunique() if 'idJockey' in df.columns else 0,
             'clean_after_embedding': self.clean_after_embedding,
-            'keep_identifiers': self.keep_identifiers,
-            'lstm_mode': lstm_mode
+            'keep_identifiers': self.keep_identifiers
         }
         cache_key = self._generate_cache_key('embedded_features', cache_params)
 
@@ -921,34 +918,92 @@ class FeatureEmbeddingOrchestrator:
                     self.log_info("Added course embeddings")
             except Exception as e:
                 self.log_info(f"Warning: Could not apply course embeddings: {str(e)}")
-        if lstm_mode:
-                # Create a copy of embedded_df['idche'] and embedded_df['jour'] for safekeeping
-            idche_backup = None
-            jour_backup = None
+        idche_backup = None
+        jour_backup = None
 
-            if 'idche' in embedded_df.columns:
-                    idche_backup = embedded_df['idche'].copy()
-            if 'jour' in embedded_df.columns:
-                    jour_backup = embedded_df['jour'].copy()
+        if 'idche' in embedded_df.columns:
+            idche_backup = embedded_df['idche'].copy()
+        if 'jour' in embedded_df.columns:
+            jour_backup = embedded_df['jour'].copy()
 
-                # Perform the normal cleaning
-            embedded_df = self.drop_embedded_raw_features(embedded_df)
+        # Always perform cleaning after embedding
+        embedded_df = self.drop_embedded_raw_features(embedded_df)
 
-            # Restore the idche and jour columns if they were removed
-            if idche_backup is not None and 'idche' not in embedded_df.columns:
-                embedded_df['idche'] = idche_backup
-            if jour_backup is not None and 'jour' not in embedded_df.columns:
-                embedded_df['jour'] = jour_backup
-        else:
-                # Normal cleaning without special handling
-            embedded_df = self.drop_embedded_raw_features(embedded_df)
+        # Always restore the idche and jour columns if they were removed
+        if idche_backup is not None and 'idche' not in embedded_df.columns:
+            embedded_df['idche'] = idche_backup
+        if jour_backup is not None and 'jour' not in embedded_df.columns:
+            embedded_df['jour'] = jour_backup
 
         # Cache the transformed DataFrame
-        if self.use_cache:
-            self.cache_manager.save_dataframe(embedded_df, cache_key)
+        if use_cache:
+            try:
+                self.cache_manager.save_dataframe(embedded_df, cache_key)
+            except Exception as e:
+                self.log_info(f"Warning: Could not cache embedded features: {str(e)}")
 
         return embedded_df
 
+    def prepare_complete_dataset(self, df, use_cache=True):
+        """
+        Prepare complete dataset with all features for both RF and LSTM models.
+
+        Args:
+            df: DataFrame with race and participant data
+            use_cache: Whether to use cached results
+
+        Returns:
+            DataFrame with all possible features (embeddings, static, sequence info)
+        """
+        # Apply all feature engineering and embeddings
+        complete_df = self.prepare_features(df)
+        complete_df = self.apply_embeddings(complete_df)
+
+        return complete_df
+
+    def extract_rf_features(self, complete_df):
+        """
+        Extract features suitable for Random Forest training.
+
+        Args:
+            complete_df: Complete dataset with all features
+
+        Returns:
+            Tuple of (X, y) for RF training
+        """
+        rf_df = complete_df.copy()
+
+        # Drop sequence-specific columns that RF doesn't need
+        sequence_cols = [col for col in rf_df.columns if 'jour' in col.lower()]
+        rf_df = rf_df.drop(columns=sequence_cols, errors='ignore')
+
+        # Apply standard RF cleaning (drop raw features, keep only processed ones)
+        rf_df = self.drop_embedded_raw_features(rf_df, keep_identifiers=False)
+
+        # Prepare training dataset
+        X, y = self.prepare_training_dataset(rf_df)
+
+        return X, y
+
+    def extract_lstm_features(self, complete_df, sequence_length=None):
+        """
+        Extract features suitable for LSTM training.
+
+        Args:
+            complete_df: Complete dataset with all features
+            sequence_length: Length of sequences (uses instance default if None)
+
+        Returns:
+            Tuple of (X_sequences, X_static, y) for LSTM training
+        """
+        lstm_df = complete_df.copy()
+
+        # Use the existing LSTM sequence preparation
+        X_sequences, X_static, y = self.prepare_sequence_data(
+            lstm_df
+        )
+
+        return X_sequences, X_static, y
     def prepare_training_dataset(self, df, target_column=None, task_type=None, race_group_split=False):
         """
         Prepare the final dataset for training.
@@ -1345,216 +1400,6 @@ class FeatureEmbeddingOrchestrator:
 
         return X_train, X_val, X_test, y_train, y_val, y_test
 
-    # CONSOLIDATED METHODS FROM train_model.py
-
-    def load_or_prepare_data(self, use_cache=True, limit=None, race_filter=None, date_filter=None):
-        """
-        Load or prepare data for training models.
-
-        Args:
-            use_cache: Whether to use cached data if available
-            limit: Maximum number of races to load
-            race_filter: Filter by race type
-            date_filter: SQL-style date filter
-
-        Returns:
-            Tuple of (processed_features_df, static_features_df)
-        """
-        # Generate cache key for consistent results
-        cache_params = {
-            'limit': limit,
-            'race_filter': race_filter,
-            'date_filter': date_filter,
-            'embedding_dim': self.embedding_dim
-        }
-        cache_key = self._generate_cache_key('training_data', cache_params)
-
-        # Try to get from cache
-        if use_cache:
-            try:
-                cached_data = self.cache_manager.load_dataframe(cache_key)
-                if cached_data is not None:
-                    self.log_info("Found cached training data")
-                    df_features = cached_data
-                    # Extract static features for RF with new approach
-                    static_columns = [col for col in df_features.columns
-                                      if not col.startswith(('comp', 'idche', 'id', 'cheval', 'ordre_arrivee'))]
-                    static_features_df = df_features[static_columns].astype(float)
-                    return df_features, static_features_df
-            except Exception as e:
-                self.log_info(f"Warning: Could not load from cache: {str(e)}. Loading fresh data...")
-
-        self.log_info(f"Loading historical race data...")
-
-        # Load raw data
-        df_historical = self.load_historical_races(
-            limit=limit,
-            race_filter=race_filter,
-            date_filter=date_filter,
-            use_cache=use_cache
-        )
-
-        # Process and embed features
-        df_features = self.prepare_features(df_historical, use_cache=use_cache)
-        df_features = self.apply_embeddings(df_features, use_cache=use_cache,
-                                            clean_after_embedding=True, keep_identifiers=True)
-
-        # Extract static features for models that need them
-        static_columns = [col for col in df_features.columns
-                          if not col.startswith(('comp', 'idche', 'id', 'cheval', 'ordre_arrivee'))]
-        static_features_df = df_features[static_columns].astype(float)
-
-        # Cache the processed data
-        if use_cache:
-            try:
-                self.cache_manager.save_dataframe(df_features, cache_key)
-            except Exception as e:
-                self.log_info(f"Warning: Could not cache processed data: {str(e)}")
-
-        return df_features, static_features_df
-
-    def prepare_lstm_sequence_features(self, df, sequence_length=None, step_size=1):
-        """
-        Prepare sequence data for LSTM training while preserving horse IDs and dates.
-
-        Args:
-            df: DataFrame with race and participant data
-            sequence_length: Number of races to include in each sequence (overrides instance value)
-            step_size: Step size for sliding window
-
-        Returns:
-            Tuple of (sequences, static_features, targets, horse_ids, race_dates)
-        """
-        # Use instance sequence_length if not specified
-        if sequence_length is None:
-            sequence_length = self.sequence_length
-
-        self.log_info(f"Preparing LSTM sequence data with length={sequence_length}")
-
-        # Define sequential and static features
-        sequential_features = [
-            'final_position', 'cotedirect', 'dist',
-            # Include embeddings if available
-            *[col for col in df.columns if col.startswith('horse_emb_')][:3],
-            *[col for col in df.columns if col.startswith('jockey_emb_')][:3]
-        ]
-
-        # Add musique-derived features if available
-        for prefix in ['che_global_', 'che_weighted_']:
-            for feature in ['avg_pos', 'recent_perf', 'consistency', 'pct_top3']:
-                col = f"{prefix}{feature}"
-                if col in df.columns:
-                    sequential_features.append(col)
-
-        static_features = [
-            'age', 'temperature', 'natpis', 'typec', 'meteo', 'corde',
-            # Include embeddings if available (ones not used in sequential)
-            *[col for col in df.columns if col.startswith('couple_emb_')][:3],
-            *[col for col in df.columns if col.startswith('course_emb_')][:3]
-        ]
-
-        # Ensure required columns exist
-        required_cols = ['idche', 'jour']
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        if missing_cols:
-            raise ValueError(f"Required columns missing: {missing_cols}")
-
-        # Filter to only include columns that exist in the dataframe
-        sequential_features = [col for col in sequential_features if col in df.columns]
-        static_features = [col for col in static_features if col in df.columns]
-
-        self.log_info(f"Sequential features ({len(sequential_features)}): {sequential_features}")
-        self.log_info(f"Static features ({len(static_features)}): {static_features}")
-
-        # Sort by date
-        df = df.sort_values(['idche', 'jour'])
-
-        # Ensure all features are numeric
-        for col in sequential_features + static_features:
-            if col in df.columns and not pd.api.types.is_numeric_dtype(df[col]):
-                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-
-        # Group by horse ID
-        sequences = []
-        static_feature_data = []
-        targets = []
-        horse_ids = []  # Track horse IDs for each sequence
-        race_dates = []  # Track dates for each sequence
-
-        # Get target column from configuration
-        target_column = self.target_info.get('column', 'final_position')
-        if target_column not in df.columns:
-            if 'final_position' in df.columns:
-                target_column = 'final_position'
-            elif 'cl' in df.columns:
-                target_column = 'cl'
-            else:
-                raise ValueError(f"Target column not found in DataFrame")
-
-        for horse_id, horse_data in df.groupby('idche'):
-            # Sort by date to ensure chronological order
-            horse_races = horse_data.sort_values('jour')
-
-            # Only process horses with enough races
-            if len(horse_races) >= sequence_length + 1:
-                # Get sequence features
-                seq_features = horse_races[sequential_features].values.astype(np.float32)
-
-                # Get last static features (from most recent race)
-                static_feat = horse_races[static_features].iloc[-1].values.astype(np.float32)
-
-                # Create sequences with sliding window
-                for i in range(len(horse_races) - sequence_length):
-                    # Sequence
-                    seq = seq_features[i:i + sequence_length]
-                    sequences.append(seq)
-
-                    # Static features (same for all sequences of this horse)
-                    static_feature_data.append(static_feat)
-
-                    # Store horse ID for this sequence
-                    horse_ids.append(horse_id)
-
-                    # Store the date of the target race (the race after the sequence)
-                    race_dates.append(horse_races['jour'].iloc[i + sequence_length])
-
-                    # Target (position in next race)
-                    if target_column in horse_races.columns:
-                        target_value = horse_races.iloc[i + sequence_length][target_column]
-                        # Convert to float and handle non-numeric values
-                        try:
-                            target_value = float(target_value)
-                        except (ValueError, TypeError):
-                            # For DNF or other non-numeric results, use a high value
-                            target_value = 99.0
-                        targets.append(target_value)
-                    else:
-                        raise ValueError(f"Target column '{target_column}' not found")
-
-        # Convert to numpy arrays
-        if not sequences:
-            raise ValueError("No valid sequences could be created. Check data quality and sequence length.")
-
-        X_sequences = np.array(sequences, dtype=np.float32)
-        X_static = np.array(static_feature_data, dtype=np.float32)
-        y = np.array(targets, dtype=np.float32)
-        horse_ids = np.array(horse_ids)
-        race_dates = np.array(race_dates)
-
-        self.log_info(f"Created {len(sequences)} sequences from {df['idche'].nunique()} horses")
-        self.log_info(f"Sequence shape: {X_sequences.shape}, Static shape: {X_static.shape}, Target shape: {y.shape}")
-
-        # Store feature information
-        self.preprocessing_params.update({
-            'sequence_length': sequence_length,
-            'step_size': step_size,
-            'sequential_features': sequential_features,
-            'static_features': static_features,
-            'target_column': target_column
-        })
-
-        return X_sequences, X_static, y, horse_ids, race_dates
-
     def prepare_sequence_data(self, df):
         """
         Prepare sequential data for LSTM training, using configuration values.
@@ -1639,7 +1484,7 @@ class FeatureEmbeddingOrchestrator:
         for col in sequential_features + static_features:
             if col in df.columns and not pd.api.types.is_numeric_dtype(df[col]):
                 df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-
+        sequence_length= self.sequence_length
         # Group by horse ID
         sequences = []
         static_feature_data = []
@@ -1660,8 +1505,8 @@ class FeatureEmbeddingOrchestrator:
             horse_races = horse_data.sort_values('jour')
 
             # Only process horses with enough races
-            if len(horse_races) >= sequence_length + 1:
-                # Get sequence features
+            if len(horse_races) >= 2:  # Just need current race + 1 historical
+             # Get sequence features
                 seq_features = horse_races[sequential_features].values.astype(np.float32)
 
                 # Get last static features (from most recent race)
@@ -1703,7 +1548,7 @@ class FeatureEmbeddingOrchestrator:
         # Store feature information
         self.preprocessing_params.update({
             'sequence_length': sequence_length,
-            'step_size': step_size,
+            'step_size': self.step_size,
             'sequential_features': sequential_features,
             'static_features': static_features,
             'target_column': target_column
