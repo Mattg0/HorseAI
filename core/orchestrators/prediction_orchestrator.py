@@ -25,7 +25,7 @@ class PredictionOrchestrator:
 
     # In PredictionOrchestrator.__init__:
 
-    def __init__(self, model_path: str, db_name: str = None, model_type: str = None, verbose: bool = False):
+    def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False):
         """
         Initialize the prediction orchestrator.
 
@@ -36,58 +36,26 @@ class PredictionOrchestrator:
             verbose: Whether to output verbose logs
         """
         # Initialize config
+        self.verbose = verbose
         self.config = AppConfig()
 
-        # Store the verbose flag
-        self.verbose = verbose
-
-        # Set database
         if db_name is None:
-            self.db_name = self.config._config.base.active_db
-        else:
-            self.db_name = db_name
+            db_name = self.config._config.base.active_db
 
-        # Get database path
-        self.db_path = self.config.get_sqlite_dbpath(self.db_name)
-
-        # Get base model paths with active_db consideration
-        self.model_paths = self.config.get_model_paths(model_name=model_path, model_type=model_type)
-
-        # Determine if model_path is a full path or just a model name
-        model_path_obj = Path(model_path)
-        if model_path_obj.exists() and model_path_obj.is_dir():
-            # This is a full path to a specific model version
-            self.model_path = model_path_obj
-        else:
-            # This is a model type, need to find latest version
-            model_dir = Path(self.model_paths['model_path'])
-            if model_dir.exists():
-                # Get all version folders, sorted newest first
-                versions = sorted([d for d in model_dir.iterdir() if d.is_dir() and d.name.startswith('v')],
-                                  key=lambda x: x.name, reverse=True)
-                if versions:
-                    self.model_path = versions[0]  # Use latest version
-                    if verbose:
-                        print(f"Using latest model version: {self.model_path.name}")
-                else:
-                    # No version folders, use model_dir itself
-                    self.model_path = model_dir
-            else:
-                # Model directory doesn't exist, create it
-                os.makedirs(model_dir, exist_ok=True)
-                self.model_path = model_dir
-                # Initialize a basic logger FIRST so it's always available
-        # Set up logging with proper verbose handling
+        self.db_name = db_name
+        # Initialize components
+        self.race_fetcher = RaceFetcher(db_name=self.db_name, verbose=self.verbose)
+        self.race_predictor = RacePredictor(
+            model_path=model_path,  # Can be None
+            db_name=db_name,
+            verbose=verbose
+        )
 
         self._setup_logging()
 
-        # Initialize components
-        self.race_fetcher = RaceFetcher(db_name=self.db_name, verbose=self.verbose)
-        self.race_predictor = RacePredictor(model_path=str(self.model_path), db_name=self.db_name, verbose=self.verbose)
-
         # Only show initialization message if verbose
         if self.verbose:
-            self.logger.info(f"Prediction Orchestrator initialized with model: {self.model_path}")
+            self.logger.info(f"Prediction Orchestrator initialized with model: {self.race_predictor.model_path}")
     def log_info(self, message):
         """Simple logging method."""
         if self.verbose:
@@ -96,7 +64,7 @@ class PredictionOrchestrator:
     def _setup_logging(self):
         """Set up logging with proper verbose control."""
         # Create logs directory if it doesn't exist
-        log_dir = self.model_path / "logs"
+        log_dir = self.race_predictor.model_path / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
 
         # Configure the root logger - important to set up first
@@ -129,149 +97,106 @@ class PredictionOrchestrator:
             console_handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
             self.logger.addHandler(console_handler)
 
-    def predict_race(self, comp: str, blend_weight: float = 0.7) -> Dict:
+    def predict_race(self, comp: str, blend_weight: float = 0.7) -> pd.DataFrame:
         """
         Generate predictions for a specific race.
-
-        Args:
-            comp: Race identifier
-            blend_weight: Weight for RF model in blend (0-1)
-
-        Returns:
-            Dictionary with prediction results
         """
         start_time = datetime.now()
         self.logger.info(f"Starting prediction for race {comp}")
 
-        try:
-            # Fetch race data from database
-            race_data = self.race_fetcher.get_race_by_comp(comp)
+        # Fetch race data from database
+        race_data = self.race_fetcher.get_race_by_comp(comp)
 
-            if race_data is None:
-                return {
-                    'status': 'error',
-                    'error': f'Race {comp} not found in database',
-                    'comp': comp
-                }
-
-            # Get participants data
-            participants = race_data.get('participants')
-            if not participants or participants == '[]':
-                return {
-                    'status': 'error',
-                    'error': 'No valid participant data found',
-                    'comp': comp
-                }
-
-            # Convert to DataFrame if needed
-            if isinstance(participants, str):
-                try:
-                    participants = json.loads(participants)
-                except:
-                    return {
-                        'status': 'error',
-                        'error': 'Could not parse participant data',
-                        'comp': comp
-                    }
-
-            # Process participants into feature DataFrame
-            race_df = pd.DataFrame(participants)
-
-            # Add race information to each participant row - THIS IS THE KEY FIX
-            # Include all race-level attributes that are used for prediction
-            race_attributes = [
-                'typec', 'dist', 'natpis', 'meteo', 'temperature',
-                'forceVent', 'directionVent', 'corde', 'jour',
-                'hippo', 'quinte', 'pistegp'
-            ]
-
-            for field in race_attributes:
-                if field in race_data and race_data[field] is not None:
-                    race_df[field] = race_data[field]
-                    self.logger.info(f"Added race attribute {field}={race_data[field]} to all participants")
-
-            # Add comp to DataFrame
-
-            race_df['comp'] = comp
-
-            # Generate predictions using RacePredictor
-            result_df = self.race_predictor.predict_race(race_df, blend_weight=blend_weight)
-
-            # Add race information to DataFrame
-            for field in ['typec', 'dist', 'natpis', 'meteo', 'temperature','jour', 'forceVent', 'directionVent', 'corde']:
-                if field in race_data and race_data[field] is not None:
-                    race_df[field] = race_data[field]
-
-            # Add comp to DataFrame
-            race_df['comp'] = comp
-
-            # Generate predictions
-            result_df = self.race_predictor.predict_race(race_df, blend_weight=blend_weight)
-
-            # Select columns for output
-            output_columns = [
-                'numero', 'cheval', 'predicted_position', 'predicted_rank'
-            ]
-
-            # Add optional columns if available
-            for col in ['cotedirect', 'jockey', 'idJockey', 'idche']:
-                if col in result_df.columns:
-                    output_columns.append(col)
-
-            # Create final result DataFrame
-            final_result = result_df[output_columns].copy()
-
-            # Convert to records format
-            prediction_results = final_result.to_dict(orient='records')
-
-            predicted_arriv = result_df['predicted_arriv'].iloc[0] if 'predicted_arriv' in result_df.columns else None
-
-            # Add to metadata
-            metadata = {
-                'race_id': comp,
-                'prediction_time': datetime.now().isoformat(),
-                'model_path': str(self.model_path),  # Convert Path to string here
-                'blend_weight': blend_weight,
-                'hippo': race_data.get('hippo'),
-                'prix': race_data.get('prix'),
-                'jour': race_data.get('jour'),
-                'typec': race_data.get('typec'),
-                'participants_count': len(prediction_results),
-                'predicted_arriv': predicted_arriv
-            }
-            # Store prediction results
-            prediction_data = {
-                'metadata': metadata,
-                'predictions': prediction_results,
-                'predicted_arriv': predicted_arriv  # Add at top level of JSON
-            }
-
-            # Update database
-            self.race_fetcher.update_prediction_results(comp, json.dumps(prediction_data))
-
-            # Calculate elapsed time
-            elapsed_time = (datetime.now() - start_time).total_seconds()
-
-            self.logger.info(f"Successfully predicted race {comp} in {elapsed_time:.2f} seconds")
-
-            return {
-                'status': 'success',
-                'comp': comp,
-                'predictions': prediction_results,
-                'metadata': metadata,
-                'elapsed_time': elapsed_time
-            }
-
-        except Exception as e:
-            self.logger.error(f"Error predicting race {comp}: {str(e)}")
-            import traceback
-            self.logger.error(traceback.format_exc())
-
+        if race_data is None:
             return {
                 'status': 'error',
-                'error': str(e),
+                'error': f'Race {comp} not found in database',
                 'comp': comp
             }
+
+        # Get participants data
+        participants = race_data.get('participants')
+        if not participants or participants == '[]':
+            return {
+                'status': 'error',
+                'error': 'No valid participant data found',
+                'comp': comp
+            }
+
+        # Convert to DataFrame if needed
+        if isinstance(participants, str):
+            participants = json.loads(participants)
+
+        # Process participants into feature DataFrame
+        race_df = pd.DataFrame(participants)
+
+        # Add race information to each participant row
+        race_attributes = ['typec', 'dist', 'natpis', 'meteo', 'temperature',
+                           'forceVent', 'directionVent', 'corde', 'jour',
+                           'hippo', 'quinte', 'pistegp']
+
+        for field in race_attributes:
+            if field in race_data and race_data[field] is not None:
+                race_df[field] = race_data[field]
+                self.logger.info(f"Added race attribute {field}={race_data[field]} to all participants")
+
+        # Add comp to DataFrame
+        race_df['comp'] = comp
+
+        # Generate predictions using RacePredictor - ONLY ONCE!
+        result_df = self.race_predictor.predict_race(race_df)
+
+        # Select columns for output
+        output_columns = ['numero', 'cheval', 'predicted_position', 'predicted_rank']
+
+            # Add optional columns if available
+        for col in ['cotedirect', 'jockey', 'idJockey', 'idche']:
+            if col in result_df.columns:
+                output_columns.append(col)
+
+            # Create final result DataFrame
+        final_result = result_df[output_columns].copy()
+
+            # Convert to records format
+        prediction_results = final_result.to_dict(orient='records')
+
+        predicted_arriv = result_df['predicted_arriv'].iloc[0] if 'predicted_arriv' in result_df.columns else None
+
+            # Add to metadata
+        metadata = {
+            'race_id': comp,
+            'prediction_time': datetime.now().isoformat(),
+ #           'model_path': str(self.model_path),  # Convert Path to string here
+            'blend_weight': blend_weight,
+            'hippo': race_data.get('hippo'),
+            'prix': race_data.get('prix'),
+            'jour': race_data.get('jour'),
+            'typec': race_data.get('typec'),
+            'participants_count': len(prediction_results),
+            'predicted_arriv': predicted_arriv
+        }
+            # Store prediction results
+        prediction_data = {
+            'metadata': metadata,
+            'predictions': prediction_results,
+            'predicted_arriv': predicted_arriv  # Add at top level of JSON
+        }
+
+            # Update database
+        self.race_fetcher.update_prediction_results(comp, json.dumps(prediction_data))
+
+            # Calculate elapsed time
+        elapsed_time = (datetime.now() - start_time).total_seconds()
+
+        self.logger.info(f"Successfully predicted race {comp} in {elapsed_time:.2f} seconds")
+
+        return {
+            'status': 'success',
+            'comp': comp,
+            'predictions': prediction_results,
+            'metadata': metadata,
+            'elapsed_time': elapsed_time
+        }
 
     def predict_races_by_date(self, date: str = None, blend_weight: float = 0.7) -> Dict:
         # Make sure logger exists
@@ -347,6 +272,33 @@ class PredictionOrchestrator:
                 'date': date
             }
 
+    def predict_single_race(self, race_df: pd.DataFrame, blend_weight: float = 0.7) -> pd.DataFrame:
+        """
+        Generate predictions for a single race from DataFrame.
+
+        Args:
+            race_df: DataFrame with race and participant data
+            blend_weight: Weight for RF model in blend (0-1)
+
+        Returns:
+            DataFrame with predictions added
+        """
+        # Use the race predictor to generate predictions
+        return self.race_predictor.predict_race(race_df)
+
+    def get_model_info(self) -> Dict:
+        """
+        Get information about the loaded model.
+
+        Returns:
+            Dictionary with model information
+        """
+        return {
+            'model_path': str(self.race_predictor.model_path),
+            'blend_weight': getattr(self.race_predictor, 'blend_weight', 0.9),
+            'has_rf': self.race_predictor.rf_model is not None,
+            'has_lstm': self.race_predictor.lstm_model is not None
+        }
     def fetch_and_predict_races(self, date: str = None, blend_weight: float = 0.7) -> Dict:
         """
         Fetch races from API, store them, and generate predictions.
@@ -1017,7 +969,33 @@ class PredictionOrchestrator:
             pmu_bets['bonus3'] = False
             pmu_bets['deuxsur4'] = False
             pmu_bets['multi4'] = False
+        # 6.4 Extended Quinté analysis (6 and 7 horses)
+        if len(pred_order) >= 6 and len(actual_order) >= 5:
+            # Playing 6 horses - need 5 in top 5 (any order)
+            pmu_bets['quinte_6horses'] = len(set(pred_order[:6]) & set(actual_order[:5])) == 5
 
+            # Bonus 4 with 6 horses - first correct + 3 others in top 4
+            pmu_bets['bonus4_6horses'] = (pred_order[0] == actual_order[0] and
+                                          len(set(pred_order[1:6]) & set(actual_order[1:4])) >= 3)
+        else:
+            pmu_bets['quinte_6horses'] = False
+            pmu_bets['bonus4_6horses'] = False
+
+        if len(pred_order) >= 7 and len(actual_order) >= 5:
+            # Playing 7 horses - need 5 in top 5 (any order)
+            pmu_bets['quinte_7horses'] = len(set(pred_order[:7]) & set(actual_order[:5])) == 5
+
+            # Bonus 4 with 7 horses
+            pmu_bets['bonus4_7horses'] = (pred_order[0] == actual_order[0] and
+                                          len(set(pred_order[1:7]) & set(actual_order[1:4])) >= 3)
+
+            # Bonus 3 with 7 horses
+            pmu_bets['bonus3_7horses'] = (pred_order[0] == actual_order[0] and
+                                          len(set(pred_order[1:7]) & set(actual_order[1:3])) >= 2)
+        else:
+            pmu_bets['quinte_7horses'] = False
+            pmu_bets['bonus4_7horses'] = False
+            pmu_bets['bonus3_7horses'] = False
         # 7. Determine which bet types were won (for easier reporting)
         winning_bets = [bet_type for bet_type, result in pmu_bets.items() if result]
 

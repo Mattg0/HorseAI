@@ -25,7 +25,8 @@ class RaceFetcher:
     def __init__(self,
                  db_name: str = None,
                  api_uid: str = "8cdfGeF4pHeSOPv05dPnVyGaghL2",
-                 api_base_url: str = "https://api.aspiturf.com/api",
+                 #   api_base_url: str = "https://api.aspiturf.com/api",
+                 api_base_url: str = "https://horseai.free.beeceptor.com/api",
                  verbose: bool = False):
         """
         Initialize the race fetcher.
@@ -161,6 +162,7 @@ class RaceFetcher:
             Complete API URL
         """
         return f"{self.api_base_url}?uid={self.api_uid}&jour[]={date}"
+        #return "https://e7aaf339-293a-45ba-a477-c03d02480312.mock.pstmn.io"
 
     def fetch_races(self, date: str = None) -> Dict:
         """
@@ -596,7 +598,7 @@ class RaceFetcher:
 
         # Base columns we always want if they exist
         base_cols = ["id", "comp", "jour", "hippo", "reun", "prix", "prixnom", "typec",
-                     "partant", "dist", "quinte", "natpis", "created_at"]
+                     "partant", "dist", "quinte", "natpis","participants", "created_at"]
 
         # Filter to include only columns that exist
         select_cols = [col for col in base_cols if col in columns]
@@ -656,7 +658,8 @@ class RaceFetcher:
         available_columns = [info[1] for info in cursor.fetchall()]  # Column names are in position 1
 
         # Execute query
-        cursor.execute("SELECT * FROM daily_race WHERE comp = ?", (comp,))
+       # cursor.execute("SELECT * FROM daily_race WHERE comp = ? LIMIT 0,1", (comp))
+        cursor.execute("SELECT * FROM daily_race WHERE comp = 1578898 LIMIT 0,1")
         row = cursor.fetchone()
 
         if row:
