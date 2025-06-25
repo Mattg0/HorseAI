@@ -13,7 +13,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 from utils.env_setup import AppConfig, get_sqlite_dbpath
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from model_training.regressions.isotonic_calibration import CalibratedRegressor
-from utils.model_manager import get_model_manager
+from utils.model_manager import ModelManager
 
 
 class HorseRaceModel:
@@ -30,12 +30,13 @@ class HorseRaceModel:
         # Get database configuration
         self.db_type = self.config._config.base.active_db
         db_path = get_sqlite_dbpath(self.db_type)
-
+        self.model_manager = ModelManager()
         # Get model configuration - FIX: Remove the config parameter
-        self.model_manager = get_model_manager()
-        self.model_paths = self.config.get_model_paths(
-            model_name='hybrid_model'  # Remove the config= parameter
-        )
+        #model_path = manager.get_model_path()
+        #paths = manager.save_model_artifacts(
+        #    model_config={"version": "1.0"},
+        #    db_type= self.db_type
+        #)
 
         # Initialize data orchestrator
         embedding_dim = self.config.get_default_embedding_dim()
@@ -355,43 +356,44 @@ class HorseRaceModel:
             }
         }
 
-    def save_models(self) -> Dict[str, str]:
-        """Save both trained models and results."""
-        if not self.training_results:
-            raise ValueError("No training results to save. Train the models first.")
+    def save_incremental_model(self, rf_model, lstm_model=None, orchestrator=None, blend_weight=0.9):
+        """
+        Save models trained incrementally on daily data.
 
-        # Create version string
-        version = f"{self.db_type}_hybrid_v{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        save_dir = Path(self.model_paths['model_path']) / version
-        save_dir.mkdir(parents=True, exist_ok=True)
+        Args:
+            rf_model: Random Forest model to save
+            lstm_model: LSTM model to save (optional)
+            orchestrator: Orchestrator with feature state (optional)
+            blend_weight: Blend weight for predictions
 
-        self.log_info(f"Saving models to {save_dir}")
+        Returns:
+            Dictionary with paths to saved artifacts
+        """
+        from utils.model_manager import get_model_manager
 
-        # Save models using model manager
-        saved_paths = self.model_manager.save_model_artifacts(
-            base_path=save_dir,
-            rf_model=self.rf_model,
-            lstm_model=self.lstm_model,
-            orchestrator_state={
-                'preprocessing_params': self.orchestrator.preprocessing_params,
-                'embedding_dim': self.orchestrator.embedding_dim,
-                'sequence_length': self.orchestrator.sequence_length,
-                'target_info': self.orchestrator.target_info
-            },
-            model_config={
-                'version': version,
-                'model_type': 'hybrid',
-                'training_results': self.training_results,
-                'blend_weight': self.blend_weight,
-                'created_at': datetime.now().isoformat()
-            },
-            db_type=self.db_type,
-            train_type='hybrid'
+        print("===== SAVING INCREMENTAL MODEL =====")
+
+        # Prepare feature state if orchestrator provided
+        feature_state = None
+        if orchestrator and hasattr(orchestrator, 'preprocessing_params'):
+            feature_state = {
+                'preprocessing_params': orchestrator.preprocessing_params,
+                'embedding_dim': getattr(orchestrator, 'embedding_dim', 16),
+                'sequence_length': getattr(orchestrator, 'sequence_length', 5)
+            }
+
+        # Get the model manager and save
+        model_manager = get_model_manager()
+        saved_paths = model_manager.save_models(
+            rf_model=rf_model,
+            lstm_model=lstm_model,
+            feature_state=feature_state,
+            blend_weight=blend_weight
         )
 
-        self.log_info(f"Models saved successfully to {save_dir}")
-        return saved_paths
+        print(f"Incremental model saved successfully")
 
+        return saved_paths
 
 def main():
     """
@@ -411,7 +413,11 @@ def main():
     )
 
     # Save the trained models
-    saved_paths = model.save_models()
+    saved_paths = model.model_manager.save_models(
+        rf_model=model.rf_model,
+        lstm_model=model.lstm_model,
+        blend_weight=model.blend_weight  # optional
+    )
 
     # Print summary results
     print("\n" + "=" * 50)

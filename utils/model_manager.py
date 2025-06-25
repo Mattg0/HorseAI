@@ -1,4 +1,3 @@
-import os
 import json
 import joblib
 import yaml
@@ -10,26 +9,156 @@ from utils.env_setup import AppConfig
 
 
 class ModelManager:
-    """Helper class for managing model operations."""
+    """Simple model manager for saving and loading models."""
 
     def __init__(self):
         """Initialize the model manager."""
         self.config = AppConfig()
-        self.model_dir = self.config._config.models.model_dir
+        self.model_dir = Path(self.config._config.models.model_dir)
 
-    def get_model_path(self, model_type ='hybrid', db_type=None):
-        """Get the base path for a model."""
-        if db_type is None:
-            db_type = self.config._config.base.active_db
-        return Path(self.model_dir) / db_type / model_type
+    def get_model_path(self):
+        """Get the path of the latest model from config."""
+        # Read latest model from config
+        try:
+            with open("config.yaml", 'r') as f:
+                config_data = yaml.safe_load(f)
 
-    def get_version_path(self, db_type, train_type='full'):
-        """Generate a version string with the current date."""
-        date = datetime.now().strftime('%Y%m%d')
-        return f"{db_type}_{train_type}_v{date}"
+            if 'models' in config_data and 'latest_model' in config_data['models']:
+                latest_model = config_data['models']['latest_model']
+                model_path = self.model_dir / latest_model
 
-    def update_config_reference(self, version, model_type='hybrid'):
-        """Update model reference in config.yaml."""
+                if model_path.exists():
+                    return model_path
+        except:
+            pass
+
+        # Fallback: find the most recent model directory
+        latest_dir = self._find_latest_model_dir()
+        if latest_dir is None:
+            print("No existing models found. New models will be created during training.")
+            return None
+
+        return latest_dir
+
+    def _find_latest_model_dir(self):
+        """Find the most recent model directory by scanning the filesystem."""
+        if not self.model_dir.exists():
+            print(f"Model directory {self.model_dir} does not exist yet")
+            return None
+
+        # Look for date directories
+        date_dirs = [d for d in self.model_dir.iterdir()
+                     if d.is_dir() and len(d.name) == 10 and '-' in d.name]
+
+        if not date_dirs:
+            print(f"No model directories found in {self.model_dir}")
+            return None
+
+        # Sort by date and get the latest
+        latest_date_dir = sorted(date_dirs)[-1]
+
+        # Find the latest timestamp directory
+        timestamp_dirs = [d for d in latest_date_dir.iterdir() if d.is_dir()]
+
+        if not timestamp_dirs:
+            print(f"No model directories found in {latest_date_dir}")
+            return None
+
+        return sorted(timestamp_dirs)[-1]
+
+    def save_models(self, rf_model=None, lstm_model=None, feature_state=None, blend_weight=None):
+        """Save models with simple date/db based path."""
+        # Ensure models directory exists
+        self.model_dir.mkdir(parents=True, exist_ok=True)
+
+        # Get current date and db type
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        timestamp_str = datetime.now().strftime('%H%M%S')
+        db_type = self.config._config.base.active_db
+
+        # Create path: models/YYYY-MM-DD/db_HHMMSS
+        save_path = self.model_dir / date_str / f"{db_type}_{timestamp_str}"
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        saved_files = {}
+
+        # Save RF model
+        if rf_model is not None:
+            rf_path = save_path / "hybrid_rf_model.joblib"
+            joblib.dump(rf_model, rf_path)
+            saved_files['rf_model'] = rf_path
+
+        # Save LSTM model
+        if lstm_model is not None:
+            lstm_path = save_path / "hybrid_lstm_model.keras"
+            lstm_model.save(lstm_path)
+            saved_files['lstm_model'] = lstm_path
+
+        # Save feature engineering state if provided
+        if feature_state is not None:
+            feature_path = save_path / "hybrid_feature_engineer.joblib"
+            joblib.dump(feature_state, feature_path)
+            saved_files['feature_engineer'] = feature_path
+
+        # Save minimal config
+        config_data = {
+            'db_type': db_type,
+            'created_at': datetime.now().isoformat()
+        }
+
+        # Add blend_weight if provided
+        if blend_weight is not None:
+            config_data['blend_weight'] = blend_weight
+
+        config_path = save_path / "model_config.json"
+        with open(config_path, 'w') as f:
+            json.dump(config_data, f, indent=2)
+        saved_files['model_config'] = config_path
+
+        # Update config.yaml with latest model
+        relative_path = save_path.relative_to(self.model_dir)
+        self._update_config(str(relative_path))
+
+        print(f"Models saved to: {save_path}")
+        return saved_files
+
+    def load_models(self, model_path=None):
+        """Load models from path."""
+        if model_path is None:
+            model_path = self.get_model_path()
+        else:
+            model_path = Path(model_path)
+
+        if model_path is None:
+            raise ValueError("No model path available for loading")
+
+        models = {}
+
+        # Load RF model
+        rf_path = model_path / "hybrid_rf_model.joblib"
+        if rf_path.exists():
+            models['rf_model'] = joblib.load(rf_path)
+
+        # Load LSTM model
+        lstm_path = model_path / "hybrid_lstm_model.keras"
+        if lstm_path.exists():
+            models['lstm_model'] = load_model(lstm_path)
+
+        # Load feature engineering state
+        feature_path = model_path / "hybrid_feature_engineer.joblib"
+        if feature_path.exists():
+            models['feature_state'] = joblib.load(feature_path)
+
+        # Load model config
+        config_path = model_path / "model_config.json"
+        if config_path.exists():
+            with open(config_path, 'r') as f:
+                models['model_config'] = json.load(f)
+
+        return models
+
+    def _update_config(self, model_path):
+        """Update config.yaml with latest model."""
         try:
             with open("config.yaml", 'r') as f:
                 config_data = yaml.safe_load(f)
@@ -37,128 +166,18 @@ class ModelManager:
             if 'models' not in config_data:
                 config_data['models'] = {}
 
-            config_data['models'][f"latest_{model_type}_model"] = version
-
-            # Set appropriate base or incremental reference
-            if '_incremental_' in version:
-                config_data['models']['latest_incremental_model'] = version
-            else:
-                config_data['models']['latest_base_model'] = version
-                config_data['models']['latest_full_model'] = version
+            config_data['models']['latest_model'] = model_path
 
             with open("config.yaml", 'w') as f:
                 yaml.dump(config_data, f, default_flow_style=False)
 
-            print(f"Updated config with model reference: {version}")
-            return True
         except Exception as e:
-            print(f"Error updating config: {e}")
-            return False
-
-    def save_model_artifacts(self, base_path, rf_model=None, lstm_model=None,
-                            orchestrator_state=None, history=None, model_config=None,
-                            db_type=None, train_type='full'):
-        """Save model artifacts to disk."""
-        # Create directory if needed
-        base_path = Path(base_path)
-        base_path.mkdir(parents=True, exist_ok=True)
-
-        saved_paths = {}
-
-        # Save RF model
-        if rf_model is not None:
-            rf_path = base_path / "hybrid_rf_model.joblib"
-            joblib.dump(rf_model, rf_path)
-            saved_paths['rf_model'] = rf_path
-            print(f"Saved RF model to: {rf_path}")
-
-        # Save LSTM model
-        if lstm_model is not None:
-            lstm_path = base_path / "hybrid_lstm_model.keras"
-            lstm_model.save(lstm_path)
-            saved_paths['lstm_model'] = lstm_path
-            print(f"Saved LSTM model to: {lstm_path}")
-
-        # Save feature engineering state
-        if orchestrator_state is not None:
-            feature_path = base_path / "hybrid_feature_engineer.joblib"
-            joblib.dump(orchestrator_state, feature_path)
-            saved_paths['feature_engineer'] = feature_path
-            print(f"Saved feature state to: {feature_path}")
-
-        # Save history
-        if history is not None:
-            history_path = base_path / "lstm_history.joblib"
-            joblib.dump(history, history_path)
-            saved_paths['history'] = history_path
-            print(f"Saved history to: {history_path}")
-
-        # Save config
-        if model_config is not None:
-            # Add version and train_type if not present
-            if 'version' not in model_config:
-                model_config['version'] = base_path.name
-            if 'train_type' not in model_config:
-                model_config['train_type'] = train_type
-
-            config_path = base_path / "model_config.json"
-            with open(config_path, 'w') as f:
-                json.dump(model_config, f, indent=2)
-            saved_paths['model_config'] = config_path
-            print(f"Saved config to: {config_path}")
-
-        # Update config reference
-        version = base_path.name
-        self.update_config_reference(version)
-
-        return saved_paths
-
-    def load_model_artifacts(self, base_path, load_rf=True, load_lstm=True, load_feature_config=True):
-        """Load model artifacts from disk."""
-        base_path = Path(base_path)
-        artifacts = {}
-
-        # Load RF model
-        if load_rf:
-            rf_path = base_path / "hybrid_rf_model.joblib"
-            if rf_path.exists():
-                try:
-                    from model_training.regressions.isotonic_calibration import CalibratedRegressor
-                    artifacts['rf_model'] = CalibratedRegressor.load(rf_path)
-                except:
-                    artifacts['rf_model'] = joblib.load(rf_path)
-                print(f"Loaded RF model from: {rf_path}")
-
-        # Load LSTM model
-        if load_lstm:
-            lstm_path = base_path / "hybrid_lstm_model.keras"
-            if lstm_path.exists():
-                artifacts['lstm_model'] = load_model(lstm_path)
-                print(f"Loaded LSTM model from: {lstm_path}")
-
-                # Load history if available
-                history_path = base_path / "lstm_history.joblib"
-                if history_path.exists():
-                    artifacts['history'] = joblib.load(history_path)
-
-        # Load feature config
-        if load_feature_config:
-            feature_path = base_path / "hybrid_feature_engineer.joblib"
-            if feature_path.exists():
-                artifacts['feature_config'] = joblib.load(feature_path)
-                print(f"Loaded feature config from: {feature_path}")
-
-        # Load model config
-        config_path = base_path / "model_config.json"
-        if config_path.exists():
-            with open(config_path, 'r') as f:
-                artifacts['model_config'] = json.load(f)
-
-        return artifacts
+            print(f"Warning: Could not update config: {e}")
 
 
 # Singleton instance
 _model_manager = None
+
 
 def get_model_manager():
     """Get the singleton model manager instance."""

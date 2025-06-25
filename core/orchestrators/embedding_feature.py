@@ -1004,14 +1004,15 @@ class FeatureEmbeddingOrchestrator:
         )
 
         return X_sequences, X_static, y
-    def prepare_training_dataset(self, df, target_column=None, task_type=None, race_group_split=False):
+
+    def prepare_training_dataset(self, df, target_column='final_position', task_type=None, race_group_split=False):
         """
         Prepare the final dataset for training.
 
         Args:
             df: DataFrame with all data
-            target_column: Column to use as the target variable (None to auto-detect)
-            task_type: 'regression', 'classification', or 'ranking', if None uses default from config
+            target_column: Column to use as the target variable
+            task_type: 'regression', 'classification', or 'ranking'
             race_group_split: Whether to split by race groups
 
         Returns:
@@ -1023,40 +1024,31 @@ class FeatureEmbeddingOrchestrator:
         if task_type is None:
             task_type = self.config.get_default_task_type()
 
-        # If target_column is None, auto-detect based on available columns
-        if target_column is None:
-            target_column = self._detect_target_column(df)
-
-        # Check if specified target column exists
-        if target_column not in df.columns:
-            self.log_info(f"Warning: Target column '{target_column}' not found in DataFrame")
-            # Try to find an alternative target column
-            target_column = self._detect_target_column(df)
-
-        self.log_info(f"Using '{target_column}' as target column")
-
-        # Drop rows with missing target values
-        training_df = df.dropna(subset=[target_column])
+        # Drop rows with missing target values only if the column exists
+        if target_column in df.columns:
+            training_df = df.dropna(subset=[target_column])
+        else:
+            training_df = df
 
         # Ensure raw features have been dropped if embeddings exist
         if any(col.startswith(('horse_emb_', 'jockey_emb_', 'couple_emb_', 'course_emb_')) for col in
                training_df.columns):
-            # Keep identifiers at this stage if we need them for grouping
             keep_ids = race_group_split
             training_df = self.drop_embedded_raw_features(training_df, keep_identifiers=keep_ids, clean_features=True)
 
-        # Prepare the target variable
-        if task_type == 'ranking':
-            y, ranked_df = self.prepare_target_variable(training_df, target_column, task_type)
-            training_df = ranked_df  # Use the ranked dataframe
+        # Prepare the target variable if it exists
+        if target_column in training_df.columns:
+            if task_type == 'ranking':
+                y, ranked_df = self.prepare_target_variable(training_df, target_column, task_type)
+                training_df = ranked_df
+            else:
+                y = self.prepare_target_variable(training_df, target_column, task_type)
         else:
-            y = self.prepare_target_variable(training_df, target_column, task_type)
+            # No target column - create empty Series
+            y = pd.Series(index=training_df.index, dtype='float64')
 
         # Select feature columns (excluding target and identifier columns)
-        exclude_cols = [target_column]
-
-        # Always exclude these columns, even if we kept identifiers earlier
-        exclude_cols.extend(['comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id'])
+        exclude_cols = [target_column, 'comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id']
 
         # Create final feature set
         feature_cols = [col for col in training_df.columns if col not in exclude_cols]
@@ -1067,39 +1059,12 @@ class FeatureEmbeddingOrchestrator:
         self.preprocessing_params['target_column'] = target_column
 
         # Return groups for group-based splitting if requested
-        if race_group_split:
+        if race_group_split and 'comp' in training_df.columns:
             groups = training_df['comp']
             return X, y, groups
 
         return X, y
 
-    def _detect_target_column(self, df):
-        """
-        Auto-detect an appropriate target column from the DataFrame.
-
-        Args:
-            df: DataFrame to check
-
-        Returns:
-            Name of detected target column
-        """
-        # Priority order for target columns
-        target_candidates = ['final_position', 'cl', 'narrivee', 'position']
-
-        for candidate in target_candidates:
-            if candidate in df.columns:
-                self.log_info(f"Auto-detected target column: '{candidate}'")
-                return candidate
-
-        # If none of the priority candidates exist, look for anything with position in the name
-        position_cols = [col for col in df.columns if 'position' in col.lower()]
-        if position_cols:
-            self.log_info(f"Using '{position_cols[0]}' as target column")
-            return position_cols[0]
-
-        # Show all columns to help with debugging
-        self.log_info(f"Available columns: {df.columns.tolist()}")
-        raise ValueError("Could not detect an appropriate target column. Please specify target_column explicitly.")
 
     def split_dataset(self, X, y, test_size=0.2, val_size=0.1, random_state=42, groups=None):
         """
