@@ -79,6 +79,6 @@ models:
   latest_full_model: dev_hybrid_v20250605_201005
   latest_hybrid_model: dev_hybrid_v20250605_201005
   latest_lstm_model: dev_20250407
-  latest_model: 2025-06-23/dev_232434
+  latest_model: 2025-06-27/dev_084725
   latest_rf_model: dev_20250408
   model_dir: ./models

@@ -401,7 +401,8 @@ def main():
     Modify the parameters below as needed.
     """
     # Initialize the model
-    model = HorseRaceModel(verbose=True)
+    model = HorseRaceModel(verbose=True
+                           )
 
     # Train the model with your desired parameters
     results = model.train(
