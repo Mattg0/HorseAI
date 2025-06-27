@@ -69,7 +69,7 @@ class CoupleEmbedding:
     """
 
     def __init__(self, embedding_dim: int = 32, learning_rate: float = 0.001,
-                 batch_size: int = 64, epochs: int = 10):
+                 batch_size: int = 64, epochs: int = 4):
         """
         Initialize the CoupleEmbedding class.
 

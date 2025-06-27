@@ -40,8 +40,7 @@ class DailyPredictor:
 
     def fetch_races(self, date: str = None) -> Dict:
         """Fetch races from API for a specific date."""
-        #date = date or datetime.now().strftime("%Y-%m-%d")
-        date="2025-05-01"
+        date = date or datetime.now().strftime("%Y-%m-%d")
         if self.verbose:
             print(f"🔄 Fetching races for {date}")
 
@@ -57,7 +56,6 @@ class DailyPredictor:
     def predict_races(self, date: str = None, skip_existing: bool = True) -> Dict:
         """Generate predictions for all races on a date."""
         date = date or datetime.now().strftime("%Y-%m-%d")
-        date = "2025-05-01"
         races = self.fetcher.get_races_by_date(date)
 
         if not races:
@@ -94,7 +92,6 @@ class DailyPredictor:
     def evaluate_date(self, date: str = None) -> Dict:
         """Evaluate all predictions for a specific date."""
         date = date or datetime.now().strftime("%Y-%m-%d")
-        date = "2025-05-01"
 
         # Use orchestrator's method which returns the correct structure
         return self.orchestrator.evaluate_predictions_by_date(date)
@@ -102,7 +99,6 @@ class DailyPredictor:
     def daily_report(self, date: str = None) -> Dict:
         """Generate daily report of prediction performance."""
         date = date or datetime.now().strftime("%Y-%m-%d")
-        date = "2025-05-01"
         races = self.fetcher.get_races_by_date(date)
 
         if not races:

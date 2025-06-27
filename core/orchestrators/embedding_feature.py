@@ -220,60 +220,44 @@ class FeatureEmbeddingOrchestrator:
 
     def _expand_participants(self, df_races):
         """
-        Expand the participants JSON into individual rows.
-
-        Args:
-            df_races: DataFrame with race data and JSON participants
-
-        Returns:
-            Expanded DataFrame with one row per participant
+        Clean version: expand participants and convert race results to final_position.
         """
-
         race_dfs = []
 
         for _, race in df_races.iterrows():
             try:
+                # Skip if no participants
                 if pd.isna(race['participants']):
                     continue
 
                 participants = json.loads(race['participants'])
-
                 if not participants:
                     continue
 
-                # Create DataFrame for this race's participants
+                # Create participant DataFrame
                 race_df = pd.DataFrame(participants)
-                if 'cl' in race_df.columns:
-                    race_df['cl'] = self.convert_race_results_to_numeric(race_df['cl'], drop_empty=False)
-                # Add race information to each participant row
+
+                # Add race metadata to each participant
                 for col in df_races.columns:
-                    if col != 'participants' and col != 'ordre_arrivee':
+                    if col not in ['participants', 'ordre_arrivee']:
                         race_df[col] = race[col]
 
-                # Add result information if available
-                if 'ordre_arrivee' in race and race['ordre_arrivee'] and not pd.isna(race['ordre_arrivee']):
-                    try:
-                        results = json.loads(race['ordre_arrivee'])
-                        # Create a mapping of horse IDs to final positions
-                        id_to_position = {res['idche']: res['narrivee'] for res in results}
-
-                        # Add a column for the final position
-                        race_df['final_position'] = race_df['idche'].map(id_to_position)
-                    except json.JSONDecodeError:
-                        pass
+                # Convert 'cl' to 'final_position'
+                if 'cl' in race_df.columns:
+                    race_df['final_position'] = self.convert_race_results_to_numeric(race_df['cl'], drop_empty=False)
+                    race_df = race_df.drop(columns=['cl'])
 
                 race_dfs.append(race_df)
-            except (json.JSONDecodeError, KeyError) as e:
-                print(f"Error processing race {race.get('comp', 'unknown')}: {str(e)}")
+
+            except (json.JSONDecodeError, KeyError):
                 continue
 
-        # Combine all race DataFrames
+        # Combine all races
         if race_dfs:
-            combined_df = pd.concat(race_dfs, ignore_index=True)
+            return pd.concat(race_dfs, ignore_index=True)
         else:
-            combined_df = pd.DataFrame()
+            return pd.DataFrame()
 
-        return combined_df
 
     def fit_embeddings(self, df, use_cache=True):
         """
@@ -432,8 +416,35 @@ class FeatureEmbeddingOrchestrator:
                 print(f"Warning: Could not cache prepared features: {str(e)}")
 
         return processed_df
+    def _detect_target_column(self, df):
+        """
+        Auto-detect an appropriate target column from the DataFrame.
 
-    def prepare_target_variable(self, df, target_column='final_position', task_type=None):
+        Args:
+            df: DataFrame to check
+
+        Returns:
+            Name of detected target column
+        """
+        # Priority order for target columns
+        target_candidates = ['final_position', 'cl', 'narrivee', 'position']
+
+        for candidate in target_candidates:
+            if candidate in df.columns:
+                self.log_info(f"Auto-detected target column: '{candidate}'")
+                return candidate
+
+        # If none of the priority candidates exist, look for anything with position in the name
+        position_cols = [col for col in df.columns if 'position' in col.lower()]
+        if position_cols:
+            self.log_info(f"Using '{position_cols[0]}' as target column")
+            return position_cols[0]
+
+        # Show all columns to help with debugging
+        self.log_info(f"Available columns: {df.columns.tolist()}")
+        raise ValueError("Could not detect an appropriate target column. Please specify target_column explicitly.")
+
+    def prepare_target_variable(self, df, target_column=None, task_type=None):
         """
         Prepare the target variable for training.
 
@@ -702,7 +713,7 @@ class FeatureEmbeddingOrchestrator:
         # 4. Add other metadata columns that should generally be excluded from training
         metadata_columns = [
             'cheval', 'ordre_arrivee', 'participants', 'created_at', 'jour',
-            'prix', 'reun', 'final_position', 'quinte', 'narrivee'
+            'prix', 'reun', 'quinte', 'narrivee'
         ]
         existing = [col for col in metadata_columns if col in clean_df.columns]
         columns_to_drop.extend(existing)
@@ -964,6 +975,7 @@ class FeatureEmbeddingOrchestrator:
     def extract_rf_features(self, complete_df):
         """
         Extract features suitable for Random Forest training.
+        FIXED: Preserves target column specifically for RF (not LSTM).
 
         Args:
             complete_df: Complete dataset with all features
@@ -977,11 +989,24 @@ class FeatureEmbeddingOrchestrator:
         sequence_cols = [col for col in rf_df.columns if 'jour' in col.lower()]
         rf_df = rf_df.drop(columns=sequence_cols, errors='ignore')
 
-        # Apply standard RF cleaning (drop raw features, keep only processed ones)
+        # PRESERVE target column before cleaning
+        target_column = 'final_position'
+        target_backup = None
+
+        if target_column in rf_df.columns:
+            target_backup = rf_df[target_column].copy()
+            self.log_info(f"Backing up target column '{target_column}' with {target_backup.count()} valid values")
+
+        # Apply standard RF cleaning (this will drop final_position as metadata)
         rf_df = self.drop_embedded_raw_features(rf_df, keep_identifiers=False)
 
+        # RESTORE target column after cleaning
+        if target_backup is not None:
+            rf_df[target_column] = target_backup
+            self.log_info(f"Restored target column '{target_column}' after cleaning")
+
         # Prepare training dataset
-        X, y = self.prepare_training_dataset(rf_df)
+        X, y = self.prepare_training_dataset(rf_df, target_column=target_column)
 
         return X, y
 
@@ -1024,11 +1049,20 @@ class FeatureEmbeddingOrchestrator:
         if task_type is None:
             task_type = self.config.get_default_task_type()
 
-        # Drop rows with missing target values only if the column exists
-        if target_column in df.columns:
-            training_df = df.dropna(subset=[target_column])
-        else:
-            training_df = df
+        # If target_column is None, auto-detect based on available columns
+        if target_column is None:
+            target_column = self._detect_target_column(df)
+
+        # Check if specified target column exists
+        if target_column not in df.columns:
+            self.log_info(f"Warning: Target column '{target_column}' not found in DataFrame")
+            # Try to find an alternative target column
+            target_column = self._detect_target_column(df)
+
+        self.log_info(f"Using '{target_column}' as target column")
+
+        # Drop rows with missing target values
+        training_df = df.dropna(subset=[target_column])
 
         # Ensure raw features have been dropped if embeddings exist
         if any(col.startswith(('horse_emb_', 'jockey_emb_', 'couple_emb_', 'course_emb_')) for col in
