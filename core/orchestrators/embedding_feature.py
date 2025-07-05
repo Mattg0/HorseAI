@@ -540,10 +540,6 @@ class FeatureEmbeddingOrchestrator:
         # First convert to pandas Series for easier handling
         results = pd.Series(results_array)
 
-        # Create a mask for empty strings
-        empty_mask = results.astype(str).str.strip() == ''
-        if empty_mask.sum() > 0:
-            self.log_info(f"Found {empty_mask.sum()} empty result values")
 
         # Get current max numeric value to use as base for non-finishers
         try:
@@ -597,11 +593,6 @@ class FeatureEmbeddingOrchestrator:
 
         # Apply conversion to each value
         numeric_results = np.array([convert_value(val) for val in results])
-
-        # Count non-numeric conversions for logging
-        non_numeric_count = len(results) - sum(1 for x in results if pd.notna(x) and isinstance(x, (int, float)))
-        if non_numeric_count > 0:
-            self.log_info(f"Converted {non_numeric_count} non-numeric results to numeric values")
 
         if drop_empty:
             # Create mask of valid (non-empty) entries

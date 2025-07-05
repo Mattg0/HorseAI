@@ -25,8 +25,8 @@ class RaceFetcher:
     def __init__(self,
                  db_name: str = None,
                  api_uid: str = "8cdfGeF4pHeSOPv05dPnVyGaghL2",
-                 #   api_base_url: str = "https://api.aspiturf.com/api",
-                 api_base_url: str = "https://horseai.free.beeceptor.com/api",
+                 api_base_url: str = "https://api.aspiturf.com/api",
+                 #api_base_url: str = "https://horseai.free.beeceptor.com/api",
                  verbose: bool = False):
         """
         Initialize the race fetcher.
@@ -638,7 +638,66 @@ class RaceFetcher:
 
         self.logger.info(f"Found {len(races)} races for date {date}")
         return races
+    def get_all_daily_races(self) -> List[Dict]:
+        """
+        Get all races stored for a specific date.
 
+        Args:
+            date: Date string in format YYYY-MM-DD
+
+        Returns:
+            List of race information dictionaries
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row  # This enables column access by name
+        cursor = conn.cursor()
+
+        # Get table info to check available columns
+        cursor.execute("PRAGMA table_info(daily_race)")
+        columns = [info[1] for info in cursor.fetchall()]  # Column names are in position 1
+
+        # Base columns we always want if they exist
+        base_cols = ["id", "comp", "jour", "hippo", "reun", "prix", "prixnom", "typec",
+                     "partant", "dist", "quinte", "natpis","participants","prediction_results", "created_at"]
+
+        # Filter to include only columns that exist
+        select_cols = [col for col in base_cols if col in columns]
+
+        # Add CASE statements for special indicator columns
+        select_items = select_cols.copy()
+
+        # Check for participants data
+        if "participants" in columns:
+            select_items.append(
+                "CASE WHEN participants IS NOT NULL AND participants != '[]' THEN 1 ELSE 0 END as has_processed_data")
+        else:
+            select_items.append("0 as has_processed_data")
+
+        # Check for predictions
+        if "prediction_results" in columns:
+            select_items.append("CASE WHEN prediction_results IS NOT NULL THEN 1 ELSE 0 END as has_predictions")
+        else:
+            select_items.append("0 as has_predictions")
+
+        # Check for results
+        if "actual_results" in columns:
+            select_items.append(
+                "CASE WHEN actual_results IS NOT NULL AND actual_results != 'pending' THEN 1 ELSE 0 END as has_results")
+        else:
+            select_items.append("0 as has_results")
+
+        # Construct the query
+        query = f"SELECT {', '.join(select_items)} FROM daily_race"
+
+        cursor.execute(query)
+        rows = cursor.fetchall()
+
+        # Convert rows to dictionaries
+        races = [dict(row) for row in rows]
+        conn.close()
+
+        self.logger.info(f"Found {len(races)} races")
+        return races
     def get_race_by_comp(self, comp: str) -> Optional[Dict]:
         """
         Get race information by race ID (comp).
@@ -658,8 +717,7 @@ class RaceFetcher:
         available_columns = [info[1] for info in cursor.fetchall()]  # Column names are in position 1
 
         # Execute query
-       # cursor.execute("SELECT * FROM daily_race WHERE comp = ? LIMIT 0,1", (comp))
-        cursor.execute("SELECT * FROM daily_race WHERE comp = 1578898 LIMIT 0,1")
+        cursor.execute("SELECT * FROM daily_race WHERE comp = ?", (comp,))
         row = cursor.fetchone()
 
         if row:

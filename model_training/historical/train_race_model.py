@@ -395,14 +395,20 @@ class HorseRaceModel:
 
         return saved_paths
 
-def main():
+
+def main(progress_callback=None):
     """
     Main function to train the hybrid model from IDE.
     Modify the parameters below as needed.
     """
+    if progress_callback:
+        progress_callback(5, "Initializing model...")
+
     # Initialize the model
-    model = HorseRaceModel(verbose=True
-                           )
+    model = HorseRaceModel(verbose=False)
+
+    if progress_callback:
+        progress_callback(10, "Loading and preparing data...")
 
     # Train the model with your desired parameters
     results = model.train(
@@ -413,6 +419,9 @@ def main():
         random_state=42  # For reproducible results
     )
 
+    if progress_callback:
+        progress_callback(90, "Saving trained models...")
+
     # Save the trained models
     saved_paths = model.model_manager.save_models(
         rf_model=model.rf_model,
@@ -420,7 +429,10 @@ def main():
         blend_weight=model.blend_weight  # optional
     )
 
-    # Print summary results
+    if progress_callback:
+        progress_callback(100, "Training completed successfully!")
+
+# Print summary results
     print("\n" + "=" * 50)
     print("TRAINING COMPLETED")
     print("=" * 50)

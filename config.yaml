@@ -75,10 +75,5 @@ lstm:
   - course_emb_2
   step_size: 1
 models:
-  latest_base_model: dev_hybrid_v20250605_201005
-  latest_full_model: dev_hybrid_v20250605_201005
-  latest_hybrid_model: dev_hybrid_v20250605_201005
-  latest_lstm_model: dev_20250407
-  latest_model: 2025-06-27/dev_084725
-  latest_rf_model: dev_20250408
+  latest_model: 2025-07-03/2years_115832
   model_dir: ./models
