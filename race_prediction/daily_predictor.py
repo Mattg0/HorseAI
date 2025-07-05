@@ -7,7 +7,7 @@ import json
 from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
 from core.connectors.api_daily_sync import RaceFetcher
 from utils.env_setup import AppConfig
-from utils.predict_evaluator import EvaluationReporter
+from utils.predict_evaluator import EvaluationMetrics
 
 class DailyPredictor:
     """Daily predictor for horse race predictions."""
@@ -202,10 +202,10 @@ def fetch_and_predict_today(model_path: str = None, verbose: bool = True) -> Dic
     }
 
 
-def evaluate_today(verbose: bool = True) -> Dict:
+def evaluate_today(verbose: bool = True, date : str = None ) -> Dict:
     """Evaluate today's predictions against results."""
     predictor = DailyPredictor(verbose=verbose)
-    return predictor.evaluate_date()
+    return predictor.evaluate_date(date)
 
 
 def daily_report(date: str = None, verbose: bool = True) -> Dict:
@@ -250,12 +250,13 @@ def generate_evaluation_report(self, evaluation_results: Dict) -> str:
 # Example workflow
 if __name__ == "__main__":
     # Step 1: Fetch and predict
-    print("📊 Fetching and predicting races...")
-    prediction_results = fetch_and_predict_today(verbose=True)
+   # print("📊 Fetching and predicting races...")
+    predictor= DailyPredictor()
+   # prediction_results = predictor.fetch_races('2025-06-30')
 
     # Step 2: Evaluate predictions with formatted report
     print("\n📊 Evaluating predictions...")
-    evaluation = evaluate_today(verbose=True)
+    evaluation = evaluate_today('2025-06-30')
 
     # Step 3: Generate and print the evaluation report
     if 'summary_metrics' in evaluation:

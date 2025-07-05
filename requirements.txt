@@ -7,3 +7,5 @@ joblib
 pydantic
 matplotlib
 lightgbm
+streamlit
+YAML2ST

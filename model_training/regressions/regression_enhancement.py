@@ -1,162 +1,48 @@
-#!/usr/bin/env python
-# model_training/regression_enhancement.py
+# model_training/regressions/regression_enhancement.py
 
-import os
-import sys
 import pandas as pd
 import numpy as np
-import json
 import sqlite3
-import argparse
-import logging
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Dict, List, Tuple, Any, Optional
 import joblib
+import json
 import matplotlib.pyplot as plt
+from pathlib import Path
+from datetime import datetime, timedelta
+from typing import Dict, List, Union, Any, Optional, Tuple
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from model_training.regressions.error_correction import build_correction_models
+from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
 
-# Add parent directory to path if needed
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Import project modules
-from utils.env_setup import AppConfig, get_sqlite_dbpath
+from utils.env_setup import AppConfig
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
-from model_training.regressions.isotonic_calibration import (
-    CalibratedRegressor, regression_metrics_report, plot_prediction_vs_actual,
-    plot_calibration_effect, plot_histogram_of_errors
-)
+from utils.model_manager import get_model_manager
+from core.orchestrators.race_archiver import RaceArchiver
 
 
-class CombinedModel:
-    def __init__(self, base_model, correction_models, blend_weight=0.5):
-        self.base_model = base_model
-        self.correction_models = correction_models
-        self.blend_weight = blend_weight
-
-    def predict(self, X, race_type=None):
-        # First get base predictions
-        base_preds = self.base_model.predict(X)
-
-        # Create DataFrame for correction models
-        X_corrector = pd.DataFrame(X, columns=X.columns if hasattr(X, 'columns') else None)
-        X_corrector['predicted_position'] = base_preds
-
-        # Determine which correction model to use
-        if race_type and race_type in self.correction_models:
-            correction_model = self.correction_models[race_type]
-        else:
-            correction_model = self.correction_models.get('global')
-
-        # Apply correction model if available
-        if correction_model is not None:
-            # Get feature names required by the correction model
-            if hasattr(correction_model, 'feature_names_in_'):
-                required_features = correction_model.feature_names_in_
-            else:
-                # Assume it needs at least predicted_position
-                required_features = ['predicted_position']
-
-            # Ensure all required features are present
-            for feature in required_features:
-                if feature not in X_corrector.columns:
-                    X_corrector[feature] = 0  # Default value
-
-            # Get corrected predictions
-            corrected_preds = correction_model.predict(X_corrector[required_features])
-
-            # Blend predictions
-            final_preds = (base_preds * self.blend_weight +
-                           corrected_preds * (1 - self.blend_weight))
-        else:
-            # If no correction model, use base predictions
-            final_preds = base_preds
-
-        return final_preds
-
-    def predict_with_type(self, X, race_types):
-        """Predict with race types specified for each sample."""
-        # Get base predictions for all samples
-        base_preds = self.base_model.predict(X)
-
-        # Initialize final predictions with base predictions
-        final_preds = base_preds.copy()
-
-        # Group samples by race type
-        unique_types = set(race_types)
-
-        # Create DataFrame for correction
-        X_corrector = pd.DataFrame(X, columns=X.columns if hasattr(X, 'columns') else None)
-        X_corrector['predicted_position'] = base_preds
-
-        # Apply correction for each race type
-        for race_type in unique_types:
-            # Find indices for this race type
-            indices = [i for i, rt in enumerate(race_types) if rt == race_type]
-
-            if not indices:
-                continue
-
-            # Get the appropriate correction model
-            correction_model = (self.correction_models.get(race_type) or
-                                self.correction_models.get('global'))
-
-            if correction_model is None:
-                continue
-
-            # Get feature names required by the correction model
-            if hasattr(correction_model, 'feature_names_in_'):
-                required_features = correction_model.feature_names_in_
-            else:
-                # Assume it needs at least predicted_position
-                required_features = ['predicted_position']
-
-            # Ensure all required features are present
-            for feature in required_features:
-                if feature not in X_corrector.columns:
-                    X_corrector[feature] = 0  # Default value
-
-            # Get the subset for this race type
-            X_subset = X_corrector.iloc[indices]
-
-            # Get corrected predictions
-            corrected_preds = correction_model.predict(X_subset[required_features])
-
-            # Blend predictions
-            for i, index in enumerate(indices):
-                final_preds[index] = (base_preds[index] * self.blend_weight +
-                                      corrected_preds[i] * (1 - self.blend_weight))
-
-        return final_preds
-
-class RegressionEnhancer:
+class IncrementalTrainingPipeline:
     """
-    Analyzes prediction gaps and enhances models using regression analysis.
-
-    This module focuses on:
-    1. Identifying systematic prediction errors
-    2. Building regression models to understand these gaps
-    3. Updating models to correct for identified biases
-    4. Verifying improved performance
+    Incremental training pipeline that:
+    1. Fetches completed races from daily_race table (with predictions and results)
+    2. Performs regression analysis and model improvement
+    3. Creates new incremental model if improvements are found
+    4. Archives races from daily_race to historical_races upon success
     """
 
-    def __init__(self, model_path: str, db_name: str = None,
+    def __init__(self, model_path: str = None, db_name: str = None,
                  output_dir: str = None, verbose: bool = False):
         """
-        Initialize the regression enhancer.
+        Initialize the incremental training pipeline.
 
         Args:
-            model_path: Path to the model directory
+            model_path: Path to the base model (if None, uses latest from config)
             db_name: Database name from config (defaults to active_db)
-            output_dir: Directory for output files (defaults to model_path/analysis)
-            verbose: Whether to enable verbose output
+            output_dir: Directory for analysis outputs
+            verbose: Whether to print verbose output
         """
-        # Initialize config
+        # Initialize config and database
         self.config = AppConfig()
+        self.verbose = verbose
 
         # Set database
         if db_name is None:
@@ -167,133 +53,93 @@ class RegressionEnhancer:
         # Get database path
         self.db_path = self.config.get_sqlite_dbpath(self.db_name)
 
-        # Model path should be a directory
-        self.model_path = Path(model_path)
-        if not self.model_path.exists():
-            raise FileNotFoundError(f"Model path {self.model_path} does not exist")
-
-        # Find latest version if it exists
-        versions = [d for d in self.model_path.iterdir()
-                    if d.is_dir() and d.name.startswith('v')]
-
-        if versions:
-            versions.sort(reverse=True)
-            self.version_path = versions[0]
-        else:
-            self.version_path = self.model_path
-
-        # Set up output directory
-        if output_dir is None:
-            self.output_dir = self.version_path / "analysis"
-        else:
-            self.output_dir = Path(output_dir)
-
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Set verbosity
-        self.verbose = verbose
-
-        # Set up logging
-        self._setup_logging()
-
-        # Set up paths
-        self.rf_model_path = self.version_path / "hybrid_rf_model.joblib"
-        self.feature_config_path = self.version_path / "hybrid_feature_engineer.joblib"
-        self.model_config_path = self.version_path / "model_config.json"
-
-        # Initialize components
+        # Initialize orchestrator for data processing
         self.orchestrator = FeatureEmbeddingOrchestrator(
             sqlite_path=self.db_path,
             verbose=verbose
         )
 
-        # Load models
+        # Initialize race archiver for moving races
+        self.race_archiver = RaceArchiver(db_name=db_name, verbose=verbose)
+
+        # Get model manager and path
+        self.model_manager = get_model_manager()
+        if model_path is None:
+            self.model_path = self.model_manager.get_model_path()
+        else:
+            self.model_path = Path(model_path)
+
+        # Setup output directory
+        if output_dir is None:
+            self.output_dir = Path("incremental_training") / datetime.now().strftime('%Y%m%d_%H%M%S')
+        else:
+            self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Load existing models
         self._load_models()
 
-        # Initialize bias correction models
-        self.bias_models = {}
+        # Initialize containers
+        self.improvement_threshold = 0.05  # 5% improvement required to create new model
+        self.processed_races = []
 
-        self.logger.info(f"Regression Enhancer initialized with model at {self.version_path}")
-
-    def _setup_logging(self):
-        """Set up logging."""
-        log_file = self.output_dir / f"regression_analysis_{datetime.now().strftime('%Y%m%d')}.log"
-
-        logging.basicConfig(
-            level=logging.DEBUG if self.verbose else logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(log_file),
-                logging.StreamHandler()
-            ],
-            force=True
-        )
-
-        self.logger = logging.getLogger("RegressionEnhancer")
-        self.logger.info(f"Logging initialized to {log_file}")
+        if self.verbose:
+            print(f"IncrementalTrainingPipeline initialized")
+            print(f"  Base Model: {self.model_path}")
+            print(f"  Database: {self.db_path}")
+            print(f"  Output: {self.output_dir}")
 
     def _load_models(self):
-        """Load existing models and configurations."""
+        """Load base models and configuration."""
+        if self.model_path is None:
+            if self.verbose:
+                print("No base model path available")
+            self.rf_model = None
+            self.lstm_model = None
+            self.model_config = {}
+            return
+
+        if self.verbose:
+            print(f"Loading base models from: {self.model_path}")
+
         try:
-            with open(self.model_config_path, 'r') as f:
-                self.model_config = json.load(f)
-                self.logger.info(f"Loaded model config: {self.model_config.get('version', 'unknown')}")
+            models = self.model_manager.load_models(str(self.model_path))
+
+            self.rf_model = models.get('rf_model')
+            self.lstm_model = models.get('lstm_model')
+            self.model_config = models.get('model_config', {})
+
+            if self.verbose:
+                print(f"Loaded models: RF={self.rf_model is not None}, LSTM={self.lstm_model is not None}")
+
         except Exception as e:
-            self.logger.error(f"Error loading model config: {str(e)}")
+            if self.verbose:
+                print(f"Error loading models: {e}")
+            self.rf_model = None
+            self.lstm_model = None
             self.model_config = {}
 
-        try:
-            self.feature_config = joblib.load(self.feature_config_path)
-            self.logger.info("Loaded feature engineering configuration")
-
-            # Update orchestrator with feature configuration
-            if isinstance(self.feature_config, dict):
-                if 'preprocessing_params' in self.feature_config:
-                    self.orchestrator.preprocessing_params.update(
-                        self.feature_config['preprocessing_params']
-                    )
-                if 'embedding_dim' in self.feature_config:
-                    self.orchestrator.embedding_dim = self.feature_config['embedding_dim']
-        except Exception as e:
-            self.logger.error(f"Error loading feature config: {str(e)}")
-            self.feature_config = {}
-
-        try:
-            rf_data = joblib.load(self.rf_model_path)
-
-            # Handle different saving formats
-            if isinstance(rf_data, dict) and 'model' in rf_data:
-                self.rf_model = rf_data['model']
-            elif isinstance(rf_data, CalibratedRegressor):
-                self.rf_model = rf_data
-            elif hasattr(rf_data, 'predict') and callable(getattr(rf_data, 'predict')):
-                self.rf_model = rf_data
-            else:
-                self.rf_model = rf_data
-
-            self.logger.info(f"Loaded RF model: {type(self.rf_model)}")
-        except Exception as e:
-            self.logger.error(f"Error loading RF model: {str(e)}")
-            self.rf_model = None
-
-    def collect_prediction_data(self, date_from: str = None, date_to: str = None,
-                                limit: int = None) -> pd.DataFrame:
+    def fetch_completed_races(self, date_from: str = None, date_to: str = None,
+                              limit: int = None) -> List[Dict]:
         """
-        Collect prediction data from completed races.
+        Fetch completed races from daily_race table that have both predictions and results.
 
         Args:
-            date_from: Start date (YYYY-MM-DD)
-            date_to: End date (YYYY-MM-DD)
-            limit: Maximum number of races to collect
+            date_from: Start date for fetching races (YYYY-MM-DD)
+            date_to: End date for fetching races (YYYY-MM-DD)
+            limit: Maximum number of races to fetch
 
         Returns:
-            DataFrame with prediction data
+            List of race dictionaries with predictions and results
         """
+        if self.verbose:
+            print(f"Fetching completed races from {date_from} to {date_to}")
+
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        # Build query with optional date filters
+        # Query for races with both predictions and actual results
         query = """
         SELECT * FROM daily_race 
         WHERE actual_results IS NOT NULL 
@@ -317,1221 +163,1022 @@ class RegressionEnhancer:
 
         cursor.execute(query, params)
         rows = cursor.fetchall()
-
-        # Process races to extract prediction vs actual results
-        prediction_data = []
-
-        for row in rows:
-            race = dict(row)
-            race_id = race['comp']
-
-            try:
-                # Parse JSON for prediction_results and participants
-                for field in ['prediction_results', 'participants']:
-                    if race.get(field) and isinstance(race[field], str):
-                        try:
-                            race[field] = json.loads(race[field])
-                        except json.JSONDecodeError as e:
-                            self.logger.error(f"Error parsing JSON for {field} in race {race_id}: {str(e)}")
-                            race[field] = []
-
-                # Process actual_results - always a hyphen-separated string
-                actual_results = race.get('actual_results', '')
-                if not actual_results or actual_results == 'pending':
-                    # Skip races without results
-                    continue
-
-                # Parse the hyphen-separated finishing order
-                try:
-                    # Format: "1-4-2-3" (numeros in order of finish)
-                    numeros = actual_results.split('-')
-                    actual_positions = {numeros[i]: i + 1 for i in range(len(numeros))}
-                except Exception as e:
-                    self.logger.error(f"Error parsing actual_results '{actual_results}' for race {race_id}: {str(e)}")
-                    continue
-
-                # Extract predictions
-                predictions = []
-                pred_results = race.get('prediction_results', {})
-
-                if isinstance(pred_results, dict) and 'predictions' in pred_results:
-                    predictions = pred_results['predictions']
-                elif isinstance(pred_results, list):
-                    predictions = pred_results
-                else:
-                    # Skip if we can't get predictions
-                    continue
-
-                # Extract participant info if available
-                participants_dict = {}
-                participants = race.get('participants', [])
-                if isinstance(participants, list):
-                    for p in participants:
-                        if isinstance(p, dict) and 'numero' in p:
-                            participants_dict[str(p['numero'])] = p
-
-                # Add race features
-                race_features = {
-                    'race_id': race_id,
-                    'jour': race.get('jour'),
-                    'hippo': race.get('hippo'),
-                    'typec': race.get('typec'),
-                    'dist': race.get('dist'),
-                    'natpis': race.get('natpis'),
-                    'meteo': race.get('meteo'),
-                    'temperature': race.get('temperature'),
-                    'corde': race.get('corde'),
-                    'quinte': 1 if race.get('quinte') else 0,
-                    'partant': race.get('partant')
-                }
-
-                # Match predictions with actual results
-                for pred in predictions:
-                    if not isinstance(pred, dict):
-                        continue
-
-                    numero = str(pred.get('numero', ''))
-                    if not numero or numero not in actual_positions:
-                        continue
-
-                    # Get predicted position
-                    pred_pos = pred.get('predicted_position')
-                    if pred_pos is None:
-                        continue
-
-                    try:
-                        pred_pos = float(pred_pos)
-                    except (ValueError, TypeError):
-                        continue
-
-                    # Build data entry
-                    entry = {
-                        **race_features,
-                        'numero': numero,
-                        'predicted_position': pred_pos,
-                        'actual_position': actual_positions[numero],
-                        'prediction_error': pred_pos - actual_positions[numero],
-                        'abs_error': abs(pred_pos - actual_positions[numero])
-                    }
-
-                    # Add participant features if available
-                    participant = participants_dict.get(numero, {})
-                    for key in ['cotedirect', 'age', 'poidmont', 'ratio_victoires',
-                                'ratio_places', 'victoirescheval', 'placescheval']:
-                        if key in participant:
-                            entry[key] = participant[key]
-
-                    prediction_data.append(entry)
-
-            except Exception as e:
-                self.logger.error(f"Error processing race {race_id}: {str(e)}")
-                import traceback
-                self.logger.error(traceback.format_exc())
-
         conn.close()
 
-        # Convert to DataFrame
-        if prediction_data:
-            df = pd.DataFrame(prediction_data)
-            self.logger.info(f"Collected prediction data for {len(df)} horses from {df['race_id'].nunique()} races")
-            return df
-        else:
-            self.logger.warning("No prediction data collected")
-            return pd.DataFrame()
+        # Convert to list of dictionaries
+        races = [dict(row) for row in rows]
 
-    def analyze_prediction_gaps(self, prediction_df: pd.DataFrame) -> Dict[str, Any]:
+        if self.verbose:
+            print(f"Found {len(races)} completed races with predictions and results")
+
+        return races
+
+    def extract_training_data(self, races: List[Dict]) -> pd.DataFrame:
         """
-        Perform detailed analysis of prediction gaps.
+        Extract training data from daily races for incremental learning.
 
         Args:
-            prediction_df: DataFrame with prediction data
+            races: List of race dictionaries from daily_race table
 
         Returns:
-            Dictionary with analysis results
+            DataFrame with features, predictions, and actual results
         """
-        if len(prediction_df) == 0:
-            return {"status": "error", "message": "No prediction data provided"}
+        if self.verbose:
+            print("Extracting training data from daily races...")
 
-        self.logger.info(f"Analyzing prediction gaps for {len(prediction_df)} samples")
+        training_samples = []
 
-        # 1. Overall error metrics
-        overall_metrics = {
-            "count": len(prediction_df),
-            "mean_error": prediction_df['prediction_error'].mean(),
-            "median_error": prediction_df['prediction_error'].median(),
-            "mean_abs_error": prediction_df['abs_error'].mean(),
-            "rmse": np.sqrt(np.mean(prediction_df['prediction_error'] ** 2)),
-            "error_std": prediction_df['prediction_error'].std()
-        }
+        for race in races:
+            try:
+                # Parse JSON fields
+                participants = json.loads(race['participants']) if isinstance(race['participants'], str) else race[
+                    'participants']
+                prediction_results = json.loads(race['prediction_results']) if isinstance(race['prediction_results'],
+                                                                                          str) else race[
+                    'prediction_results']
 
-        # Check for bias (systematic over/under prediction)
-        if abs(overall_metrics["mean_error"]) > 0.2:  # Threshold for considering it biased
-            bias_direction = "over-prediction" if overall_metrics["mean_error"] < 0 else "under-prediction"
-            overall_metrics["bias"] = {
-                "direction": bias_direction,
-                "magnitude": abs(overall_metrics["mean_error"])
-            }
+                # Parse actual results (hyphen-separated string: "1-4-2-3")
+                actual_results = race['actual_results']
+                if not actual_results or actual_results == 'pending':
+                    continue
 
-        # 2. Error distribution visualization
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+                # Create position mapping from actual results
+                finishing_order = actual_results.split('-')
+                actual_positions = {finishing_order[i]: i + 1 for i in range(len(finishing_order))}
 
-        # Histogram of prediction errors
-        ax1.hist(prediction_df['prediction_error'], bins=30, alpha=0.7)
-        ax1.axvline(0, color='black', linestyle='-', linewidth=1)
-        ax1.axvline(overall_metrics["mean_error"], color='red', linestyle='--',
-                    label=f'Mean: {overall_metrics["mean_error"]:.2f}')
-        ax1.set_title('Prediction Error Distribution')
-        ax1.set_xlabel('Prediction Error (Predicted - Actual)')
-        ax1.set_ylabel('Frequency')
-        ax1.legend()
+                # Extract predictions (assuming they're in prediction_results['predictions'])
+                predictions = prediction_results.get('predictions', [])
+                if not predictions:
+                    continue
 
-        # Scatter plot of predicted vs actual
-        ax2.scatter(prediction_df['actual_position'], prediction_df['predicted_position'],
-                    alpha=0.5, s=20)
-        min_val = min(prediction_df['actual_position'].min(), prediction_df['predicted_position'].min())
-        max_val = max(prediction_df['actual_position'].max(), prediction_df['predicted_position'].max())
-        ax2.plot([min_val, max_val], [min_val, max_val], 'r--')
-        ax2.set_title('Predicted vs Actual Positions')
-        ax2.set_xlabel('Actual Position')
-        ax2.set_ylabel('Predicted Position')
+                # Process each participant
+                for participant in participants:
+                    numero = str(participant.get('numero', ''))
+                    if numero not in actual_positions:
+                        continue
 
-        # Save plot
-        plt.tight_layout()
-        fig.savefig(self.output_dir / 'prediction_error_analysis.png', dpi=300)
-        plt.close(fig)
+                    # Find matching prediction
+                    pred_data = None
+                    for pred in predictions:
+                        if str(pred.get('numero', '')) == numero:
+                            pred_data = pred
+                            break
 
-        # 3. Error analysis by race and horse factors
-        factor_analyses = {}
+                    if not pred_data:
+                        continue
 
-        # Analysis by race type
-        if 'typec' in prediction_df.columns:
-            type_analysis = prediction_df.groupby('typec').agg({
-                'prediction_error': ['count', 'mean', 'std'],
-                'abs_error': 'mean',
-                'actual_position': 'count'
-            })
+                    # Create training sample
+                    sample = {
+                        'comp': race['comp'],
+                        'jour': race['jour'],
+                        'numero': numero,
+                        'actual_position': actual_positions[numero],
+                        'predicted_position': pred_data.get('predicted_position', 0),
+                        'predicted_rank': pred_data.get('predicted_rank', 0),
+                        # Add race features
+                        'typec': race.get('typec', ''),
+                        'dist': race.get('dist', 0),
+                        'partant': race.get('partant', 0),
+                        'hippo': race.get('hippo', ''),
+                        # Add participant features (these should match training features)
+                        **{k: v for k, v in participant.items() if k not in ['numero']}
+                    }
 
-            # Filter to include only types with enough data
-            type_analysis = type_analysis[type_analysis[('prediction_error', 'count')] >= 10]
+                    training_samples.append(sample)
 
-            # Unstack the MultiIndex columns
-            type_analysis.columns = [f"{col[0]}_{col[1]}" for col in type_analysis.columns]
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error processing race {race.get('comp', 'unknown')}: {e}")
+                continue
 
-            # Calculate RMSE for each type
-            for race_type in type_analysis.index:
-                type_data = prediction_df[prediction_df['typec'] == race_type]
-                type_analysis.loc[race_type, 'rmse'] = np.sqrt(np.mean(type_data['prediction_error'] ** 2))
+        training_df = pd.DataFrame(training_samples)
 
-            # Create visualization
-            fig, ax = plt.subplots(figsize=(10, 6))
-            bars = ax.bar(type_analysis.index, type_analysis['prediction_error_mean'])
+        if self.verbose:
+            print(f"Extracted {len(training_df)} training samples from {len(races)} races")
 
-            # Color bars based on bias direction
-            for i, bar in enumerate(bars):
-                color = 'red' if type_analysis['prediction_error_mean'].iloc[i] < 0 else 'blue'
-                bar.set_color(color)
+        return training_df
 
-            ax.axhline(0, color='black', linestyle='-', linewidth=1)
-            ax.set_title('Prediction Bias by Race Type')
-            ax.set_xlabel('Race Type')
-            ax.set_ylabel('Mean Prediction Error (Predicted - Actual)')
+    def analyze_model_performance(self, training_data: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Analyze current model performance on new data.
 
-            # Add count labels
-            for i, v in enumerate(type_analysis['prediction_error_mean']):
-                ax.text(i, v + (0.1 if v >= 0 else -0.2),
-                        f"n={type_analysis['prediction_error_count'].iloc[i]}",
-                        ha='center', fontsize=9)
+        Args:
+            training_data: DataFrame with predictions and actual results
 
-            plt.tight_layout()
-            fig.savefig(self.output_dir / 'bias_by_race_type.png', dpi=300)
-            plt.close(fig)
+        Returns:
+            Dictionary with performance analysis
+        """
+        if training_data.empty or self.rf_model is None:
+            return {"status": "error", "message": "No data or model available"}
 
-            factor_analyses['race_type'] = type_analysis.to_dict()
+        if self.verbose:
+            print("Analyzing current model performance...")
 
-        # Analysis by hippo
-        if 'hippo' in prediction_df.columns:
-            hippo_analysis = prediction_df.groupby('hippo').agg({
-                'prediction_error': ['count', 'mean', 'std'],
-                'abs_error': 'mean'
-            })
+        # Calculate prediction errors
+        predictions = training_data['predicted_position'].values
+        actuals = training_data['actual_position'].values
 
-            # Filter to include only tracks with enough data
-            hippo_analysis = hippo_analysis[hippo_analysis[('prediction_error', 'count')] >= 15]
+        # Basic metrics
+        mae = mean_absolute_error(actuals, predictions)
+        rmse = np.sqrt(mean_squared_error(actuals, predictions))
+        mean_error = np.mean(predictions - actuals)
 
-            # Unstack the MultiIndex columns
-            hippo_analysis.columns = [f"{col[0]}_{col[1]}" for col in hippo_analysis.columns]
+        # Error analysis by position
+        position_analysis = {}
+        for pos in sorted(training_data['actual_position'].unique()):
+            mask = training_data['actual_position'] == pos
+            if mask.sum() > 0:
+                pos_predictions = predictions[mask]
+                pos_actuals = actuals[mask]
+                position_analysis[str(pos)] = {  # Convert key to string
+                    'count': int(mask.sum()),
+                    'mean_error': float(np.mean(pos_predictions - pos_actuals)),
+                    'mae': float(mean_absolute_error(pos_actuals, pos_predictions)),
+                    'rmse': float(np.sqrt(mean_squared_error(pos_actuals, pos_predictions)))
+                }
 
-            # Calculate RMSE for each track
-            for track in hippo_analysis.index:
-                track_data = prediction_df[prediction_df['hippo'] == track]
-                hippo_analysis.loc[track, 'rmse'] = np.sqrt(np.mean(track_data['prediction_error'] ** 2))
-
-            # Sort by absolute bias
-            hippo_analysis['abs_bias'] = hippo_analysis['prediction_error_mean'].abs()
-            hippo_analysis = hippo_analysis.sort_values('abs_bias', ascending=False)
-
-            # Create visualization for top 10 tracks with highest bias
-            top_tracks = hippo_analysis.head(10).copy()
-
-            if len(top_tracks) > 0:
-                fig, ax = plt.subplots(figsize=(12, 6))
-                bars = ax.bar(top_tracks.index, top_tracks['prediction_error_mean'])
-
-                # Color bars based on bias direction
-                for i, bar in enumerate(bars):
-                    color = 'red' if top_tracks['prediction_error_mean'].iloc[i] < 0 else 'blue'
-                    bar.set_color(color)
-
-                ax.axhline(0, color='black', linestyle='-', linewidth=1)
-                ax.set_title('Top 10 Tracks by Prediction Bias')
-                ax.set_xlabel('Track')
-                ax.set_ylabel('Mean Prediction Error (Predicted - Actual)')
-                plt.xticks(rotation=45, ha='right')
-
-                # Add count labels
-                for i, v in enumerate(top_tracks['prediction_error_mean']):
-                    ax.text(i, v + (0.1 if v >= 0 else -0.2),
-                            f"n={top_tracks['prediction_error_count'].iloc[i]}",
-                            ha='center', fontsize=9)
-
-                plt.tight_layout()
-                fig.savefig(self.output_dir / 'bias_by_track.png', dpi=300)
-                plt.close(fig)
-
-                factor_analyses['track'] = hippo_analysis.to_dict()
-
-        # Analysis by odds (cotedirect) if available
-        if 'cotedirect' in prediction_df.columns:
-            # Create odds bins
-            prediction_df['odds_bin'] = pd.cut(
-                prediction_df['cotedirect'],
-                bins=[0, 2, 4, 7, 10, 15, 30, float('inf')],
-                labels=['1-2', '2-4', '4-7', '7-10', '10-15', '15-30', '30+']
-            )
-
-            odds_analysis = prediction_df.groupby('odds_bin').agg({
-                'prediction_error': ['count', 'mean', 'std'],
-                'abs_error': 'mean'
-            })
-
-            # Unstack the MultiIndex columns
-            odds_analysis.columns = [f"{col[0]}_{col[1]}" for col in odds_analysis.columns]
-
-            # Calculate RMSE for each odds bin
-            for odds_bin in odds_analysis.index:
-                bin_data = prediction_df[prediction_df['odds_bin'] == odds_bin]
-                odds_analysis.loc[odds_bin, 'rmse'] = np.sqrt(np.mean(bin_data['prediction_error'] ** 2))
-
-            # Create visualization
-            fig, ax = plt.subplots(figsize=(10, 6))
-            bars = ax.bar(odds_analysis.index, odds_analysis['prediction_error_mean'])
-
-            # Color bars based on bias direction
-            for i, bar in enumerate(bars):
-                color = 'red' if odds_analysis['prediction_error_mean'].iloc[i] < 0 else 'blue'
-                bar.set_color(color)
-
-            ax.axhline(0, color='black', linestyle='-', linewidth=1)
-            ax.set_title('Prediction Bias by Odds')
-            ax.set_xlabel('Odds Range')
-            ax.set_ylabel('Mean Prediction Error (Predicted - Actual)')
-
-            # Add count labels
-            for i, v in enumerate(odds_analysis['prediction_error_mean']):
-                ax.text(i, v + (0.1 if v >= 0 else -0.2),
-                        f"n={odds_analysis['prediction_error_count'].iloc[i]}",
-                        ha='center', fontsize=9)
-
-            plt.tight_layout()
-            fig.savefig(self.output_dir / 'bias_by_odds.png', dpi=300)
-            plt.close(fig)
-
-            factor_analyses['odds'] = odds_analysis.to_dict()
-
-        # 4. Identify strongest predictors of bias
-        bias_predictors = self._identify_bias_predictors(prediction_df)
-
-        # Compile analysis results
         analysis_results = {
-            "status": "success",
-            "metrics": overall_metrics,
-            "factor_analyses": factor_analyses,
-            "bias_predictors": bias_predictors
+            'sample_size': int(len(training_data)),
+            'overall_mae': float(mae),
+            'overall_rmse': float(rmse),
+            'mean_error': float(mean_error),
+            'position_analysis': position_analysis
         }
 
-        # Save detailed results to file
-        with open(self.output_dir / 'prediction_gap_analysis.json', 'w') as f:
-            json.dump(analysis_results, f, indent=4, default=str)
+        # Save analysis
+        with open(self.output_dir / 'performance_analysis.json', 'w') as f:
+            json.dump(analysis_results, f, indent=4)
+
+        if self.verbose:
+            print(f"Current model performance: MAE={mae:.4f}, RMSE={rmse:.4f}")
 
         return analysis_results
 
-    def _identify_bias_predictors(self, prediction_df: pd.DataFrame) -> Dict[str, Any]:
+    def train_incremental_model(self, training_data: pd.DataFrame) -> Dict[str, Any]:
         """
-        Identify features that best predict systematic bias.
+        Train an incremental model using new data.
 
         Args:
-            prediction_df: DataFrame with prediction data
+            training_data: DataFrame with new training samples
 
         Returns:
-            Dictionary with bias predictor analysis
+            Dictionary with training results and model improvement metrics
         """
-        # Prepare data for modeling
-        # We want to predict prediction_error using available features
+        if training_data.empty:
+            return {"status": "error", "message": "No training data available"}
 
-        # First, select only numeric columns
-        numeric_cols = prediction_df.select_dtypes(include=np.number).columns.tolist()
+        if self.verbose:
+            print("Training incremental model...")
 
-        # Exclude target and direct prediction columns
-        excluded_cols = ['prediction_error', 'abs_error', 'predicted_position',
-                         'actual_position', 'numero']
-        feature_cols = [col for col in numeric_cols if col not in excluded_cols]
+        # Prepare features (simplified - use available numeric features)
+        feature_cols = [col for col in training_data.columns
+                        if
+                        col not in ['comp', 'jour', 'numero', 'actual_position', 'predicted_position', 'predicted_rank']
+                        and training_data[col].dtype in ['int64', 'float64']]
 
-        # Handle missing values
-        X = prediction_df[feature_cols].fillna(0)
-        y = prediction_df['prediction_error']
+        X = training_data[feature_cols].fillna(0)
+        y = training_data['actual_position']
 
-        # Check if we have enough data
-        if len(X) < 30 or len(feature_cols) < 3:
-            return {"status": "insufficient_data"}
+        if len(X.columns) == 0:
+            return {"status": "error", "message": "No usable features found"}
 
-        # Split data
+        # Split data for evaluation
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.3, random_state=42
         )
 
-        # Try different regression models to find predictors
-        models = {
-            'linear': LinearRegression(),
-            'ridge': Ridge(alpha=1.0),
-            'lasso': Lasso(alpha=0.1)
-        }
-
-        results = {}
-
-        for name, model in models.items():
-            # Train model
-            model.fit(X_train, y_train)
-
-            # Evaluate
-            y_pred = model.predict(X_test)
-            mse = mean_squared_error(y_test, y_pred)
-            r2 = r2_score(y_test, y_pred)
-
-            # Get feature importance
-            if hasattr(model, 'coef_'):
-                coefficients = model.coef_
-                importance = np.abs(coefficients)
-                # Sort features by importance
-                indices = np.argsort(importance)[::-1]
-
-                # Store top features
-                top_features = [
-                    {"feature": feature_cols[i],
-                     "coefficient": float(coefficients[i]),
-                     "importance": float(importance[i])}
-                    for i in indices[:10]  # Top 10 features
-                ]
-            else:
-                top_features = []
-
-            results[name] = {
-                "mse": float(mse),
-                "r2": float(r2),
-                "top_features": top_features
-            }
-
-        # Select best model based on R²
-        best_model = max(results.items(), key=lambda x: x[1]["r2"])
-        best_model_name = best_model[0]
-
-        self.logger.info(f"Best bias predictor model: {best_model_name} with R²={best_model[1]['r2']:.4f}")
-
-        # Plot feature importance for best model
-        if results[best_model_name]["top_features"]:
-            top_features = results[best_model_name]["top_features"]
-
-            # Sort by absolute coefficient
-            top_features.sort(key=lambda x: abs(x["coefficient"]), reverse=True)
-
-            # Create visualization
-            fig, ax = plt.subplots(figsize=(10, 8))
-
-            feature_names = [f["feature"] for f in top_features]
-            coefficients = [f["coefficient"] for f in top_features]
-
-            # Create horizontal bar chart
-            bars = ax.barh(range(len(feature_names)), coefficients)
-
-            # Color bars based on coefficient sign
-            for i, bar in enumerate(bars):
-                color = 'red' if coefficients[i] < 0 else 'blue'
-                bar.set_color(color)
-
-            ax.set_yticks(range(len(feature_names)))
-            ax.set_yticklabels(feature_names)
-            ax.set_xlabel('Coefficient')
-            ax.set_title(f'Top Features in {best_model_name.title()} Model for Predicting Bias')
-            ax.axvline(0, color='black', linestyle='-', linewidth=0.5)
-
-            plt.tight_layout()
-            fig.savefig(self.output_dir / 'bias_feature_importance.png', dpi=300)
-            plt.close(fig)
-
-        return {
-            "models": results,
-            "best_model": best_model_name
-        }
-
-    def build_correction_models(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Build error correction models to reduce systematic prediction errors.
-
-        Args:
-            df: DataFrame with prediction data including actual and predicted positions
-
-        Returns:
-            Dictionary with correction models and performance improvements
-        """
-
-        self.logger.info("\n===== BUILDING ERROR CORRECTION MODELS =====")
-
-        # Call the implementation from error_correction module
-        result = build_correction_models(self,df)
-
-        if result['status'] == 'success':
-            # Store models for later use
-            self.error_models = result['models']
-
-            # Calculate overall improvement
-            global_improvement = result['global_results']['avg_improvement']
-
-            type_improvements = {
-                race_type: results['avg_improvement']
-                for race_type, results in result['type_results'].items()
-            }
-
-            # Log improvements
-            self.logger.info(f"Global error correction model improvement: {global_improvement:.2f}%")
-
-            if type_improvements:
-                avg_type_improvement = sum(type_improvements.values()) / len(type_improvements)
-                self.logger.info(f"Average race-type specific improvement: {avg_type_improvement:.2f}%")
-
-            return {
-                "status": "success",
-                "models_built": 1 + len(type_improvements),
-                "global_model": result['global_results'],
-                "type_models": result['type_results'],
-                "improvement_summary": {
-                    "global": global_improvement,
-                    "by_type": type_improvements
-                },
-                "error_models": self.error_models
-            }
+        # Evaluate baseline (current model performance)
+        if self.rf_model is not None:
+            try:
+                # For baseline, use predicted positions as "predictions"
+                baseline_predictions = training_data.loc[X_test.index, 'predicted_position']
+                baseline_mae = mean_absolute_error(y_test, baseline_predictions)
+                baseline_rmse = np.sqrt(mean_squared_error(y_test, baseline_predictions))
+            except:
+                baseline_mae = float('inf')
+                baseline_rmse = float('inf')
         else:
-            return result
+            baseline_mae = float('inf')
+            baseline_rmse = float('inf')
 
-    def create_enhanced_model(self, blend_weight: float = 0.5) -> Dict[str, Any]:
-        """
-        Create an enhanced model that combines the base model with error correction.
-
-        Args:
-            blend_weight: Not used in this implementation (kept for API compatibility)
-
-        Returns:
-            Dictionary with enhanced model information
-        """
-        if not hasattr(self, 'error_models') or not self.error_models:
-            return {
-                "status": "error",
-                "message": "No error correction models available"
-            }
-
-        if self.rf_model is None:
-            return {
-                "status": "error",
-                "message": "No base model available"
-            }
-
-        self.logger.info("Creating enhanced prediction model with error correction")
-
-        # Create enhanced predictor
-        from .error_correction import EnhancedRegressionPredictor as EnhancedPredictor
-
-        enhanced_model = EnhancedPredictor(
-            base_model=self.rf_model,
-            error_models=self.error_models
+        # Train new incremental model
+        incremental_model = RandomForestRegressor(
+            n_estimators=100,
+            max_depth=10,
+            min_samples_leaf=5,
+            random_state=42,
+            n_jobs=-1
         )
 
-        # Save the model
-        model_path = self.output_dir / 'enhanced_model.joblib'
-        error_models_dir = self.output_dir / 'error_models'
+        incremental_model.fit(X_train, y_train)
 
-        enhanced_model.save(model_path, error_models_dir)
+        # Evaluate new model
+        new_predictions = incremental_model.predict(X_test)
+        new_mae = mean_absolute_error(y_test, new_predictions)
+        new_rmse = np.sqrt(mean_squared_error(y_test, new_predictions))
 
-        # Save metadata
-        metadata = {
-            "model_type": "EnhancedPredictor",
-            "base_model_version": self.model_config.get('version', 'unknown'),
-            "error_models": list(self.error_models.keys()),
-            "created_at": datetime.now().isoformat()
+        # Calculate improvement
+        mae_improvement = ((baseline_mae - new_mae) / baseline_mae) * 100 if baseline_mae != float('inf') else 0
+        rmse_improvement = ((baseline_rmse - new_rmse) / baseline_rmse) * 100 if baseline_rmse != float('inf') else 0
+
+        results = {
+            "status": "success",
+            "training_samples": int(len(X_train)),
+            "test_samples": int(len(X_test)),
+            "features_used": int(len(X.columns)),
+            "baseline_performance": {
+                "mae": float(baseline_mae) if baseline_mae != float('inf') else None,
+                "rmse": float(baseline_rmse) if baseline_rmse != float('inf') else None
+            },
+            "new_model_performance": {
+                "mae": float(new_mae),
+                "rmse": float(new_rmse)
+            },
+            "improvement": {
+                "mae_improvement_pct": float(mae_improvement),
+                "rmse_improvement_pct": float(rmse_improvement),
+                "significant": bool(mae_improvement > self.improvement_threshold * 100)
+            },
+            "model": incremental_model,
+            "feature_columns": list(X.columns)
         }
 
-        with open(self.output_dir / 'enhanced_model_metadata.json', 'w') as f:
+        if self.verbose:
+            print(f"Incremental model training complete:")
+            print(f"  MAE: {baseline_mae:.4f} -> {new_mae:.4f} ({mae_improvement:+.2f}%)")
+            print(f"  RMSE: {baseline_rmse:.4f} -> {new_rmse:.4f} ({rmse_improvement:+.2f}%)")
+            print(f"  Significant improvement: {results['improvement']['significant']}")
+
+        return results
+
+    def save_incremental_model(self, training_results: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Save the incremental model if it shows significant improvement.
+
+        Args:
+            training_results: Results from incremental training
+
+        Returns:
+            Dictionary with save results
+        """
+        if not training_results.get('improvement', {}).get('significant', False):
+            return {
+                "status": "skipped",
+                "reason": "No significant improvement found"
+            }
+
+        if self.verbose:
+            print("Saving incremental model...")
+
+        # Create version string
+        db_type = self.db_name
+        version = f"{db_type}_incremental_v{datetime.now().strftime('%Y%m%d_%H%M')}"
+
+        # Prepare model for saving
+        incremental_model = training_results['model']
+
+        # Use the standard model manager save method
+        saved_paths = self.model_manager.save_models(
+            rf_model=incremental_model,
+            lstm_model=lstm_model,  # Don't retrain LSTM incrementally for now
+            feature_state={
+                'preprocessing_params': self.orchestrator.preprocessing_params,
+                'embedding_dim': self.orchestrator.embedding_dim,
+                'feature_columns': training_results['feature_columns'],
+                'incremental_training': True
+            }
+        )
+
+        # Save training metadata
+        metadata = {
+            'version': version,
+            'model_type': 'incremental_rf',
+            'base_model': str(self.model_path),
+            'training_date': datetime.now().isoformat(),
+            'performance_improvement': training_results['improvement'],
+            'training_summary': {
+                'samples': training_results['training_samples'],
+                'features': training_results['features_used']
+            }
+        }
+
+        metadata_path = self.output_dir / 'incremental_model_metadata.json'
+        with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=4)
 
-        self.logger.info(f"Created and saved enhanced model with {len(self.error_models)} error correction models")
+        if self.verbose:
+            print(f"Incremental model saved: {version}")
 
         return {
             "status": "success",
-            "model_path": str(model_path),
-            "error_models_dir": str(error_models_dir),
-            "metadata": metadata
+            "version": version,
+            "model_paths": saved_paths,
+            "metadata_path": str(metadata_path),
+            "improvement": training_results['improvement']
         }
 
-    # Update the run_regression_pipeline method to use the new approach
-    def run_regression_pipeline(self, date_from: str = None, date_to: str = None,
-                                limit: int = None, update_model: bool = True,
-                                create_enhanced: bool = True) -> Dict[str, Any]:
+    def archive_processed_races(self, races: List[Dict]) -> Dict[str, Any]:
         """
-        Run the full regression enhancement pipeline.
+        Archive processed races from daily_race to historical_races.
 
         Args:
-            date_from: Start date for collecting data
-            date_to: End date for collecting data
-            limit: Maximum number of races to process
-            update_model: Whether to update the base model
-            create_enhanced: Whether to create enhanced model
+            races: List of race dictionaries that were successfully processed
 
         Returns:
-            Dictionary with pipeline results
+            Dictionary with archiving results
+        """
+        if not races:
+            return {"status": "skipped", "reason": "No races to archive"}
+
+        if self.verbose:
+            print(f"Archiving {len(races)} processed races...")
+
+        try:
+            # Use the race archiver to move races
+            archive_results = self.race_archiver.archive_races(
+                race_comps=[race['comp'] for race in races],
+                validate_before_archive=True
+            )
+
+            if self.verbose:
+                print(f"Archived {archive_results.get('archived_count', 0)} races")
+
+            return archive_results
+
+        except Exception as e:
+            if self.verbose:
+                print(f"Error archiving races: {e}")
+            return {"status": "error", "message": str(e)}
+
+    def run_incremental_training_pipeline(self, date_from: str = None, date_to: str = None,
+                                          limit: int = None) -> Dict[str, Any]:
+        """
+        Run the complete incremental training pipeline for both RF and LSTM models.
+
+        Args:
+            date_from: Start date for processing races
+            date_to: End date for processing races
+            limit: Maximum number of races to process
+
+        Returns:
+            Dictionary with complete pipeline results
         """
         start_time = datetime.now()
-        self.logger.info(f"Starting regression enhancement pipeline for dates: {date_from} to {date_to}")
 
-        # 1. Collect prediction data
-        prediction_df = self.collect_prediction_data(date_from, date_to, limit)
+        if self.verbose:
+            print(f"Starting incremental training pipeline: {date_from} to {date_to}")
 
-        if len(prediction_df) == 0:
-            return {
-                "status": "error",
-                "message": "No prediction data found for the specified dates"
-            }
-
-        # 2. Analyze prediction gaps
-        analysis_results = self.analyze_prediction_gaps(prediction_df)
-
-        # 3. Build correction models
-        correction_results = self.build_correction_models(prediction_df)
-
-        # 4. Update base model if requested
-        if update_model:
-            update_results = self.update_base_model(prediction_df)
-        else:
-            update_results = {"status": "skipped", "message": "Model update was disabled"}
-
-        # 5. Create enhanced model if requested
-        if create_enhanced and correction_results.get("status") == "success":
-            enhanced_results = self.create_enhanced_model()
-        else:
-            enhanced_results = {"status": "skipped", "message": "Enhanced model creation was disabled"}
-
-        # Calculate execution time
-        execution_time = (datetime.now() - start_time).total_seconds()
-
-        # Compile pipeline results
         pipeline_results = {
             "status": "success",
-            "execution_time": execution_time,
-            "data_processed": {
-                "races": prediction_df['race_id'].nunique(),
-                "predictions": len(prediction_df)
-            },
-            "analysis_results": analysis_results,
-            "correction_models": correction_results,
-            "model_update": update_results,
-            "enhanced_model": enhanced_results
+            "execution_time": 0.0,
+            "races_fetched": 0,
+            "training_data_extracted": 0,
+            "performance_analysis": {},
+            "rf_training": {},
+            "lstm_training": {},
+            "model_saved": {},
+            "races_archived": {}
         }
 
-        # Save pipeline results summary
-        with open(self.output_dir / 'regression_pipeline_results.json', 'w') as f:
-            json.dump(pipeline_results, f, indent=4, default=str)
+        try:
+            # Step 1: Fetch completed races from daily_race table
+            races = self.fetch_completed_races(date_from, date_to, limit)
+            pipeline_results["races_fetched"] = int(len(races))
 
-        self.logger.info(f"Regression enhancement pipeline completed in {execution_time:.2f} seconds")
+            if not races:
+                pipeline_results["status"] = "warning"
+                pipeline_results["message"] = "No completed races found"
+                return pipeline_results
+
+            # Step 2: Extract RF training data (existing method)
+            rf_data = self.extract_training_data(races)
+            pipeline_results["training_data_extracted"] = int(len(rf_data))
+
+            if rf_data.empty:
+                pipeline_results["status"] = "warning"
+                pipeline_results["message"] = "No RF training data extracted"
+                return pipeline_results
+
+            # Step 3: Extract LSTM training data (new method)
+            lstm_data = self.extract_lstm_training_data(races)
+
+            if lstm_data:
+                pipeline_results["lstm_data_extracted"] = int(lstm_data.get('sample_count', 0))
+                if self.verbose:
+                    print(f"LSTM data extracted: {lstm_data.get('sample_count', 0)} samples")
+            else:
+                pipeline_results["lstm_data_extracted"] = 0
+                if self.verbose:
+                    print("No LSTM training data extracted")
+
+            # Step 4: Analyze current model performance
+            performance_analysis = self.analyze_model_performance(rf_data)
+            pipeline_results["performance_analysis"] = performance_analysis
+
+            # Step 5: Train incremental RF model
+            rf_training_results = self.train_incremental_model(rf_data)
+            pipeline_results["rf_training"] = rf_training_results
+
+            # Step 6: Train incremental LSTM model if data available
+            if lstm_data and 'X_sequences' in lstm_data:
+                lstm_training_results = self.train_incremental_lstm(lstm_data)
+                pipeline_results["lstm_training"] = lstm_training_results
+            else:
+                pipeline_results["lstm_training"] = {
+                    "status": "skipped",
+                    "message": "No LSTM data available"
+                }
+
+            if self.verbose:
+                print("pipeline STEP 7 NOW")
+
+            # Step 7: Determine if we should save models
+            rf_significant = rf_training_results.get("improvement", {}).get("significant", False)
+            lstm_significant = pipeline_results["lstm_training"].get("improvement", {}).get("significant", False)
+            overall_significant = rf_significant or lstm_significant
+
+            if self.verbose:
+                print(f"Model improvements: RF={rf_significant}, LSTM={lstm_significant}")
+
+            # Step 8: Save models if significant improvement found (or fallback to base models)
+            if overall_significant:
+                # Get models to save - use improved models if available, otherwise use base models
+                new_rf_model = rf_training_results.get("model") if rf_significant else self.rf_model
+
+                # For LSTM: use new model if improved, otherwise use base model as fallback
+                if lstm_significant and pipeline_results["lstm_training"].get("model"):
+                    new_lstm_model = pipeline_results["lstm_training"]["model"]
+                    lstm_source = "retrained"
+                else:
+                    new_lstm_model = self.lstm_model  # Use base model as fallback
+                    lstm_source = "base_model_copy"
+
+                # Prepare feature state
+                feature_state = {
+                    'preprocessing_params': self.orchestrator.preprocessing_params,
+                    'embedding_dim': self.orchestrator.embedding_dim,
+                    'sequence_length': getattr(self.orchestrator, 'sequence_length', 5),
+                    'incremental_training': True,
+                    'training_date': datetime.now().isoformat(),
+                    'lstm_source': lstm_source  # Track whether LSTM was retrained or copied
+                }
+
+                # Add RF feature columns if available
+                if rf_training_results.get("feature_columns"):
+                    feature_state['rf_feature_columns'] = rf_training_results["feature_columns"]
+
+                # Save models using model manager
+                try:
+                    saved_paths = self.model_manager.save_models(
+                        rf_model=new_rf_model,
+                        lstm_model=new_lstm_model,
+                        feature_state=feature_state
+                    )
+
+                    # Create version string for metadata
+                    db_type = self.db_name
+                    version = f"{db_type}_incremental_v{datetime.now().strftime('%Y%m%d_%H%M')}"
+
+                    # Save comprehensive training metadata
+                    metadata = {
+                        'version': version,
+                        'model_type': 'hybrid_incremental',
+                        'base_model': str(self.model_path),
+                        'training_date': datetime.now().isoformat(),
+                        'models_trained': {
+                            'rf': rf_significant,
+                            'lstm': lstm_significant
+                        },
+                        'model_sources': {
+                            'rf': 'retrained' if rf_significant else 'base_model_copy',
+                            'lstm': lstm_source
+                        },
+                        'performance_improvements': {
+                            'rf': rf_training_results.get("improvement", {}),
+                            'lstm': pipeline_results["lstm_training"].get("improvement", {})
+                        },
+                        'training_summary': {
+                            'rf_samples': rf_training_results.get("training_samples", 0),
+                            'rf_features': rf_training_results.get("features_used", 0),
+                            'lstm_samples': pipeline_results["lstm_training"].get("training_samples", 0),
+                            'lstm_sequence_length': pipeline_results["lstm_training"].get("sequence_length", 0),
+                            'lstm_sequential_features': pipeline_results["lstm_training"].get("sequential_features", 0),
+                            'lstm_static_features': pipeline_results["lstm_training"].get("static_features", 0)
+                        }
+                    }
+
+                    metadata_path = self.output_dir / 'incremental_model_metadata.json'
+                    with open(metadata_path, 'w') as f:
+                        json.dump(metadata, f, indent=4)
+
+                    pipeline_results["model_saved"] = {
+                        "status": "success",
+                        "version": version,
+                        "model_paths": saved_paths,
+                        "metadata_path": str(metadata_path),
+                        "models_updated": {
+                            "rf": rf_significant,
+                            "lstm": lstm_significant
+                        },
+                        "model_sources": {
+                            "rf": "retrained" if rf_significant else "base_model_copy",
+                            "lstm": lstm_source
+                        }
+                    }
+
+                    if self.verbose:
+                        print(f"Incremental models saved: {version}")
+                        if rf_significant:
+                            print("  ✓ RF model retrained")
+                        else:
+                            print("  → RF model copied from base")
+
+                        if lstm_significant:
+                            print("  ✓ LSTM model retrained")
+                        else:
+                            print("  → LSTM model copied from base (fallback)")
+
+                except Exception as e:
+                    pipeline_results["model_saved"] = {
+                        "status": "error",
+                        "message": f"Error saving models: {str(e)}"
+                    }
+                    if self.verbose:
+                        print(f"Error saving models: {e}")
+
+            else:
+                pipeline_results["model_saved"] = {
+                    "status": "skipped",
+                    "reason": "No significant improvement found in either model"
+                }
+                if self.verbose:
+                    print("No significant improvements found - models not saved")
+
+            # Step 9: Archive races only if model was saved successfully
+            if pipeline_results["model_saved"].get("status") == "success":
+                try:
+                    # Archive races to historical_races
+                    archive_results = self.race_archiver.archive_races(races)
+                    pipeline_results["races_archived"] = archive_results
+
+                    # If archiving was successful, immediately clean up using archiver's method
+                    if archive_results.get('successful', 0) > 0:
+                        # Clean up races with 0 days (immediate cleanup)
+                        cleanup_results = self.race_archiver.clean_archived_races(
+                            older_than_days=0,  # Immediate cleanup
+                            dry_run=False  # Actually delete
+                        )
+                        pipeline_results["races_cleaned"] = cleanup_results
+
+                        if self.verbose:
+                            cleaned_count = cleanup_results.get('count', 0)
+                            print(f"Cleaned up {cleaned_count} archived races from daily_race table")
+
+                    self.processed_races = races
+
+                except Exception as e:
+                    pipeline_results["races_archived"] = {
+                        "status": "error",
+                        "message": f"Error archiving races: {str(e)}"
+                    }
+                    if self.verbose:
+                        print(f"Error archiving races: {e}")
+            else:
+                pipeline_results["races_archived"] = {
+                    "status": "skipped",
+                    "reason": "Model was not saved successfully"
+                }
+
+        except Exception as e:
+            pipeline_results["status"] = "error"
+            pipeline_results["message"] = str(e)
+            if self.verbose:
+                print(f"Pipeline error: {e}")
+            import traceback
+            traceback.print_exc()
+
+        # Calculate execution time
+        pipeline_results["execution_time"] = (datetime.now() - start_time).total_seconds()
+
+        # Save complete results with proper JSON serialization
+        def json_serialize(obj):
+            """Custom JSON serializer for numpy/pandas types."""
+            if hasattr(obj, 'item'):
+                return obj.item()
+            elif hasattr(obj, 'tolist'):
+                return obj.tolist()
+            elif isinstance(obj, (np.integer, np.floating)):
+                return obj.item()
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            else:
+                return str(obj)
+
+        # Create a clean copy for JSON serialization (remove model objects)
+        json_results = pipeline_results.copy()
+        if 'model' in json_results.get("rf_training", {}):
+            json_results["rf_training"] = {k: v for k, v in json_results["rf_training"].items() if k != 'model'}
+        if 'model' in json_results.get("lstm_training", {}):
+            json_results["lstm_training"] = {k: v for k, v in json_results["lstm_training"].items() if k != 'model'}
+
+        with open(self.output_dir / 'incremental_training_results.json', 'w') as f:
+            json.dump(json_results, f, indent=4, default=json_serialize)
+
+        if self.verbose:
+            print(f"Incremental training pipeline completed in {pipeline_results['execution_time']:.2f} seconds")
 
         return pipeline_results
 
-    def _train_correction_model(self, df: pd.DataFrame, model_type: str) -> Dict[str, Any]:
+    def convert_daily_to_historical_format(self, races: List[Dict]) -> pd.DataFrame:
         """
-        Train a model to correct prediction errors.
+        Convert daily race data to historical race format for orchestrator processing.
 
         Args:
-            df: DataFrame with prediction data
-            model_name: Name for the model
+            races: List of race dictionaries from daily_race table
 
         Returns:
-            Dictionary with model and performance metrics
+            DataFrame in historical_races format
         """
-        # Prepare data
-        # Input: predicted_position and other features
-        # Output: actual_position (or correction factor)
+        if self.verbose:
+            print("Converting daily races to historical format...")
 
-        # Determine if we should predict actual position or correction factor
-        # In this implementation, we'll predict the actual position
+        historical_rows = []
 
-        # First, select features that might help improve predictions
-        numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+        for race in races:
+            try:
+                # Parse JSON fields
+                participants = json.loads(race['participants']) if isinstance(race['participants'], str) else race[
+                    'participants']
 
-        # We always include the original prediction
-        features = ['predicted_position']
+                # Parse actual results to get final positions
+                actual_results = race['actual_results']
+                if not actual_results or actual_results == 'pending':
+                    continue
 
-        # Add horse-related features if available
-        potential_features = [
-            'cotedirect', 'age', 'poidmont', 'ratio_victoires', 'ratio_places',
-            'victoirescheval', 'placescheval'
-        ]
+                finishing_order = actual_results.split('-')
+                actual_positions = {finishing_order[i]: i + 1 for i in range(len(finishing_order))}
 
-        # Add race-related features
-        race_features = ['dist', 'partant', 'quinte', 'temperature']
+                # Add final_position to each participant
+                for participant in participants:
+                    numero = str(participant.get('numero', ''))
+                    if numero in actual_positions:
+                        participant['final_position'] = actual_positions[numero]
+                        participant['cl'] = actual_positions[numero]  # Alternative name
 
-        # Combine all potential features
-        potential_features.extend(race_features)
-
-        # Filter to include only available columns
-        for col in potential_features:
-            if col in numeric_cols:
-                features.append(col)
-
-        # Add available embedding features (first dimensions of each type)
-        for i in range(2):  # Just first 2 dimensions
-            for embed_type in ['horse_emb_', 'jockey_emb_', 'couple_emb_']:
-                key = f"{embed_type}{i}"
-                if key in numeric_cols:
-                    features.append(key)
-
-        # Filter features to only include those in the dataframe
-        features = [f for f in features if f in df.columns]
-
-        # Handle missing values
-        X = df[features].fillna(0)
-        y = df['actual_position']
-
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-
-        # Train model - Random Forest for correction
-        model = RandomForestRegressor(
-            n_estimators=100,
-            max_depth=10,
-            min_samples_leaf=2,
-            random_state=42
-        )
-
-        model.fit(X_train, y_train)
-
-        # Evaluate
-        # Original predictions (baseline)
-        original_rmse = np.sqrt(mean_squared_error(y_test, X_test['predicted_position']))
-        original_mae = mean_absolute_error(y_test, X_test['predicted_position'])
-
-        # Corrected predictions
-        corrected_pred = model.predict(X_test)
-        corrected_rmse = np.sqrt(mean_squared_error(y_test, corrected_pred))
-        corrected_mae = mean_absolute_error(y_test, corrected_pred)
-
-        # Calculate improvement
-        rmse_improvement = ((original_rmse - corrected_rmse) / original_rmse) * 100
-        mae_improvement = ((original_mae - corrected_mae) / original_mae) * 100
-
-        # Average improvement
-        avg_improvement = (rmse_improvement + mae_improvement) / 2
-
-        self.logger.info(f"Model {model_type}: RMSE improved by {rmse_improvement:.2f}%, MAE by {mae_improvement:.2f}%")
-
-        # Feature importance
-        if hasattr(model, 'feature_importances_'):
-            importance = model.feature_importances_
-            indices = np.argsort(importance)[::-1]
-
-            feature_importance = [
-                {"feature": features[i], "importance": float(importance[i])}
-                for i in indices
-            ]
-
-            # Create visualization if we have enough features
-            if len(features) >= 3:
-                fig, ax = plt.subplots(figsize=(10, 6))
-
-                top_n = min(10, len(features))
-                top_indices = indices[:top_n]
-                top_importance = importance[top_indices]
-                top_features = [features[i] for i in top_indices]
-
-                ax.bar(range(top_n), top_importance)
-                ax.set_xticks(range(top_n))
-                ax.set_xticklabels(top_features, rotation=45, ha='right')
-                ax.set_title(f'Feature Importance for {model_type} Correction Model')
-                ax.set_ylabel('Importance')
-
-                plt.tight_layout()
-                fig.savefig(self.output_dir / f'correction_model_{model_type}_importance.png', dpi=300)
-                plt.close(fig)
-        else:
-            feature_importance = []
-
-        return {
-            "model": model,
-            "features": features,
-            "performance": {
-                "original_rmse": float(original_rmse),
-                "corrected_rmse": float(corrected_rmse),
-                "original_mae": float(original_mae),
-                "corrected_mae": float(corrected_mae),
-                "rmse_improvement": float(rmse_improvement),
-                "mae_improvement": float(mae_improvement),
-                "improvement": float(avg_improvement),
-                "test_size": len(y_test)
-            },
-            "feature_importance": feature_importance
-        }
-
-    def save_incremental_model(self, rf_model, lstm_model=None, evaluation_results=None):
-        """
-        Save models trained incrementally on daily data.
-
-        Args:
-            rf_model: Random Forest model to save
-            lstm_model: LSTM model to save (optional)
-            evaluation_results: Evaluation metrics (optional)
-
-        Returns:
-            Dictionary with paths to saved artifacts
-        """
-        from utils.model_manager import get_model_manager
-        from datetime import datetime
-        import os
-        from pathlib import Path
-
-        print("===== SAVING INCREMENTAL MODEL =====")
-
-        # Get the model manager
-        model_manager = get_model_manager()
-
-        # Create version string based on date, database type, and training type (incremental)
-        db_type = self.db_name if hasattr(self, 'db_name') else "dev"
-        version = f"{db_type}_incremental_v{datetime.now().strftime('%Y%m%d')}"
-
-        # Resolve the base path
-        save_dir = model_manager.get_model_path('hybrid') / version
-
-        # Create directory if it doesn't exist
-        os.makedirs(save_dir, exist_ok=True)
-
-        print(f"Saving incremental model to: {save_dir}")
-
-        # Prepare orchestrator state (simplified for incremental training)
-        orchestrator_state = {}
-        if hasattr(self, 'data_orchestrator') and self.data_orchestrator:
-            orchestrator_state = {
-                'preprocessing_params': self.data_orchestrator.preprocessing_params,
-                'embedding_dim': self.data_orchestrator.embedding_dim,
-                'sequence_length': 5,  # Default value for incremental training
-                'target_info': {
-                    'column': 'final_position',
-                    'type': 'regression'
+                # Create historical race row
+                historical_row = {
+                    'comp': race['comp'],
+                    'jour': race['jour'],
+                    'reunion': race.get('reun', ''),
+                    'prix': race.get('prix', ''),
+                    'quinte': race.get('quinte', False),
+                    'hippo': race.get('hippo', ''),
+                    'meteo': race.get('meteo', ''),
+                    'dist': race.get('dist', 0),
+                    'corde': race.get('corde', ''),
+                    'natpis': race.get('natpis', ''),
+                    'pistegp': race.get('pistegp', ''),
+                    'typec': race.get('typec', ''),
+                    'partant': race.get('partant', 0),
+                    'temperature': race.get('temperature', 0),
+                    'forceVent': race.get('forceVent', 0),
+                    'directionVent': race.get('directionVent', ''),
+                    'nebulosite': race.get('nebulosite', ''),
+                    'participants': json.dumps(participants),
+                    'created_at': race.get('created_at', datetime.now().isoformat())
                 }
-            }
-        elif hasattr(self, 'feature_orchestrator') and self.feature_orchestrator:
-            orchestrator_state = {
-                'preprocessing_params': self.feature_orchestrator.preprocessing_params,
-                'embedding_dim': self.feature_orchestrator.embedding_dim,
-                'sequence_length': 5,  # Default value for incremental training
-                'target_info': {
-                    'column': 'final_position',
-                    'type': 'regression'
-                }
-            }
 
-        # Prepare model configuration
-        model_config = {
-            'version': version,
-            'model_type': 'hybrid',
-            'db_type': db_type,
-            'train_type': 'incremental',  # Explicitly mark as incremental training
-            'training_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'models_trained': {
-                'rf': rf_model is not None,
-                'lstm': lstm_model is not None
-            },
-            'evaluation_results': evaluation_results or {}
-        }
+                historical_rows.append(historical_row)
 
-        # Save all artifacts using the model manager
-        saved_paths = model_manager.save_model_artifacts(
-            base_path=save_dir,
-            rf_model=rf_model,
-            lstm_model=lstm_model,
-            orchestrator_state=orchestrator_state,
-            model_config=model_config,
-            db_type=db_type,
-            train_type='incremental'
-        )
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error converting race {race.get('comp', 'unknown')}: {e}")
+                continue
 
-        print(f"Incremental model saved successfully to {save_dir}")
-        return saved_paths
-    def update_base_model(self, training_data: pd.DataFrame, blend_weight: float = 0.7) -> Dict[str, Any]:
-        """
-        Update the base prediction model with new training data.
+        historical_df = pd.DataFrame(historical_rows)
 
-        Args:
-            training_data: DataFrame with fresh training data
-            blend_weight: Weight for blending old and new predictions
+        if self.verbose:
+            print(f"Converted {len(historical_df)} races to historical format")
 
-        Returns:
-            Dictionary with update results
-        """
-        if len(training_data) == 0:
-            return {"status": "error", "message": "No training data provided"}
+        return historical_df
 
-        self.logger.info(f"Updating base model with {len(training_data)} samples")
+    def extract_lstm_training_data(self, races: List[Dict]) -> Dict[str, Any]:
+        if self.verbose:
+            print("Extracting LSTM training data using orchestrator pipeline...")
 
-        # Prepare data with orchestrator
+        # Convert daily races to historical format
+        daily_historical = self.convert_daily_to_historical_format(races)
+
+        if daily_historical.empty:
+            return {}
+
+        # Get unique horse IDs from daily races (batch collection)
+        daily_horses = set()
+        for race in races:
+            try:
+                participants = json.loads(race['participants']) if isinstance(race['participants'], str) else race[
+                    'participants']
+                for participant in participants:
+                    if 'idche' in participant and participant['idche']:
+                        daily_horses.add(str(participant['idche']))
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error extracting horse IDs from race {race.get('comp', 'unknown')}: {e}")
+                continue
+
+        if not daily_horses:
+            if self.verbose:
+                print("No horse IDs found in daily races")
+            return {}
+
+        if self.verbose:
+            print(f"Found {len(daily_horses)} unique horses in daily races")
+
+        # Load historical data for ALL horses in one query
         try:
-            # We need to convert the prediction data to a format that the orchestrator can process
-            # Step 1: Format data for the orchestrator
-            self.logger.info("Preparing data for feature embedding")
+            historical_data = self.get_races_by_horses(list(daily_horses), limit_per_horse=50)
 
-            # Make a copy we can modify
-            processed_df = training_data.copy()
-
-            # Add a comp column if it doesn't exist (orchestrator expects this)
-            if 'comp' not in processed_df.columns and 'race_id' in processed_df.columns:
-                processed_df['comp'] = processed_df['race_id']
-
-            # Use actual_position as final_position (target column)
-            if 'actual_position' in processed_df.columns and 'final_position' not in processed_df.columns:
-                processed_df['final_position'] = processed_df['actual_position']
-
-            # Add required columns that might be missing for embedding
-            for required_col in ['idche', 'idJockey', 'numero', 'typec']:
-                if required_col not in processed_df.columns:
-                    if required_col == 'idche' and 'horse_id' in processed_df.columns:
-                        processed_df['idche'] = processed_df['horse_id']
-                    elif required_col == 'numero' and 'horse_number' in processed_df.columns:
-                        processed_df['numero'] = processed_df['horse_number']
-                    elif required_col == 'typec' and 'race_type' in processed_df.columns:
-                        processed_df['typec'] = processed_df['race_type']
-                    else:
-                        self.logger.warning(f"Required column {required_col} not found, using default values")
-                        processed_df[required_col] = 0  # Default value
-
-            # Step 2: Apply full preprocessing pipeline
-            self.logger.info("Applying feature embedding and preprocessing")
-
-            # Apply feature engineering
-            processed_df = self.orchestrator.prepare_features(processed_df)
-
-            # Apply embeddings with full cleaning
-            processed_df = self.orchestrator.apply_embeddings(
-                processed_df,
-                clean_after_embedding=True,
-                keep_identifiers=False
-            )
-
-            # Step 3: Now prepare for training using the fully processed data
-            self.logger.info("Preparing training dataset from embedded features")
-            X, y = self.orchestrator.prepare_training_dataset(processed_df)
-
-            # Make sure all features are numeric
-            # Check for any non-numeric columns
-            non_numeric_cols = [col for col in X.columns if not pd.api.types.is_numeric_dtype(X[col])]
-            if non_numeric_cols:
-                self.logger.warning(f"Found {len(non_numeric_cols)} non-numeric columns: {non_numeric_cols}")
-                # Drop non-numeric columns
-                X = X.drop(columns=non_numeric_cols)
-                self.logger.info(f"Dropped non-numeric columns, {X.shape[1]} features remaining")
-
-            # Split into train/validation/test
-            X_train, X_val, X_test, y_train, y_val, y_test = self.orchestrator.split_dataset(
-                X, y, test_size=0.2, val_size=0.1
-            )
-
-            self.logger.info(f"Training set: {len(X_train)} samples with {X_train.shape[1]} features")
-            self.logger.info(f"Validation set: {len(X_val)} samples")
-            self.logger.info(f"Test set: {len(X_test)} samples")
-
-            # Evaluate original model on test data
-            if self.rf_model is not None and hasattr(self.rf_model, 'predict'):
-                try:
-                    # Get predictions from original model
-                    orig_preds = self.rf_model.predict(X_test)
-                    orig_rmse = np.sqrt(mean_squared_error(y_test, orig_preds))
-                    orig_mae = mean_absolute_error(y_test, orig_preds)
-
-                    self.logger.info(f"Original model performance - RMSE: {orig_rmse:.4f}, MAE: {orig_mae:.4f}")
-                except Exception as e:
-                    self.logger.error(f"Error evaluating original model: {str(e)}")
-                    orig_rmse, orig_mae = float('inf'), float('inf')
-            else:
-                self.logger.warning("Original model not available for comparison")
-                orig_rmse, orig_mae = float('inf'), float('inf')
-
-            # Create and train a new model or update existing
-            from sklearn.ensemble import RandomForestRegressor
-
-            # First try to upgrade existing model if it's a CalibratedRegressor
-            if isinstance(self.rf_model, CalibratedRegressor):
-                self.logger.info("Updating existing CalibratedRegressor")
-
-                # Retrain with new data
-                self.rf_model.fit(X_train, y_train, X_val, y_val)
-
-                # Evaluate updated model
-                updated_preds = self.rf_model.predict(X_test)
-                updated_rmse = np.sqrt(mean_squared_error(y_test, updated_preds))
-                updated_mae = mean_absolute_error(y_test, updated_preds)
-
-                updated_model = self.rf_model
-            else:
-                # Create a new model
-                self.logger.info("Creating new CalibratedRegressor")
-
-                # Create base model
-                base_rf = RandomForestRegressor(
-                    n_estimators=100,
-                    max_depth=None,
-                    min_samples_leaf=2,
-                    random_state=42
-                )
-
-                # Create and fit calibrated model
-                updated_model = CalibratedRegressor(
-                    base_regressor=base_rf,
-                    clip_min=1.0  # Min position is 1
-                )
-
-                updated_model.fit(X_train, y_train, X_val, y_val)
-
-                # Evaluate updated model
-                updated_preds = updated_model.predict(X_test)
-                updated_rmse = np.sqrt(mean_squared_error(y_test, updated_preds))
-                updated_mae = mean_absolute_error(y_test, updated_preds)
-
-            self.logger.info(f"Updated model performance - RMSE: {updated_rmse:.4f}, MAE: {updated_mae:.4f}")
-
-            # Calculate improvement
-            if orig_rmse != float('inf'):
-                rmse_improve = ((orig_rmse - updated_rmse) / orig_rmse) * 100
-                mae_improve = ((orig_mae - updated_mae) / orig_mae) * 100
-                avg_improve = (rmse_improve + mae_improve) / 2
-
-                self.logger.info(f"Model improvement - RMSE: {rmse_improve:.2f}%, MAE: {mae_improve:.2f}%")
-            else:
-                rmse_improve, mae_improve, avg_improve = None, None, None
-
-            # Save the updated model (with a new version)
-            new_version = f"v{datetime.now().strftime('%Y%m%d')}"
-            new_version_path = self.model_path / new_version
-            new_version_path.mkdir(exist_ok=True)
-
-            # Save model
-            model_file = new_version_path / "hybrid_rf_model.joblib"
-            joblib.dump(updated_model, model_file)
-
-            # Copy feature configuration
-            if self.feature_config_path.exists():
-                joblib.dump(self.feature_config, new_version_path / "hybrid_feature_engineer.joblib")
-
-            # Create updated model config
-            model_config = {
-                "version": new_version,
-                "parent_version": self.model_config.get('version', 'unknown'),
-                "training_date": datetime.now().isoformat(),
-                "training_samples": len(X_train),
-                "model_type": "CalibratedRegressor",
-                "performance": {
-                    "original_rmse": float(orig_rmse) if orig_rmse != float('inf') else None,
-                    "updated_rmse": float(updated_rmse),
-                    "original_mae": float(orig_mae) if orig_mae != float('inf') else None,
-                    "updated_mae": float(updated_mae),
-                    "improvement": float(avg_improve) if avg_improve is not None else None
-                }
-            }
-
-            # Save model config
-            with open(new_version_path / "model_config.json", 'w') as f:
-                json.dump(model_config, f, indent=4)
-
-            # Create logs directory
-            logs_dir = new_version_path / "logs"
-            logs_dir.mkdir(exist_ok=True)
-
-            self.logger.info(f"Updated model saved as version {new_version}")
-
-            return {
-                "status": "success",
-                "new_version": new_version,
-                "model_path": str(new_version_path),
-                "improvement": {
-                    "rmse": float(rmse_improve) if rmse_improve is not None else None,
-                    "mae": float(mae_improve) if mae_improve is not None else None,
-                    "average": float(avg_improve) if avg_improve is not None else None
-                },
-                "performance": {
-                    "original_rmse": float(orig_rmse) if orig_rmse != float('inf') else None,
-                    "updated_rmse": float(updated_rmse),
-                    "original_mae": float(orig_mae) if orig_mae != float('inf') else None,
-                    "updated_mae": float(updated_mae)
-                }
-            }
+            if self.verbose:
+                if not historical_data.empty:
+                    horses_found = historical_data['horse_id'].nunique()
+                    total_races = len(historical_data)
+                    avg_races = total_races / horses_found if horses_found > 0 else 0
+                    print(
+                        f"Loaded {total_races} historical races for {horses_found} horses (avg {avg_races:.1f} races per horse)")
+                else:
+                    print("No historical data found for daily race horses")
 
         except Exception as e:
-            self.logger.error(f"Error updating base model: {str(e)}")
-            import traceback
-            self.logger.error(traceback.format_exc())
+            if self.verbose:
+                print(f"Error loading historical races: {e}")
+            return {}
 
-            return {
-                "status": "error",
-                "message": str(e)
+        if historical_data.empty:
+            if self.verbose:
+                print("No historical data found for daily race horses")
+            return {}
+
+        # Remove the horse_id column and duplicates
+        historical_data = historical_data.drop(columns=['horse_id'], errors='ignore')
+        historical_data = historical_data.drop_duplicates(subset=['comp'])
+
+        # Combine with daily races
+        combined_df = pd.concat([historical_data, daily_historical], ignore_index=True)
+        combined_df = combined_df.drop_duplicates(subset=['comp'])
+        combined_df = combined_df.sort_values('jour')
+
+        if self.verbose:
+            print(
+                f"Combined dataset: {len(historical_data)} historical + {len(daily_historical)} daily = {len(combined_df)} total races")
+
+        # Rest of your existing orchestrator processing...
+        try:
+            expanded_df = self.orchestrator._expand_participants(combined_df)
+            complete_df = self.orchestrator.prepare_complete_dataset(expanded_df, use_cache=False)
+            X_sequences, X_static, y_lstm = self.orchestrator.extract_lstm_features(complete_df)
+
+            lstm_data = {
+                'X_sequences': X_sequences,
+                'X_static': X_static,
+                'y': y_lstm,
+                'complete_df': complete_df,
+                'sample_count': len(y_lstm),
+                'sequence_length': X_sequences.shape[1],
+                'sequential_features': X_sequences.shape[2],
+                'static_features': X_static.shape[1]
             }
 
-    def create_combined_model(self, blend_weight: float = 0.5) -> Dict[str, Any]:
+            if self.verbose:
+                print(f"Extracted LSTM data: {len(y_lstm)} samples")
+                print(f"  Sequence length: {X_sequences.shape[1]}")
+                print(f"  Sequential features: {X_sequences.shape[2]}")
+                print(f"  Static features: {X_static.shape[1]}")
+
+            return lstm_data
+
+        except Exception as e:
+            if self.verbose:
+                print(f"Error in LSTM data extraction: {e}")
+            return {}
+
+    def get_races_by_horses(self, idche_list: List[str], limit_per_horse: int = 50) -> pd.DataFrame:
+        """Get historical races for multiple horses in a single query."""
+        if not idche_list:
+            return pd.DataFrame()
+
+        conn = sqlite3.connect(self.db_path)
+
+        # Create placeholders for the IN clause
+        placeholders = ','.join(['?' for _ in idche_list])
+
+        query = f"""
+        SELECT hr.*, 
+               json_extract(participant.value, '$.idche') as horse_id
+        FROM historical_races hr,
+             json_each(hr.participants) as participant
+        WHERE json_extract(participant.value, '$.idche') IN ({placeholders})
+        ORDER BY json_extract(participant.value, '$.idche'), hr.jour DESC
         """
-        Create a combined model that incorporates both the base model and correction models.
+
+        # Convert idche_list to ensure all are strings
+        params = [int(idche) for idche in idche_list]
+
+        df = pd.read_sql_query(query, conn, params=params)
+        conn.close()
+
+        # Limit races per horse if needed
+        if limit_per_horse:
+            df = df.groupby('horse_id').head(limit_per_horse)
+
+        return df
+    def train_incremental_lstm(self, lstm_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Train an incremental LSTM model using new data.
 
         Args:
-            blend_weight: Weight for blending base and correction predictions
+            lstm_data: Dictionary with LSTM features and targets
 
         Returns:
-            Dictionary with combined model information
+            Dictionary with LSTM training results
         """
-        if not self.bias_models:
-            return {"status": "error", "message": "No correction models available"}
+        print("I'm in train_incremental ldstm")
+        if not lstm_data or 'X_sequences' not in lstm_data:
+            print("Error with IF #1")
+            return {"status": "error", "message": "No LSTM training data available"}
 
-        self.logger.info(f"Creating combined model with blend weight {blend_weight}")
+        if self.lstm_model is None:
+            print("Error with IF #2")
+            return {"status": "error", "message": "No base LSTM model available"}
 
-        # Define the combined model structure
-
-        # Create the combined model
-        combined_model = CombinedModel(
-            base_model=self.rf_model,
-            correction_models=self.bias_models,
-            blend_weight=blend_weight
-        )
-
-        # Save the combined model
-        model_path = self.output_dir / 'combined_model.joblib'
-        joblib.dump(combined_model, model_path)
-
-        # Save metadata
-        metadata = {
-            "model_type": "CombinedModel",
-            "base_model_version": self.model_config.get('version', 'unknown'),
-            "correction_models": list(self.bias_models.keys()),
-            "blend_weight": blend_weight,
-            "created_at": datetime.now().isoformat()
-        }
-
-        with open(self.output_dir / 'combined_model_metadata.json', 'w') as f:
-            json.dump(metadata, f, indent=4)
-
-        self.logger.info(f"Created and saved combined model with {len(self.bias_models)} correction models")
-
-        return {
-            "status": "success",
-            "model_path": str(model_path),
-            "metadata": metadata
-        }
+        if self.verbose:
+            print("Training incremental LSTM model...")
 
 
+
+        try:
+            X_sequences = lstm_data['X_sequences']
+            X_static = lstm_data['X_static']
+            y_lstm = lstm_data['y']
+
+            # Split LSTM data for training/testing
+            from sklearn.model_selection import train_test_split
+            X_seq_train, X_seq_test, X_static_train, X_static_test, y_lstm_train, y_lstm_test = train_test_split(
+                X_sequences, X_static, y_lstm, test_size=0.3, random_state=42
+            )
+
+            # Evaluate baseline LSTM performance
+            baseline_lstm_pred = self.lstm_model.predict([X_seq_test, X_static_test], verbose=0).flatten()
+            baseline_lstm_mae = mean_absolute_error(y_lstm_test, baseline_lstm_pred)
+            baseline_lstm_rmse = np.sqrt(mean_squared_error(y_lstm_test, baseline_lstm_pred))
+
+            # Create and train new LSTM model
+            lstm_model_components = self.orchestrator.create_hybrid_model(
+                sequence_shape=X_seq_train.shape,
+                static_shape=X_static_train.shape,
+                lstm_units=64,
+                dropout_rate=0.2
+            )
+
+            if lstm_model_components is None:
+                return {"status": "error", "message": "LSTM model creation failed"}
+
+            new_lstm_model = lstm_model_components['lstm']
+
+            # Train with early stopping
+            from tensorflow.keras.callbacks import EarlyStopping
+            callbacks = [EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)]
+
+            if self.verbose:
+                print("Training LSTM model...")
+
+            history = new_lstm_model.fit(
+                [X_seq_train, X_static_train], y_lstm_train,
+                validation_data=([X_seq_test, X_static_test], y_lstm_test),
+                epochs=50,
+                batch_size=32,
+                callbacks=callbacks,
+                verbose=1 if self.verbose else 0
+            )
+
+            # Evaluate new LSTM model
+            new_lstm_pred = new_lstm_model.predict([X_seq_test, X_static_test], verbose=0).flatten()
+            new_lstm_mae = mean_absolute_error(y_lstm_test, new_lstm_pred)
+            new_lstm_rmse = np.sqrt(mean_squared_error(y_lstm_test, new_lstm_pred))
+
+            # Calculate improvement
+            lstm_mae_improvement = ((baseline_lstm_mae - new_lstm_mae) / baseline_lstm_mae) * 100
+            lstm_rmse_improvement = ((baseline_lstm_rmse - new_lstm_rmse) / baseline_lstm_rmse) * 100
+
+            results = {
+                "status": "success",
+                "training_samples": int(len(X_seq_train)),
+                "test_samples": int(len(X_seq_test)),
+                "sequence_length": int(X_seq_train.shape[1]),
+                "sequential_features": int(X_seq_train.shape[2]),
+                "static_features": int(X_static_train.shape[1]),
+                "baseline_performance": {
+                    "mae": float(baseline_lstm_mae),
+                    "rmse": float(baseline_lstm_rmse)
+                },
+                "new_performance": {
+                    "mae": float(new_lstm_mae),
+                    "rmse": float(new_lstm_rmse)
+                },
+                "improvement": {
+                    "mae_improvement_pct": float(lstm_mae_improvement),
+                    "rmse_improvement_pct": float(lstm_rmse_improvement),
+                    "significant": bool(lstm_mae_improvement > 5.0)  # 5% threshold
+                },
+                "model": new_lstm_model,
+                "training_history": {
+                    "epochs": len(history.history['loss']),
+                    "final_loss": float(history.history['loss'][-1]),
+                    "final_val_loss": float(history.history['val_loss'][-1])
+                }
+            }
+
+            if self.verbose:
+                print(f"LSTM training complete:")
+                print(f"  MAE LSTM: {baseline_lstm_mae:.4f} -> {new_lstm_mae:.4f} ({lstm_mae_improvement:+.2f}%)")
+                print(f"  RMSE LSTM: {baseline_lstm_rmse:.4f} -> {new_lstm_rmse:.4f} ({lstm_rmse_improvement:+.2f}%)")
+                print(f"  Significant improvement: {results['improvement']['significant']}")
+
+            return results
+
+        except Exception as e:
+            if self.verbose:
+                print(f"Error training LSTM model: {e}")
+            return {"status": "error", "message": str(e)}
 
 def main():
-    """Command-line interface for regression enhancement."""
-    parser = argparse.ArgumentParser(description='Regression analysis and model enhancement')
-    parser.add_argument('--model', required=True, help='Path to model directory')
-    parser.add_argument('--db', help='Database name from config (defaults to active_db)')
-    parser.add_argument('--output', help='Output directory for analysis files')
-    parser.add_argument('--from-date', help='Start date for analysis (YYYY-MM-DD)')
-    parser.add_argument('--to-date', help='End date for analysis (YYYY-MM-DD)')
-    parser.add_argument('--limit', type=int, help='Maximum number of races to analyze')
-    parser.add_argument('--skip-update', action='store_true', help='Skip model update')
-    parser.add_argument('--skip-combined', action='store_true', help='Skip combined model creation')
-    parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
+    """
+    Main function for IDE usage - Incremental Training Pipeline.
+    """
+    # Configuration
+    DB_NAME = None  # Use active_db from config
+    OUTPUT_DIR = None  # Auto-generated timestamp directory
 
-    args = parser.parse_args()
+    # Date range for processing (modify as needed)
+    FROM_DATE = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')  # Last 7 days
+    TO_DATE = datetime.now().strftime('%Y-%m-%d')  # Today
+    LIMIT = None  # Process all available races
 
-    # Set default dates if not provided
-    if not args.from_date:
-        # Default to 30 days ago
-        from_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-    else:
-        from_date = args.from_date
+    VERBOSE = True
 
-    if not args.to_date:
-        # Default to today
-        to_date = datetime.now().strftime('%Y-%m-%d')
-    else:
-        to_date = args.to_date
-
-    # Create enhancer
-    enhancer = RegressionEnhancer(
-        model_path=args.model,
-        db_name=args.db,
-        output_dir=args.output,
-        verbose=args.verbose
+    # Create pipeline
+    pipeline = IncrementalTrainingPipeline(
+        model_path=None,  # Use latest model from config
+        db_name=DB_NAME,
+        output_dir=OUTPUT_DIR,
+        verbose=VERBOSE
     )
 
-    # Run pipeline
-    results = enhancer.run_regression_pipeline(
-        date_from=from_date,
-        date_to=to_date,
-        limit=args.limit,
-        update_model=not args.skip_update
+    # Run incremental training pipeline
+    results = pipeline.run_incremental_training_pipeline(
+        date_from=FROM_DATE,
+        date_to=TO_DATE,
+        limit=LIMIT
     )
+
 
     # Print summary results
+    print("\n" + "=" * 60)
+    print("INCREMENTAL TRAINING PIPELINE RESULTS")
+    print("=" * 60)
+
     if results["status"] == "success":
-        print("\nRegression Enhancement Pipeline Results:")
-        print(
-            f"Processed {results['data_processed']['races']} races with {results['data_processed']['predictions']} predictions")
+        print(f"Races fetched: {results['races_fetched']}")
+        print(f"Training samples: {results['training_data_extracted']}")
 
-        if 'metrics' in results['analysis_results']:
-            print("\nPrediction Analysis:")
-            metrics = results['analysis_results']['metrics']
-            print(f"  Mean Error: {metrics['mean_error']:.4f}")
-            print(f"  RMSE: {metrics['rmse']:.4f}")
-            print(f"  MAE: {metrics['mean_abs_error']:.4f}")
+        if 'performance_analysis' in results:
+            perf = results['performance_analysis']
+            print(f"\nCurrent Model Performance:")
+            print(f"  MAE: {perf.get('overall_mae', 'N/A'):.4f}")
+            print(f"  RMSE: {perf.get('overall_rmse', 'N/A'):.4f}")
 
-        if results['correction_models']['status'] == 'success':
-            print("\nCorrection Models:")
-            print(f"  Models built: {results['correction_models']['models_built']}")
-            if 'improvement_summary' in results['correction_models']:
-                global_imp = results['correction_models']['improvement_summary']['global']
-                print(f"  Global model improvement: {global_imp:.2f}%")
+        if results['incremental_training'].get('status') == 'success':
+            training = results['incremental_training']
+            improvement = training['improvement']
+            print(f"\nIncremental Training:")
+            print(f"  MAE improvement: {improvement['mae_improvement_pct']:+.2f}%")
+            print(f"  RMSE improvement: {improvement['rmse_improvement_pct']:+.2f}%")
+            print(f"  Significant: {improvement['significant']}")
 
-        if results['model_update']['status'] == 'success':
-            print("\nModel Update:")
-            print(f"  New version: {results['model_update']['new_version']}")
-            if 'improvement' in results['model_update'] and results['model_update']['improvement'][
-                'average'] is not None:
-                print(f"  Average improvement: {results['model_update']['improvement']['average']:.2f}%")
+        if results['model_saved'].get('status') == 'success':
+            print(f"\nModel Saved: {results['model_saved']['version']}")
 
-        if results['combined_model']['status'] == 'success':
-            print("\nCombined Model:")
-            print(f"  Model saved to: {results['combined_model']['model_path']}")
+        if results['races_archived'].get('status') == 'success':
+            archived = results['races_archived']
+            print(f"\nRaces Archived: {archived.get('archived_count', 0)}")
 
         print(f"\nExecution time: {results['execution_time']:.2f} seconds")
-        print(f"All analysis files saved to: {enhancer.output_dir}")
-    else:
-        print(f"Error: {results.get('message', 'Unknown error')}")
+        print(f"Results saved to: {pipeline.output_dir}")
 
-    return 0
+    else:
+        print(f"Pipeline failed: {results.get('message', 'Unknown error')}")
+
+    return results
 
 
 if __name__ == "__main__":
-    # For debugging in IDE - uncomment and modify these lines as needed
-    # import sys
-    sys.argv = [sys.argv[0], "--model","models/2years/hybrid/2years_full_v20250430","--to-date", "2025-04-30"]
-    sys.exit(main())
+    main()

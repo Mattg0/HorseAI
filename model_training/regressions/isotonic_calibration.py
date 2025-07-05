@@ -106,11 +106,6 @@ def convert_race_results_to_numeric(results_array, drop_empty=True):
     # Apply conversion to each value
     numeric_results = np.array([convert_value(val) for val in results])
 
-    # Count non-numeric conversions for logging
-    non_numeric_count = len(results) - sum(1 for x in results if pd.notna(x) and isinstance(x, (int, float)))
-    if non_numeric_count > 0:
-        print(f"Converted {non_numeric_count} non-numeric results to numeric values")
-
     if drop_empty:
         # Create mask of valid (non-empty) entries
         valid_mask = ~np.isnan(numeric_results)

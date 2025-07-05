@@ -97,7 +97,7 @@ class PredictionOrchestrator:
             console_handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
             self.logger.addHandler(console_handler)
 
-    def predict_race(self, comp: str, blend_weight: float = 0.7) -> pd.DataFrame:
+    def predict_race(self, comp: str, blend_weight: float = 0.9) -> pd.DataFrame:
         """
         Generate predictions for a specific race.
         """
