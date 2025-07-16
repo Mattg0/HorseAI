@@ -561,6 +561,7 @@ def main():
         "Choose Operation:",
         [
             "🎲 Execute Prediction",
+            "✨ AI Insight",
             "📈 Execute Evaluation",
             "🔄 Incremental Training",
             "🎯 Execute Full Training",
@@ -941,6 +942,304 @@ def main():
                             else:
                                 st.error(f"❌ Evaluation failed: {results['message']}")
 
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            elif operation == "✨ AI Insight":
+                st.markdown('''
+                <div class="config-panel">
+                    <h3>🤖 AI Betting Insights</h3>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                st.info("Get intelligent betting advice powered by AI analysis of your prediction results and market odds")
+                
+                # AI Insight tabs
+                tab1, tab2, tab3 = st.tabs(["📊 Daily Betting Advice","🌟 Quinte Race Advice", "🏇 Race-Specific Advice"])
+                
+                with tab1:
+                    st.markdown("### 📊 Daily Betting Performance Analysis")
+                    st.markdown("Get comprehensive daily betting advice based on your model's recent performance")
+                    
+                    # Configuration options
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        lm_studio_url = st.text_input(
+                            "LM Studio URL:", 
+                            value="http://localhost:1234", 
+                            help="Leave empty to use configuration default"
+                        )
+                    with col2:
+                        verbose_ai = st.checkbox("Enable verbose AI output", value=False)
+                    
+                    # Generate daily advice button
+                    if st.button("🧠 Generate Daily Betting Advice", key="daily_ai_advice"):
+                        with st.spinner("Analyzing your prediction results and generating advice..."):
+                            # Use empty string if default URL is used
+                            url_param = lm_studio_url if lm_studio_url != "http://localhost:1234" else None
+                            
+                            result = st.session_state.helper.get_ai_betting_advice(
+                                lm_studio_url=url_param,
+                                verbose=verbose_ai
+                            )
+                            
+                            if result["success"]:
+                                st.success("✅ AI betting advice generated successfully!")
+                                
+                                # Display the AI advice
+                                st.markdown("### 🎯 AI Betting Recommendations")
+                                st.markdown(result["ai_advice"])
+                                
+                                # Show evaluation data used
+                                with st.expander("📊 Evaluation Data Used"):
+                                    eval_data = result["evaluation_data"]
+                                    
+                                    # Summary metrics
+                                    if 'summary_metrics' in eval_data:
+                                        st.markdown("**Performance Summary:**")
+                                        metrics = eval_data['summary_metrics']
+                                        
+                                        col1, col2, col3 = st.columns(3)
+                                        with col1:
+                                            st.metric("Total Races", metrics.get('total_races', 0))
+                                        with col2:
+                                            st.metric("Winner Accuracy", f"{metrics.get('winner_accuracy', 0):.1%}")
+                                        with col3:
+                                            st.metric("Podium Accuracy", f"{metrics.get('podium_accuracy', 0):.1%}")
+                                    
+                                    # Bet performance
+                                    if 'pmu_summary' in eval_data:
+                                        st.markdown("**Bet Type Performance:**")
+                                        pmu_summary = eval_data['pmu_summary']
+                                        
+                                        bet_df = []
+                                        for bet_type, rate in pmu_summary.items():
+                                            if rate > 0:
+                                                bet_df.append({
+                                                    'Bet Type': bet_type.replace('_rate', '').replace('_', ' ').title(),
+                                                    'Win Rate': f"{rate:.1%}"
+                                                })
+                                        
+                                        if bet_df:
+                                            st.dataframe(pd.DataFrame(bet_df), hide_index=True)
+                                
+                            else:
+                                st.error(f"❌ Failed to generate AI advice: {result['message']}")
+                                if 'error' in result:
+                                    st.error(f"Error details: {result['error']}")
+                
+                with tab2:
+                    st.markdown("### 🌟 Quinté+ Specialized Betting Strategy")
+                    st.markdown("Get **3 refined betting recommendations** specifically optimized for quinté races")
+                    
+                    # Info box about quinte focus
+                    st.info("🎯 **Quinté+ Focus**: This analysis specifically targets quinté races and provides 3 structured betting recommendations: Conservative, Balanced, and Aggressive strategies based on historical quinte performance.")
+                    
+                    # Configuration options
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        quinte_lm_studio_url = st.text_input(
+                            "LM Studio URL:", 
+                            value="http://localhost:1234", 
+                            help="Leave empty to use configuration default",
+                            key="quinte_lm_url"
+                        )
+                    with col2:
+                        quinte_verbose_ai = st.checkbox("Enable verbose AI output", value=False, key="quinte_verbose")
+                    
+                    # Generate quinte advice button
+                    if st.button("🌟 Generate Quinté+ Betting Strategy", key="quinte_ai_advice"):
+                        with st.spinner("Analyzing quinté performance and generating 3 refined betting recommendations..."):
+                            # Use empty string if default URL is used
+                            url_param = quinte_lm_studio_url if quinte_lm_studio_url != "http://localhost:1234" else None
+                            
+                            result = st.session_state.helper.get_ai_quinte_advice(
+                                lm_studio_url=url_param,
+                                verbose=quinte_verbose_ai
+                            )
+                            
+                            if result["success"]:
+                                st.success("✅ Quinté+ betting strategy generated successfully!")
+                                
+                                # Display the AI advice
+                                st.markdown("### 🎯 3 Refined Quinté+ Betting Recommendations")
+                                st.markdown(result["ai_advice"])
+                                
+                                # Show evaluation data used
+                                with st.expander("📊 Quinté+ Performance Data Used"):
+                                    eval_data = result["evaluation_data"]
+                                    
+                                    # Summary metrics
+                                    if 'summary_metrics' in eval_data:
+                                        st.markdown("**Overall Performance Summary:**")
+                                        metrics = eval_data['summary_metrics']
+                                        
+                                        col1, col2, col3 = st.columns(3)
+                                        with col1:
+                                            st.metric("Total Races", metrics.get('total_races', 0))
+                                        with col2:
+                                            st.metric("Winner Accuracy", f"{metrics.get('winner_accuracy', 0):.1%}")
+                                        with col3:
+                                            st.metric("Podium Accuracy", f"{metrics.get('podium_accuracy', 0):.1%}")
+                                    
+                                    # Quinte specific analysis
+                                    if 'quinte_analysis' in eval_data:
+                                        st.markdown("**Quinté+ Specific Analysis:**")
+                                        quinte_data = eval_data['quinte_analysis']
+                                        
+                                        # Display key quinte metrics
+                                        if 'total_quinte_races' in quinte_data:
+                                            st.metric("Total Quinté+ Races", quinte_data['total_quinte_races'])
+                                        
+                                        # Show betting scenarios performance
+                                        if 'betting_scenarios' in quinte_data:
+                                            st.markdown("**Horse Selection Strategies:**")
+                                            scenarios = quinte_data['betting_scenarios']
+                                            
+                                            scenario_df = []
+                                            for scenario, data in scenarios.items():
+                                                scenario_df.append({
+                                                    'Strategy': scenario.replace('_', ' ').title(),
+                                                    'Wins': data.get('wins', 0),
+                                                    'Total': data.get('total', 0),
+                                                    'Win Rate': f"{data.get('win_rate', 0):.1%}"
+                                                })
+                                            
+                                            if scenario_df:
+                                                st.dataframe(pd.DataFrame(scenario_df), hide_index=True)
+                                    
+                                    # PMU summary focused on quinte
+                                    if 'pmu_summary' in eval_data:
+                                        st.markdown("**Quinté+ Bet Type Performance:**")
+                                        pmu_summary = eval_data['pmu_summary']
+                                        
+                                        quinte_bet_df = []
+                                        quinte_bets = [
+                                            ('quinte_exact_rate', 'Quinté+ Exact'),
+                                            ('quinte_desordre_rate', 'Quinté+ Désordre'),
+                                            ('bonus4_rate', 'Bonus 4'),
+                                            ('bonus3_rate', 'Bonus 3'),
+                                            ('multi4_rate', 'Multi 4')
+                                        ]
+                                        
+                                        for bet_key, bet_name in quinte_bets:
+                                            if bet_key in pmu_summary and pmu_summary[bet_key] > 0:
+                                                quinte_bet_df.append({
+                                                    'Bet Type': bet_name,
+                                                    'Win Rate': f"{pmu_summary[bet_key]:.1%}"
+                                                })
+                                        
+                                        if quinte_bet_df:
+                                            st.dataframe(pd.DataFrame(quinte_bet_df), hide_index=True)
+                                        else:
+                                            st.info("No quinté bet wins recorded in current data")
+                                
+                            else:
+                                st.error(f"❌ Failed to generate quinté betting strategy: {result['message']}")
+                                if 'error' in result:
+                                    st.error(f"Error details: {result['error']}")
+                
+                with tab3:
+                    st.markdown("### 🏇 Race-Specific AI Analysis")
+                    st.markdown("Get detailed AI advice for specific races including odds analysis and betting recommendations")
+                    
+                    # Get available races
+                    daily_races = st.session_state.helper.get_daily_races()
+                    
+                    if daily_races:
+                        # Filter races with predictions
+                        races_with_predictions = [race for race in daily_races if race.get('has_predictions', 0) == 1]
+                        
+                        if races_with_predictions:
+                            # Race selection
+                            race_options = []
+                            for race in races_with_predictions:
+                                race_name = f"{race['hippo']} - R{race.get('prix', 'N/A')} - {race.get('prixnom', 'Unknown')}"
+                                if race.get('quinte', 0) == 1:
+                                    race_name = f"🌟 {race_name}"
+                                race_options.append(race_name)
+                            
+                            selected_race_idx = st.selectbox(
+                                "Select a race for AI analysis:",
+                                range(len(race_options)),
+                                format_func=lambda x: race_options[x]
+                            )
+                            
+                            selected_race = races_with_predictions[selected_race_idx]
+                            
+                            # Configuration for race analysis
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                race_lm_studio_url = st.text_input(
+                                    "LM Studio URL:", 
+                                    value="http://localhost:1234", 
+                                    help="Leave empty to use configuration default",
+                                    key="race_lm_url"
+                                )
+                            with col2:
+                                race_verbose_ai = st.checkbox("Enable verbose AI output", value=False, key="race_verbose")
+                            
+                            # Generate race advice button
+                            if st.button("🧠 Generate Race Analysis", key="race_ai_advice"):
+                                with st.spinner(f"Analyzing race {selected_race['comp']} and generating advice..."):
+                                    # Use empty string if default URL is used
+                                    url_param = race_lm_studio_url if race_lm_studio_url != "http://localhost:1234" else None
+                                    
+                                    result = st.session_state.helper.get_ai_race_advice(
+                                        race_comp=selected_race['comp'],
+                                        lm_studio_url=url_param,
+                                        verbose=race_verbose_ai
+                                    )
+                                    
+                                    if result["success"]:
+                                        st.success(f"✅ AI race analysis generated for {selected_race['comp']}!")
+                                        
+                                        # Display the AI advice
+                                        st.markdown("### 🎯 AI Race Analysis & Recommendations")
+                                        st.markdown(result["ai_advice"])
+                                        
+                                        # Show race data and predictions used
+                                        with st.expander("📊 Race Data & Predictions Used"):
+                                            race_data = result["race_data"]
+                                            predictions = result["predictions"]
+                                            
+                                            # Race information
+                                            st.markdown("**Race Information:**")
+                                            col1, col2, col3 = st.columns(3)
+                                            with col1:
+                                                st.metric("Date", race_data.get('jour', 'N/A'))
+                                            with col2:
+                                                st.metric("Track", race_data.get('hippo', 'N/A'))
+                                            with col3:
+                                                st.metric("Race", f"R{race_data.get('prix', 'N/A')}")
+                                            
+                                            # Predictions
+                                            if predictions and 'predictions' in predictions:
+                                                st.markdown("**Top Predictions:**")
+                                                pred_data = predictions['predictions']
+                                                
+                                                # Create DataFrame from predictions
+                                                pred_df = []
+                                                for pred in pred_data[:8]:  # Show top 8
+                                                    pred_df.append({
+                                                        'Horse': pred.get('numero', 'N/A'),
+                                                        'Predicted Rank': pred.get('predicted_rank', pred.get('predicted_position', 'N/A')),
+                                                        'Confidence': f"{pred.get('confidence', pred.get('predicted_prob', 0)):.2%}" if isinstance(pred.get('confidence', pred.get('predicted_prob', 0)), (int, float)) else 'N/A'
+                                                    })
+                                                
+                                                if pred_df:
+                                                    st.dataframe(pd.DataFrame(pred_df), hide_index=True)
+                                    
+                                    else:
+                                        st.error(f"❌ Failed to generate race analysis: {result['message']}")
+                                        if 'error' in result:
+                                            st.error(f"Error details: {result['error']}")
+                        else:
+                            st.warning("No races with predictions found. Please run predictions first.")
+                            st.info("Go to '🎲 Execute Prediction' to generate predictions for today's races.")
+                    else:
+                        st.warning("No races available for analysis.")
+                        st.info("Go to '🎲 Execute Prediction' to sync and predict today's races.")
+                
                 st.markdown('</div>', unsafe_allow_html=True)
 
             elif operation == "🔄 Incremental Training":

@@ -75,5 +75,7 @@ lstm:
   - course_emb_2
   step_size: 1
 models:
-  latest_model: 2025-07-03/2years_115832
+  latest_model: 2025-07-14/2years_120400
   model_dir: ./models
+llm_url:
+  local: http://localhost:1234

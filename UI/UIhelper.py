@@ -16,7 +16,7 @@ from core.connectors.api_daily_sync import RaceFetcher
 from race_prediction.predict_daily_races import PredictionOrchestrator
 from utils.predict_evaluator import PredictEvaluator
 from model_training.regressions.regression_enhancement import IncrementalTrainingPipeline
-
+from utils.ai_advisor import BettingAdvisor
 
 class PipelineHelper:
     """Helper class for config management and status calculations"""
@@ -353,6 +353,7 @@ class PipelineHelper:
 
 
 
+
     def evaluate_all_predictions_comprehensive(self, progress_callback=None) -> Dict[str, Any]:
         """Comprehensive evaluation of all predicted races using new PredictEvaluator"""
         try:
@@ -604,3 +605,157 @@ class PipelineHelper:
         except Exception as e:
             print(f"Error getting races with results: {e}")
             return []
+
+    def get_ai_betting_advice(self, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
+        """Get AI betting advice based on latest evaluation results"""
+        try:
+            # Initialize the evaluator to get comprehensive results
+            evaluator = PredictEvaluator()
+            
+            # Get evaluation metrics
+            metrics = evaluator.evaluate_all_races()
+            
+            # Get bet type wins
+            bet_type_wins = evaluator.get_races_won_by_bet_type()
+            
+            # Get quinte analysis
+            quinte_analysis = evaluator.get_quinte_horse_betting_analysis()
+            
+            # Format evaluation results for AI advisor
+            evaluation_results = self._format_results_for_advisor(metrics, bet_type_wins, quinte_analysis)
+            
+            # Initialize AI advisor (will use config if lm_studio_url is None)
+            advisor = BettingAdvisor(lm_studio_url=lm_studio_url, verbose=verbose)
+            
+            # Get AI advice
+            ai_advice = advisor.analyze_daily_results(evaluation_results)
+            
+            return {
+                "success": True,
+                "message": "AI betting advice generated successfully",
+                "ai_advice": ai_advice,
+                "evaluation_data": evaluation_results
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to get AI betting advice: {str(e)}"
+            }
+
+    def get_ai_race_advice(self, race_comp: str, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
+        """Get AI advice for a specific race"""
+        try:
+            # Get race data and predictions
+            race_fetcher = RaceFetcher()
+            race_data = race_fetcher.get_race_by_comp(race_comp)
+            
+            if not race_data:
+                return {
+                    "success": False,
+                    "message": f"Race {race_comp} not found"
+                }
+            
+            # Get prediction results
+            predictor = PredictionOrchestrator()
+            prediction_results = predictor.get_race_predictions(race_comp)
+            
+            if not prediction_results:
+                return {
+                    "success": False,
+                    "message": f"No predictions found for race {race_comp}"
+                }
+            
+            # Get previous results for context
+            evaluator = PredictEvaluator()
+            previous_results = evaluator.evaluate_all_races()
+            previous_results_dict = self._format_results_for_advisor(previous_results, {}, {})
+            
+            # Initialize AI advisor (will use config if lm_studio_url is None)
+            advisor = BettingAdvisor(lm_studio_url=lm_studio_url, verbose=verbose)
+            
+            # Get AI race advice
+            ai_advice = advisor.analyze_race_prediction(race_data, prediction_results, previous_results_dict)
+            
+            return {
+                "success": True,
+                "message": "AI race advice generated successfully",
+                "ai_advice": ai_advice,
+                "race_data": race_data,
+                "predictions": prediction_results
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to get AI race advice: {str(e)}"
+            }
+
+    def _format_results_for_advisor(self, metrics, bet_type_wins, quinte_analysis) -> Dict[str, Any]:
+        """Format evaluation results for AI advisor consumption"""
+        # Convert metrics object to dictionary format expected by advisor
+        formatted_results = {
+            'summary_metrics': {
+                'total_races': metrics.total_races,
+                'winner_accuracy': metrics.overall_winner_accuracy,
+                'podium_accuracy': metrics.overall_podium_accuracy,
+                'mean_rank_error': getattr(metrics, 'mean_rank_error', 0)
+            },
+            'pmu_summary': {},
+            'race_details': []
+        }
+        
+        # Format bet type wins into PMU summary format
+        if hasattr(metrics, 'bet_win_rates'):
+            for bet_type, stats in metrics.bet_win_rates.items():
+                formatted_results['pmu_summary'][f'{bet_type}_rate'] = stats.get('rate', 0)
+        
+        # Add quinte analysis
+        if quinte_analysis:
+            formatted_results['quinte_analysis'] = quinte_analysis
+            
+        # Add race details if available
+        if bet_type_wins:
+            formatted_results['race_details'] = bet_type_wins
+            
+        return formatted_results
+
+    def get_ai_quinte_advice(self, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
+        """Get AI betting advice specifically focused on quinte races with 3 refined recommendations"""
+        try:
+            # Initialize the evaluator to get comprehensive results
+            evaluator = PredictEvaluator()
+            
+            # Get evaluation metrics
+            metrics = evaluator.evaluate_all_races()
+            
+            # Get bet type wins
+            bet_type_wins = evaluator.get_races_won_by_bet_type()
+            
+            # Get quinte analysis - this is the main focus
+            quinte_analysis = evaluator.get_quinte_horse_betting_analysis()
+            
+            # Format evaluation results for AI advisor
+            evaluation_results = self._format_results_for_advisor(metrics, bet_type_wins, quinte_analysis)
+            
+            # Initialize AI advisor (will use config if lm_studio_url is None)
+            advisor = BettingAdvisor(lm_studio_url=lm_studio_url, verbose=verbose)
+            
+            # Get AI advice specifically for quinte
+            ai_advice = advisor.analyze_quinte_betting_strategy(evaluation_results)
+            
+            return {
+                "success": True,
+                "message": "AI quinte betting advice generated successfully",
+                "ai_advice": ai_advice,
+                "evaluation_data": evaluation_results
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to get AI quinte betting advice: {str(e)}"
+            }
