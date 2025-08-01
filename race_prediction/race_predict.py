@@ -12,12 +12,21 @@ from datetime import datetime
 from utils.env_setup import AppConfig
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from utils.model_manager import get_model_manager
+from core.calculators.static_feature_calculator import FeatureCalculator
+from sklearn.preprocessing import StandardScaler
+
+# TabNet imports
+try:
+    from pytorch_tabnet.tab_model import TabNetRegressor
+    TABNET_AVAILABLE = True
+except ImportError:
+    TABNET_AVAILABLE = False
 
 
 class RacePredictor:
     """
-    Optimized race predictor that uses the same data preparation pipeline as training.
-    Leverages the hybrid RF+LSTM model with optimized blend weights.
+    Enhanced race predictor that uses RF + LSTM + TabNet models with optimal blend weights.
+    Uses the same data preparation pipeline as training for consistency.
     """
 
     def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False):
@@ -53,15 +62,20 @@ class RacePredictor:
             self.model_manager = get_model_manager()
             model_path = self.model_manager.get_model_path()
 
-        self.model_path = model_path
+        self.model_path = Path(model_path)
+        
+        # Load blend weights from config
+        self._load_blend_weights()
+        
         # Load models and configuration
         self._load_models()
 
         if self.verbose:
-            print(f"OptimizedRacePredictor initialized")
+            print(f"RacePredictor initialized")
             print(f"  Model: {self.model_path}")
             print(f"  Database: {self.db_path}")
-            print(f"  Blend weight: {getattr(self, 'blend_weight', 0.9)}")
+            print(f"  Blend weights: RF={self.rf_weight:.1f}, LSTM={self.lstm_weight:.1f}, TabNet={self.tabnet_weight:.1f}")
+            print(f"  Models loaded: RF={self.rf_model is not None}, LSTM={self.lstm_model is not None}, TabNet={self.tabnet_model is not None}")
 
     def _determine_model_path(self, model_path):
         """Determine the model path to use."""
@@ -99,12 +113,25 @@ class RacePredictor:
         if config_path.exists():
             with open(config_path, 'r') as f:
                 self.model_config = json.load(f)
-                # Get blend weight from model config or use default
+                # Get blend weights from model config or use default
                 training_results = self.model_config.get('training_results', {})
-                self.blend_weight = training_results.get('blend_weight', 0.9)
+                # Check if we have three-model weights
+                if 'rf_weight' in training_results:
+                    self.rf_weight = training_results.get('rf_weight', 0.8)
+                    self.lstm_weight = training_results.get('lstm_weight', 0.1)
+                    self.tabnet_weight = training_results.get('tabnet_weight', 0.1)
+                else:
+                    # Legacy: convert old blend_weight to RF/LSTM split
+                    old_blend_weight = training_results.get('blend_weight', 0.9)
+                    self.rf_weight = old_blend_weight
+                    self.lstm_weight = 1.0 - old_blend_weight
+                    self.tabnet_weight = 0.0
         else:
             self.model_config = {}
-            self.blend_weight = 0.9
+            # Use default blend weights if not in config
+            self.rf_weight = 0.8
+            self.lstm_weight = 0.1
+            self.tabnet_weight = 0.1
 
         # Load feature engineering state to match training
         feature_config_path = self.model_path / "hybrid_feature_engineer.joblib"
@@ -120,7 +147,7 @@ class RacePredictor:
                 if 'embedding_dim' in feature_config:
                     self.orchestrator.embedding_dim = feature_config['embedding_dim']
 
-        # Load RF model
+        # Load RF model (REQUIRED)
         rf_model_path = self.model_path / "hybrid_rf_model.joblib"
         if rf_model_path.exists():
             self.rf_model = joblib.load(rf_model_path)
@@ -128,10 +155,10 @@ class RacePredictor:
                 print(f"Loaded RF model: {type(self.rf_model)}")
         else:
             self.rf_model = None
-            print("Warning: RF model not found")
+            raise FileNotFoundError(f"RF model not found at {rf_model_path} - required for predictions")
 
-        # Load LSTM model
-        lstm_model_path = self.model_path / "hybrid_lstm_model"
+        # Load LSTM model (REQUIRED)
+        lstm_model_path = self.model_path / "hybrid_lstm_model.keras"
         if lstm_model_path.exists():
             try:
                 from tensorflow.keras.models import load_model
@@ -139,12 +166,12 @@ class RacePredictor:
                 if self.verbose:
                     print(f"Loaded LSTM model")
             except Exception as e:
-                print(f"Warning: Could not load LSTM model: {str(e)}")
-                self.lstm_model = None
+                raise RuntimeError(f"Failed to load LSTM model at {lstm_model_path}: {str(e)}")
         else:
-            self.lstm_model = None
-            if self.verbose:
-                print("LSTM model not found - will use RF only")
+            raise FileNotFoundError(f"LSTM model not found at {lstm_model_path} - required for predictions")
+                
+        # Load TabNet model
+        self._load_tabnet_model()
 
     def prepare_race_data(self, race_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -268,6 +295,144 @@ class RacePredictor:
                 print(f"Warning: LSTM prediction failed: {str(e)}")
             return None
 
+    def _load_blend_weights(self):
+        """Load optimal blend weights from config."""
+        try:
+            blend_config = self.config._config.blend
+            self.rf_weight = blend_config.rf_weight
+            self.lstm_weight = blend_config.lstm_weight
+            self.tabnet_weight = blend_config.tabnet_weight
+            
+            # Validate weights sum to 1
+            total_weight = self.rf_weight + self.lstm_weight + self.tabnet_weight
+            if abs(total_weight - 1.0) > 1e-6:
+                if self.verbose:
+                    print(f"Warning: Blend weights don't sum to 1.0: {total_weight}, normalizing...")
+                # Normalize weights
+                self.rf_weight = self.rf_weight / total_weight
+                self.lstm_weight = self.lstm_weight / total_weight
+                self.tabnet_weight = self.tabnet_weight / total_weight
+                
+        except (AttributeError, KeyError):
+            # Use default optimal weights if not in config
+            if self.verbose:
+                print("Using default optimal blend weights: 80/10/10")
+            self.rf_weight = 0.8
+            self.lstm_weight = 0.1
+            self.tabnet_weight = 0.1
+
+    def _load_tabnet_model(self):
+        """Load TabNet model and associated files."""
+        self.tabnet_model = None
+        self.tabnet_scaler = None
+        self.tabnet_feature_columns = None
+        
+        if not TABNET_AVAILABLE:
+            if self.verbose:
+                print("TabNet not available - install pytorch-tabnet")
+            return
+        
+        try:
+            # Look for TabNet model files
+            tabnet_model_file = self.model_path / "tabnet_model.zip"
+            if not tabnet_model_file.exists():
+                tabnet_model_file = self.model_path / "tabnet_model.zip.zip"
+            
+            if tabnet_model_file.exists():
+                self.tabnet_model = TabNetRegressor()
+                self.tabnet_model.load_model(str(tabnet_model_file))
+                
+                # Load scaler
+                scaler_file = self.model_path / "tabnet_scaler.joblib"
+                if scaler_file.exists():
+                    self.tabnet_scaler = joblib.load(scaler_file)
+                    
+                # Load feature configuration
+                config_file = self.model_path / "tabnet_config.json"
+                if config_file.exists():
+                    with open(config_file, 'r') as f:
+                        config = json.load(f)
+                        self.tabnet_feature_columns = config.get('feature_columns', [])
+                        
+                if self.verbose:
+                    print(f"Loaded TabNet model from: {tabnet_model_file}")
+                    if self.tabnet_feature_columns:
+                        print(f"TabNet expects {len(self.tabnet_feature_columns)} features")
+            else:
+                if self.verbose:
+                    print("TabNet model not found")
+                    
+        except Exception as e:
+            if self.verbose:
+                print(f"Warning: Could not load TabNet model: {str(e)}")
+            self.tabnet_model = None
+            self.tabnet_scaler = None
+            self.tabnet_feature_columns = None
+
+    def prepare_tabnet_features(self, race_df: pd.DataFrame) -> pd.DataFrame:
+        """Prepare features specifically for TabNet prediction."""
+        if self.verbose:
+            print("Preparing features for TabNet prediction...")
+            
+        # Apply feature calculator for musique preprocessing
+        df_with_features = FeatureCalculator.calculate_all_features(race_df)
+        
+        # Prepare TabNet-specific features using the orchestrator
+        tabnet_df = self.orchestrator.prepare_tabnet_features(df_with_features, use_cache=False)
+        
+        return tabnet_df
+    
+    def predict_with_tabnet(self, race_df: pd.DataFrame) -> np.ndarray:
+        """Generate predictions using TabNet model."""
+        if self.tabnet_model is None:
+            return None
+            
+        try:
+            # Prepare TabNet-specific features
+            tabnet_df = self.prepare_tabnet_features(race_df)
+            
+            # Select features that match training
+            if self.tabnet_feature_columns:
+                available_features = [col for col in self.tabnet_feature_columns if col in tabnet_df.columns]
+                missing_features = [col for col in self.tabnet_feature_columns if col not in tabnet_df.columns]
+                
+                if missing_features and self.verbose:
+                    print(f"Warning: Missing TabNet features: {len(missing_features)}")
+                    
+                if not available_features:
+                    if self.verbose:
+                        print("Warning: No matching TabNet features found")
+                    return None
+                    
+                # Extract feature matrix
+                X = tabnet_df[available_features].values
+            else:
+                # Use all available features if no specific columns defined
+                feature_cols = [col for col in tabnet_df.columns 
+                               if col not in ['final_position', 'comp', 'idche', 'idJockey', 'numero']]
+                X = tabnet_df[feature_cols].values
+                
+            # Scale features if scaler available
+            if self.tabnet_scaler is not None:
+                X_scaled = self.tabnet_scaler.transform(X)
+            else:
+                X_scaled = X
+                
+            # Generate predictions
+            tabnet_preds = self.tabnet_model.predict(X_scaled)
+            if len(tabnet_preds.shape) > 1:
+                tabnet_preds = tabnet_preds.flatten()
+                
+            if self.verbose:
+                print(f"TabNet prediction: {len(tabnet_preds)} predictions generated")
+                
+            return tabnet_preds
+            
+        except Exception as e:
+            if self.verbose:
+                print(f"Warning: TabNet prediction failed: {str(e)}")
+            return None
+
     def predict_race(self, race_df: pd.DataFrame) -> pd.DataFrame:
         """
         Predict race outcome using the optimized hybrid model.
@@ -290,20 +455,49 @@ class RacePredictor:
 
         # Step 3: Generate LSTM predictions if model available
         lstm_predictions = self.predict_with_lstm(embedded_df)
-
-        # Step 4: Blend predictions using optimized weights
+        
+        # Step 4: Generate TabNet predictions
+        tabnet_predictions = self.predict_with_tabnet(race_df)
+        
+        # Step 5: Blend predictions using three-model weights
+        valid_models = []
+        predictions_list = []
+        weights_list = []
+        
+        # RF predictions (always available)
+        valid_models.append('RF')
+        predictions_list.append(rf_predictions)
+        weights_list.append(self.rf_weight)
+        
+        # Add LSTM if available
         if lstm_predictions is not None and len(lstm_predictions) == len(rf_predictions):
-            # Use the optimized blend weight from training
-            final_predictions = (rf_predictions * self.blend_weight +
-                                 lstm_predictions * (1 - self.blend_weight))
-            if self.verbose:
-                print(f"Blended predictions using weight {self.blend_weight}")
+            valid_models.append('LSTM')
+            predictions_list.append(lstm_predictions)
+            weights_list.append(self.lstm_weight)
+            
+        # Add TabNet if available
+        if tabnet_predictions is not None and len(tabnet_predictions) == len(rf_predictions):
+            valid_models.append('TabNet')
+            predictions_list.append(tabnet_predictions)
+            weights_list.append(self.tabnet_weight)
+            
+        # Normalize weights for available models
+        total_weight = sum(weights_list)
+        if total_weight > 0:
+            normalized_weights = [w / total_weight for w in weights_list]
         else:
-            final_predictions = rf_predictions
-            if self.verbose:
-                print("Using RF predictions only")
+            normalized_weights = [1.0 / len(predictions_list)] * len(predictions_list)
+            
+        # Blend predictions
+        final_predictions = np.zeros_like(rf_predictions)
+        for preds, weight in zip(predictions_list, normalized_weights):
+            final_predictions += preds * weight
+            
+        if self.verbose:
+            print(f"Blended predictions using models: {', '.join(valid_models)}")
+            print(f"Normalized weights: {[f'{w:.3f}' for w in normalized_weights]}")
 
-        # Step 5: Create result DataFrame
+        # Step 6: Create result DataFrame
         result_df = race_df.copy()
         result_df['predicted_position'] = final_predictions
 
@@ -321,6 +515,28 @@ class RacePredictor:
             print(f"Top 3 predicted: {numeros_ordered[:3]}")
 
         return result_df
+
+    def get_model_info(self) -> Dict:
+        """
+        Get information about the loaded model.
+        
+        Returns:
+            Dictionary with model information
+        """
+        return {
+            'model_type': 'Enhanced RacePredictor (RF + LSTM + TabNet)',
+            'model_path': str(self.model_path),
+            'rf_weight': self.rf_weight,
+            'lstm_weight': self.lstm_weight,
+            'tabnet_weight': self.tabnet_weight,
+            'models_loaded': {
+                'rf': self.rf_model is not None,
+                'lstm': self.lstm_model is not None,
+                'tabnet': self.tabnet_model is not None
+            },
+            'database': self.db_path,
+            'database_name': self.db_name
+        }
 
 
 def predict_race_simple(race_data: Union[pd.DataFrame, List[Dict], str],

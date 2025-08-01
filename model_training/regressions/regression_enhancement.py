@@ -12,7 +12,16 @@ from typing import Dict, List, Union, Any, Optional, Tuple
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
+
+# TabNet imports
+try:
+    from pytorch_tabnet.tab_model import TabNetRegressor
+    import torch
+    TABNET_AVAILABLE = True
+except ImportError:
+    TABNET_AVAILABLE = False
 
 from utils.env_setup import AppConfig
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
@@ -109,15 +118,69 @@ class IncrementalTrainingPipeline:
             self.lstm_model = models.get('lstm_model')
             self.model_config = models.get('model_config', {})
 
+            # Load TabNet model and related components
+            self._load_tabnet_model()
+
             if self.verbose:
-                print(f"Loaded models: RF={self.rf_model is not None}, LSTM={self.lstm_model is not None}")
+                print(f"Loaded models: RF={self.rf_model is not None}, LSTM={self.lstm_model is not None}, TabNet={self.tabnet_model is not None}")
 
         except Exception as e:
             if self.verbose:
                 print(f"Error loading models: {e}")
             self.rf_model = None
             self.lstm_model = None
+            self.tabnet_model = None
+            self.tabnet_scaler = None
+            self.tabnet_feature_columns = None
             self.model_config = {}
+
+    def _load_tabnet_model(self):
+        """Load TabNet model and associated files."""
+        self.tabnet_model = None
+        self.tabnet_scaler = None
+        self.tabnet_feature_columns = None
+        
+        if not TABNET_AVAILABLE:
+            if self.verbose:
+                print("TabNet not available - install pytorch-tabnet")
+            return
+        
+        try:
+            # Look for TabNet model files
+            tabnet_model_file = self.model_path / "tabnet_model.zip"
+            if not tabnet_model_file.exists():
+                tabnet_model_file = self.model_path / "tabnet_model.zip.zip"
+            
+            if tabnet_model_file.exists():
+                self.tabnet_model = TabNetRegressor()
+                self.tabnet_model.load_model(str(tabnet_model_file))
+                
+                # Load scaler
+                scaler_file = self.model_path / "tabnet_scaler.joblib"
+                if scaler_file.exists():
+                    self.tabnet_scaler = joblib.load(scaler_file)
+                    
+                # Load feature configuration
+                config_file = self.model_path / "tabnet_config.json"
+                if config_file.exists():
+                    with open(config_file, 'r') as f:
+                        config = json.load(f)
+                        self.tabnet_feature_columns = config.get('feature_columns', [])
+                        
+                if self.verbose:
+                    print(f"Loaded TabNet model from: {tabnet_model_file}")
+                    if self.tabnet_feature_columns:
+                        print(f"TabNet expects {len(self.tabnet_feature_columns)} features")
+            else:
+                if self.verbose:
+                    print("TabNet model not found")
+                    
+        except Exception as e:
+            if self.verbose:
+                print(f"Warning: Could not load TabNet model: {str(e)}")
+            self.tabnet_model = None
+            self.tabnet_scaler = None
+            self.tabnet_feature_columns = None
 
     def fetch_completed_races(self, date_from: str = None, date_to: str = None,
                               limit: int = None) -> List[Dict]:
@@ -255,6 +318,104 @@ class IncrementalTrainingPipeline:
 
         if self.verbose:
             print(f"Extracted {len(training_df)} training samples from {len(races)} races")
+
+        return training_df
+
+    def extract_tabnet_training_data(self, races: List[Dict]) -> pd.DataFrame:
+        """
+        Extract training data specifically for TabNet incremental training.
+        
+        Args:
+            races: List of race dictionaries with predictions and results
+            
+        Returns:
+            DataFrame with TabNet-compatible features and targets
+        """
+        if not TABNET_AVAILABLE:
+            if self.verbose:
+                print("TabNet not available - skipping TabNet data extraction")
+            return pd.DataFrame()
+            
+        if self.verbose:
+            print(f"Extracting TabNet training data from {len(races)} races...")
+
+        training_samples = []
+
+        for race in races:
+            try:
+                # Parse prediction results
+                prediction_results = race.get('prediction_results')
+                if isinstance(prediction_results, str):
+                    prediction_results = json.loads(prediction_results)
+                
+                # Parse actual results
+                actual_results = race.get('actual_results')
+                if isinstance(actual_results, str):
+                    actual_results = json.loads(actual_results)
+                
+                if not prediction_results or not actual_results:
+                    continue
+
+                # Get predictions and results
+                predictions = prediction_results.get('predictions', [])
+                arrivals = actual_results.get('arrival', '').split('-')
+                
+                if not predictions or not arrivals:
+                    continue
+
+                # Create position mapping
+                actual_positions = {}
+                for i, numero in enumerate(arrivals):
+                    if numero.strip():
+                        actual_positions[int(numero)] = i + 1
+
+                # Extract TabNet training samples
+                for pred in predictions:
+                    numero = pred.get('numero')
+                    if numero in actual_positions:
+                        # Use the raw race data for feature calculation
+                        race_data = {
+                            'comp': race.get('comp'),
+                            'jour': race.get('jour'),
+                            'numero': numero,
+                            'actual_position': actual_positions[numero],
+                            'predicted_position': pred.get('predicted_position', 0),
+                            # Basic horse features
+                            'age': pred.get('age', 0),
+                            'cotedirect': pred.get('cotedirect', 0),
+                            'coteprob': pred.get('coteprob', 0),
+                            'victoirescheval': pred.get('victoirescheval', 0),
+                            'placescheval': pred.get('placescheval', 0),
+                            'coursescheval': pred.get('coursescheval', 0),
+                            'pourcVictChevalHippo': pred.get('pourcVictChevalHippo', 0),
+                            'pourcPlaceChevalHippo': pred.get('pourcPlaceChevalHippo', 0),
+                            'pourcVictJockHippo': pred.get('pourcVictJockHippo', 0),
+                            'pourcPlaceJockHippo': pred.get('pourcPlaceJockHippo', 0),
+                            # Race context features
+                            'typec': race.get('typec', ''),
+                            'dist': race.get('dist', 0),
+                            'partant': race.get('partant', 0),
+                            'hippo': race.get('hippo', ''),
+                            'natpis': race.get('natpis', ''),
+                            'meteo': race.get('meteo', ''),
+                            'temperature': race.get('temperature', 0),
+                            'forceVent': race.get('forceVent', 0),
+                            # Identifiers for TabNet feature engineering
+                            'idche': pred.get('idche', 0),
+                            'idJockey': pred.get('idJockey', 0),
+                        }
+                        
+                        training_samples.append(race_data)
+
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error processing race {race.get('comp', 'unknown')} for TabNet: {e}")
+                continue
+
+        training_df = pd.DataFrame(training_samples)
+
+        if self.verbose:
+            print(f"Extracted {len(training_df)} TabNet training samples from {len(races)} races")
 
         return training_df
 
@@ -571,6 +732,18 @@ class IncrementalTrainingPipeline:
                 if self.verbose:
                     print("No LSTM training data extracted")
 
+            # Step 3.5: Extract TabNet training data
+            tabnet_data = self.extract_tabnet_training_data(races)
+            
+            if not tabnet_data.empty:
+                pipeline_results["tabnet_data_extracted"] = int(len(tabnet_data))
+                if self.verbose:
+                    print(f"TabNet data extracted: {len(tabnet_data)} samples")
+            else:
+                pipeline_results["tabnet_data_extracted"] = 0
+                if self.verbose:
+                    print("No TabNet training data extracted")
+
             # Step 4: Analyze current model performance
             performance_analysis = self.analyze_model_performance(rf_data)
             pipeline_results["performance_analysis"] = performance_analysis
@@ -589,16 +762,27 @@ class IncrementalTrainingPipeline:
                     "message": "No LSTM data available"
                 }
 
+            # Step 6.5: Train incremental TabNet model if data available
+            if not tabnet_data.empty:
+                tabnet_training_results = self.train_incremental_tabnet(tabnet_data)
+                pipeline_results["tabnet_training"] = tabnet_training_results
+            else:
+                pipeline_results["tabnet_training"] = {
+                    "status": "skipped",
+                    "message": "No TabNet data available"
+                }
+
             if self.verbose:
                 print("pipeline STEP 7 NOW")
 
             # Step 7: Determine if we should save models
             rf_significant = rf_training_results.get("improvement", {}).get("significant", False)
             lstm_significant = pipeline_results["lstm_training"].get("improvement", {}).get("significant", False)
-            overall_significant = rf_significant or lstm_significant
+            tabnet_significant = pipeline_results["tabnet_training"].get("improvement", {}).get("significant", False)
+            overall_significant = rf_significant or lstm_significant or tabnet_significant
 
             if self.verbose:
-                print(f"Model improvements: RF={rf_significant}, LSTM={lstm_significant}")
+                print(f"Model improvements: RF={rf_significant}, LSTM={lstm_significant}, TabNet={tabnet_significant}")
 
             # Step 8: Save models if significant improvement found (or fallback to base models)
             if overall_significant:
@@ -647,15 +831,18 @@ class IncrementalTrainingPipeline:
                         'training_date': datetime.now().isoformat(),
                         'models_trained': {
                             'rf': rf_significant,
-                            'lstm': lstm_significant
+                            'lstm': lstm_significant,
+                            'tabnet': tabnet_significant
                         },
                         'model_sources': {
                             'rf': 'retrained' if rf_significant else 'base_model_copy',
-                            'lstm': lstm_source
+                            'lstm': lstm_source,
+                            'tabnet': 'retrained' if tabnet_significant else 'base_model_copy'
                         },
                         'performance_improvements': {
                             'rf': rf_training_results.get("improvement", {}),
-                            'lstm': pipeline_results["lstm_training"].get("improvement", {})
+                            'lstm': pipeline_results["lstm_training"].get("improvement", {}),
+                            'tabnet': pipeline_results["tabnet_training"].get("improvement", {})
                         },
                         'training_summary': {
                             'rf_samples': rf_training_results.get("training_samples", 0),
@@ -1108,6 +1295,163 @@ class IncrementalTrainingPipeline:
         except Exception as e:
             if self.verbose:
                 print(f"Error training LSTM model: {e}")
+            return {"status": "error", "message": str(e)}
+
+    def train_incremental_tabnet(self, tabnet_data: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Train an incremental TabNet model using new data.
+        
+        Args:
+            tabnet_data: DataFrame with TabNet features and targets
+            
+        Returns:
+            Dictionary with TabNet training results
+        """
+        if not TABNET_AVAILABLE:
+            return {"status": "error", "message": "TabNet not available - install pytorch-tabnet"}
+            
+        if tabnet_data.empty:
+            return {"status": "error", "message": "No TabNet training data available"}
+            
+        if self.tabnet_model is None:
+            return {"status": "error", "message": "No base TabNet model available"}
+            
+        if self.verbose:
+            print("Training incremental TabNet model...")
+            
+        try:
+            from core.calculators.static_feature_calculator import FeatureCalculator
+            
+            # Apply feature calculator for musique preprocessing
+            df_with_features = FeatureCalculator.calculate_all_features(tabnet_data)
+            
+            # Prepare TabNet-specific features using the orchestrator
+            tabnet_df = self.orchestrator.prepare_tabnet_features(df_with_features, use_cache=False)
+            
+            # Select features that match original training
+            if self.tabnet_feature_columns:
+                available_features = [col for col in self.tabnet_feature_columns if col in tabnet_df.columns]
+                missing_features = [col for col in self.tabnet_feature_columns if col not in tabnet_df.columns]
+                
+                if missing_features and self.verbose:
+                    print(f"Warning: Missing TabNet features: {len(missing_features)}")
+                    
+                if not available_features:
+                    return {"status": "error", "message": "No matching TabNet features found"}
+                    
+                feature_columns = available_features
+            else:
+                # Use all available numeric features if no specific columns defined
+                feature_columns = [col for col in tabnet_df.columns 
+                                 if col not in ['final_position', 'actual_position', 'comp', 'idche', 'idJockey', 'numero']
+                                 and tabnet_df[col].dtype in ['int64', 'float64']]
+                                 
+            if len(feature_columns) == 0:
+                return {"status": "error", "message": "No usable TabNet features found"}
+                
+            # Prepare features and targets
+            X = tabnet_df[feature_columns].fillna(0).values
+            y = tabnet_df['actual_position'].values
+            
+            # Split data for training/testing
+            from sklearn.model_selection import train_test_split
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.3, random_state=42
+            )
+            
+            # Scale features if scaler available
+            if self.tabnet_scaler is not None:
+                X_train_scaled = self.tabnet_scaler.transform(X_train)
+                X_test_scaled = self.tabnet_scaler.transform(X_test)
+            else:
+                # Create new scaler
+                scaler = StandardScaler()
+                X_train_scaled = scaler.fit_transform(X_train)
+                X_test_scaled = scaler.transform(X_test)
+                self.tabnet_scaler = scaler
+                
+            # Evaluate baseline TabNet performance
+            baseline_tabnet_pred = self.tabnet_model.predict(X_test_scaled)
+            if len(baseline_tabnet_pred.shape) > 1:
+                baseline_tabnet_pred = baseline_tabnet_pred.flatten()
+            baseline_tabnet_mae = mean_absolute_error(y_test, baseline_tabnet_pred)
+            baseline_tabnet_rmse = np.sqrt(mean_squared_error(y_test, baseline_tabnet_pred))
+            
+            # Create and train new TabNet model
+            new_tabnet_model = TabNetRegressor(
+                n_d=32,
+                n_a=32,
+                n_steps=3,
+                gamma=1.3,
+                lambda_sparse=1e-3,
+                optimizer_fn=torch.optim.Adam,
+                optimizer_params=dict(lr=2e-2),
+                mask_type="sparsemax",
+                seed=42,
+                verbose=1 if self.verbose else 0
+            )
+            
+            if self.verbose:
+                print("Training TabNet model...")
+                
+            # Train TabNet with validation split
+            new_tabnet_model.fit(
+                X_train_scaled, y_train,
+                eval_set=[(X_test_scaled, y_test)],
+                eval_name=['test'],
+                eval_metric=['mae'],
+                max_epochs=100,
+                patience=10,
+                batch_size=256,
+                virtual_batch_size=128,
+                drop_last=False
+            )
+            
+            # Evaluate new TabNet model
+            new_tabnet_pred = new_tabnet_model.predict(X_test_scaled)
+            if len(new_tabnet_pred.shape) > 1:
+                new_tabnet_pred = new_tabnet_pred.flatten()
+            new_tabnet_mae = mean_absolute_error(y_test, new_tabnet_pred)
+            new_tabnet_rmse = np.sqrt(mean_squared_error(y_test, new_tabnet_pred))
+            
+            # Calculate improvement
+            tabnet_mae_improvement = ((baseline_tabnet_mae - new_tabnet_mae) / baseline_tabnet_mae) * 100
+            tabnet_rmse_improvement = ((baseline_tabnet_rmse - new_tabnet_rmse) / baseline_tabnet_rmse) * 100
+            
+            results = {
+                "status": "success",
+                "training_samples": int(len(X_train)),
+                "test_samples": int(len(X_test)),
+                "features_used": int(len(feature_columns)),
+                "baseline_performance": {
+                    "mae": float(baseline_tabnet_mae),
+                    "rmse": float(baseline_tabnet_rmse)
+                },
+                "new_performance": {
+                    "mae": float(new_tabnet_mae),
+                    "rmse": float(new_tabnet_rmse)
+                },
+                "improvement": {
+                    "mae_improvement_pct": float(tabnet_mae_improvement),
+                    "rmse_improvement_pct": float(tabnet_rmse_improvement),
+                    "significant": bool(tabnet_mae_improvement > 5.0)  # 5% threshold
+                },
+                "model": new_tabnet_model,
+                "scaler": self.tabnet_scaler,
+                "feature_columns": feature_columns
+            }
+            
+            if self.verbose:
+                print(f"TabNet training complete:")
+                print(f"  MAE TabNet: {baseline_tabnet_mae:.4f} -> {new_tabnet_mae:.4f} ({tabnet_mae_improvement:+.2f}%)")
+                print(f"  RMSE TabNet: {baseline_tabnet_rmse:.4f} -> {new_tabnet_rmse:.4f} ({tabnet_rmse_improvement:+.2f}%)")
+                print(f"  Significant improvement: {results['improvement']['significant']}")
+                
+            return results
+            
+        except Exception as e:
+            if self.verbose:
+                print(f"Error training TabNet model: {e}")
             return {"status": "error", "message": str(e)}
 
 def main():
