@@ -293,12 +293,7 @@ class PredictionOrchestrator:
         Returns:
             Dictionary with model information
         """
-        return {
-            'model_path': str(self.race_predictor.model_path),
-            'blend_weight': getattr(self.race_predictor, 'blend_weight', 0.9),
-            'has_rf': self.race_predictor.rf_model is not None,
-            'has_lstm': self.race_predictor.lstm_model is not None
-        }
+        return self.race_predictor.get_model_info()
     def fetch_and_predict_races(self, date: str = None, blend_weight: float = 0.7) -> Dict:
         """
         Fetch races from API, store them, and generate predictions.

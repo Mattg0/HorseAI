@@ -662,7 +662,8 @@ Focus on long-term betting strategy optimization.
             AND prediction_results IS NOT NULL 
             AND actual_results IS NOT NULL
             AND actual_results != 'pending'
-            ORDER BY jour DESC, comp DESC LIMIT 0,40
+            AND quinte=1
+            ORDER BY jour DESC, comp DESC LIMIT 0,8
         """
 
         cursor = conn.execute(query, (start_date, end_date))
@@ -743,15 +744,15 @@ Focus on long-term betting strategy optimization.
         cursor = conn.execute(query)
         current_race = cursor.fetchone()
         conn.close()
-
-        if current_race:
+        race_predict = dict(race)
+        if race_predict:
             # Parse participants
-            participants = current_race['participants'] if 'participants' in current_race else '[]'
+            participants = race_predict['participants'] if 'participants' in race_predict else '[]'
             if isinstance(participants, str):
                 participants = json.loads(participants)
 
             # Parse prediction results
-            prediction_results = current_race['prediction_results'] if 'prediction_results' in current_race else '{}'
+            prediction_results = race_predict['prediction_results'] if 'prediction_results' in race_predict else '{}'
             if isinstance(prediction_results, str):
                 prediction_results = json.loads(prediction_results)
 
@@ -768,9 +769,9 @@ Focus on long-term betting strategy optimization.
 
             # Get PMU odds for current race
             pmu_odds = {}
-            jour = current_race['jour'] if 'jour' in current_race else ''
-            reunion = current_race['reunion'] if 'reunion' in current_race else ''
-            course = current_race['course'] if 'course' in current_race else ''
+            jour = race_predict['jour'] if 'jour' in current_race else ''
+            reunion = race_predict['reunion'] if 'reunion' in current_race else ''
+            course = race_predict['course'] if 'course' in current_race else ''
 
             if jour and reunion and course:
                 pmu_data = self.get_pmu_odds(jour, reunion, course)

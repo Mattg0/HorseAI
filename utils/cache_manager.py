@@ -88,20 +88,62 @@ class CacheManager:
         # Create a copy to avoid modifying the original
         df_to_save = df.copy()
 
-        # Handle problematic columns
-        problematic_columns = ['reunion', 'reun']  # Add other columns as needed
+        # Handle problematic columns that have mixed data types
+        problematic_columns = ['reunion', 'reun', 'partant', 'course', 'numero']  # Add other columns as needed
         for col in problematic_columns:
             if col in df_to_save.columns:
                 # Convert to string to avoid type conversion issues
                 df_to_save[col] = df_to_save[col].astype(str)
+        
+        # Handle columns with empty strings that should be numeric
+        for col in df_to_save.columns:
+            if df_to_save[col].dtype == 'object':
+                # Check if column contains mostly numbers with some empty strings
+                non_empty = df_to_save[col][df_to_save[col] != '']
+                if len(non_empty) > 0:
+                    # Try to convert to numeric - if it works for most values, it's likely a numeric column
+                    try:
+                        pd.to_numeric(non_empty.iloc[:min(100, len(non_empty))], errors='raise')
+                        # If successful, convert empty strings to NaN and then to string to avoid parquet issues
+                        df_to_save[col] = df_to_save[col].replace('', 'NaN').astype(str)
+                    except (ValueError, TypeError):
+                        # It's a genuine string column, convert to string
+                        df_to_save[col] = df_to_save[col].astype(str)
 
-        # Save DataFrame using fastparquet
+        # Save DataFrame using fastparquet with atomic write
         try:
-            fp.write(file_path, df_to_save, compression=compression, **kwargs)
+            # Write to temporary file first, then move to final location
+            temp_path = file_path.with_suffix('.tmp')
+            fp.write(temp_path, df_to_save, compression=compression, **kwargs)
+            
+            # Verify the file was written correctly by trying to read it
+            test_df = fp.ParquetFile(temp_path).to_pandas()
+            if len(test_df) == len(df_to_save):
+                # Move temp file to final location (atomic on most filesystems)
+                temp_path.replace(file_path)
+            else:
+                raise ValueError("Cache file verification failed - row count mismatch")
+                
         except Exception as e:
             print(f"Warning: Error saving to cache: {str(e)}. Using original dataframe.")
             # If conversion fails, try with original dataframe
-            fp.write(file_path, df, compression=compression, **kwargs)
+            try:
+                temp_path = file_path.with_suffix('.tmp')
+                fp.write(temp_path, df, compression=compression, **kwargs)
+                
+                # Verify the file was written correctly
+                test_df = fp.ParquetFile(temp_path).to_pandas()
+                if len(test_df) == len(df):
+                    temp_path.replace(file_path)
+                else:
+                    raise ValueError("Cache file verification failed - row count mismatch")
+                    
+            except Exception as e2:
+                print(f"Error: Failed to save cache file: {str(e2)}")
+                # Clean up temp file if it exists
+                if temp_path.exists():
+                    temp_path.unlink()
+                raise
 
         return file_path
 

@@ -8,12 +8,18 @@ from typing import Dict, Any, Tuple, Optional, List
 import threading
 import queue
 import sys
-sys.path.append('..')
+from pathlib import Path
+
+# Add project root to Python path
+current_dir = Path(__file__).parent  # UI directory
+project_root = current_dir.parent    # HorseAIv2 directory
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 from utils.env_setup import AppConfig
 from model_training.historical import train_race_model
 from core.connectors.api_daily_sync import RaceFetcher
-from race_prediction.predict_daily_races import PredictionOrchestrator
+from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
 from utils.predict_evaluator import PredictEvaluator
 from model_training.regressions.regression_enhancement import IncrementalTrainingPipeline
 from utils.ai_advisor import BettingAdvisor
@@ -126,7 +132,8 @@ class PipelineHelper:
             'lstm': self._config_data.get('lstm', {}),
             'dataset': self._config_data.get('dataset', {}),
             'cache': self._config_data.get('cache', {}),
-            'databases': self._config_data.get('databases', [])
+            'databases': self._config_data.get('databases', []),
+            'blend': self._config_data.get('blend', {})
         }
 
     def update_config_section(self, section: str, updates: Dict[str, Any]) -> Dict[str, Any]:
@@ -272,9 +279,17 @@ class PipelineHelper:
 
             # Initialize prediction orchestrator
             predictor = PredictionOrchestrator()
-
+            
+            # Get model information for debugging
+            model_info = predictor.get_model_info()
+            models_loaded = model_info.get('models_loaded', {})
+            
+            # Debug output showing which models are loaded
+            debug_message = f"Models loaded: RF={models_loaded.get('rf', False)}, LSTM={models_loaded.get('lstm', False)}, TabNet={models_loaded.get('tabnet', False)}"
+            print(f"[DEBUG] {debug_message}")
+            
             if progress_callback:
-                progress_callback(10, "Getting races to predict...")
+                progress_callback(10, f"Getting races to predict... {debug_message}")
 
             # Get races to predict
             if races_to_predict:
@@ -337,11 +352,15 @@ class PipelineHelper:
             if progress_callback:
                 progress_callback(100, f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful")
 
+            # Add model debug info to the final result
+            final_message = f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful. {debug_message}"
+            
             return {
                 "success": True,
-                "message": f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful",
+                "message": final_message,
                 "predicted_count": predicted_count,
-                "total_races": len(races_to_predict)
+                "total_races": len(races_to_predict),
+                "model_info": model_info  # Include full model info in response
             }
 
         except Exception as e:
@@ -657,15 +676,24 @@ class PipelineHelper:
                     "message": f"Race {race_comp} not found"
                 }
             
-            # Get prediction results
-            predictor = PredictionOrchestrator()
-            prediction_results = predictor.get_race_predictions(race_comp)
+            # Get prediction results from race data
+            prediction_results = race_data.get('prediction_results')
             
             if not prediction_results:
                 return {
                     "success": False,
                     "message": f"No predictions found for race {race_comp}"
                 }
+            
+            # Parse prediction results if they're stored as JSON string
+            if isinstance(prediction_results, str):
+                try:
+                    prediction_results = json.loads(prediction_results)
+                except json.JSONDecodeError:
+                    return {
+                        "success": False,
+                        "message": f"Invalid prediction results format for race {race_comp}"
+                    }
             
             # Get previous results for context
             evaluator = PredictEvaluator()
@@ -721,6 +749,51 @@ class PipelineHelper:
             formatted_results['race_details'] = bet_type_wins
             
         return formatted_results
+
+    def get_prediction_model_info(self) -> Dict[str, Any]:
+        """Get comprehensive information about the three-model prediction system"""
+        try:
+            # Initialize prediction orchestrator to get model info
+            predictor = PredictionOrchestrator()
+            model_info = predictor.get_model_info()
+            
+            # Get blend configuration from config
+            blend_config = self._config_data.get('blend', {}) if self._config_data else {}
+            
+            # Format comprehensive model information
+            prediction_info = {
+                'ensemble_type': 'Three-Model Ensemble (RF + LSTM + TabNet)',
+                'blend_weights': {
+                    'rf_weight': blend_config.get('rf_weight', 0.8),
+                    'lstm_weight': blend_config.get('lstm_weight', 0.1),
+                    'tabnet_weight': blend_config.get('tabnet_weight', 0.1)
+                },
+                'optimal_mae': blend_config.get('optimal_mae', 11.78),
+                'model_status': {
+                    'rf_loaded': model_info.get('has_rf', False),
+                    'lstm_loaded': model_info.get('has_lstm', False),
+                    'tabnet_loaded': model_info.get('has_tabnet', False)
+                },
+                'model_path': model_info.get('model_path', 'Unknown'),
+                'tabnet_info': {
+                    'available': model_info.get('tabnet_available', False),
+                    'expected_features': model_info.get('expected_tabnet_features', 0)
+                },
+                'system_status': 'operational' if any(model_info.get(k, False) for k in ['has_rf', 'has_lstm', 'has_tabnet']) else 'no_models_loaded'
+            }
+            
+            return {
+                "success": True,
+                "message": "Model information retrieved successfully",
+                "prediction_info": prediction_info
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to get model information: {str(e)}"
+            }
 
     def get_ai_quinte_advice(self, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
         """Get AI betting advice specifically focused on quinte races with 3 refined recommendations"""
