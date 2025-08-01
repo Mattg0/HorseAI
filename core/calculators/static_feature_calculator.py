@@ -134,7 +134,9 @@ class FeatureCalculator:
                 result_df.at[index, column_name] = type_values
             # Extraire les features de la musique jockey
             jockey_musique_extractor = MusiqueFeatureExtractor()
-            joc_musique_stats = jockey_musique_extractor.extract_features(participant['musiqueche'],
+            # Use jockey musique field if available, fallback to horse musique
+            jockey_musique = participant.get('musiquejoc', participant.get('musiqueche', ''))
+            joc_musique_stats = jockey_musique_extractor.extract_features(jockey_musique,
                                                                                   df.at[index, 'typec'])
 
             # Correct way to access nested dictionaries
@@ -149,8 +151,8 @@ class FeatureCalculator:
                 result_df.at[index, column_name] = value
 
                 # Add 'by_type' features if any exist
-            for type_key, type_values in che_musique_stats['by_type'].items():
-                column_name = f"che_bytype_{type_key}"
+            for type_key, type_values in joc_musique_stats['by_type'].items():
+                column_name = f"joc_bytype_{type_key}"
                 result_df.at[index, column_name] = type_values
 
         return result_df
