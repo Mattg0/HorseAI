@@ -8,13 +8,20 @@ from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
 from core.connectors.api_daily_sync import RaceFetcher
 from utils.env_setup import AppConfig
 from utils.predict_evaluator import EvaluationMetrics
+from model_training.tabnet.tabnet_model import TabNetModel
+from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
+from core.calculators.static_feature_calculator import FeatureCalculator
+from sklearn.preprocessing import StandardScaler
+import joblib
+import numpy as np
 
 class DailyPredictor:
     """Daily predictor for horse race predictions."""
 
-    def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False):
+    def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False, use_tabnet: bool = False):
         self.config = AppConfig('config.yaml')
         self.verbose = verbose
+        self.use_tabnet = use_tabnet
 
         # Get database configuration
         if db_name is None:
@@ -35,8 +42,18 @@ class DailyPredictor:
             verbose=verbose
         )
 
+        # Initialize TabNet-related components if requested
+        self.tabnet_model = None
+        self.tabnet_scaler = None
+        self.feature_orchestrator = None
+        self.tabnet_feature_columns = None
+        
+        if use_tabnet:
+            self._initialize_tabnet_components()
+
         if verbose:
-            print(f"Daily Predictor initialized with DB: {db_name}")
+            model_type = "TabNet" if use_tabnet else "Standard"
+            print(f"Daily Predictor initialized with DB: {db_name} ({model_type} mode)")
 
     def fetch_races(self, date: str = None) -> Dict:
         """Fetch races from API for a specific date."""
@@ -52,6 +69,173 @@ class DailyPredictor:
             print(f"✅ Fetched {successful}/{total} races")
 
         return results
+
+    def _initialize_tabnet_components(self):
+        """Initialize TabNet model and related components."""
+        from utils.env_setup import get_sqlite_dbpath
+        
+        try:
+            # Initialize feature orchestrator for TabNet data preparation
+            db_path = get_sqlite_dbpath(self.db_name)
+            self.feature_orchestrator = FeatureEmbeddingOrchestrator(
+                sqlite_path=db_path,
+                verbose=self.verbose
+            )
+            
+            if self.verbose:
+                print("✅ TabNet components initialized successfully")
+                
+        except Exception as e:
+            print(f"❌ Failed to initialize TabNet components: {e}")
+            self.use_tabnet = False
+
+    def load_tabnet_model(self, model_path: str = None) -> bool:
+        """Load a trained TabNet model from file."""
+        if not self.use_tabnet:
+            print("❌ TabNet mode not enabled")
+            return False
+            
+        try:
+            from pytorch_tabnet.tab_model import TabNetRegressor
+            import torch
+            
+            if model_path is None:
+                # Try to find the latest TabNet model
+                models_dir = Path("models")
+                if models_dir.exists():
+                    # Find latest model directory
+                    model_dirs = [d for d in models_dir.iterdir() if d.is_dir()]
+                    if model_dirs:
+                        latest_dir = max(model_dirs, key=lambda d: d.name)
+                        # Look for TabNet files
+                        tabnet_files = list(latest_dir.glob("**/tabnet_model.zip"))
+                        if tabnet_files:
+                            model_path = tabnet_files[0].parent
+            
+            if model_path is None:
+                print("❌ No TabNet model path provided or found")
+                return False
+                
+            model_path = Path(model_path)
+            
+            # Load TabNet model
+            tabnet_model_file = model_path / "tabnet_model.zip"
+            if tabnet_model_file.exists():
+                self.tabnet_model = TabNetRegressor()
+                self.tabnet_model.load_model(str(tabnet_model_file))
+            else:
+                # Try alternative naming
+                tabnet_model_file = model_path / "tabnet_model.zip.zip"
+                if tabnet_model_file.exists():
+                    self.tabnet_model = TabNetRegressor()
+                    self.tabnet_model.load_model(str(tabnet_model_file))
+                else:
+                    print(f"❌ TabNet model file not found in {model_path}")
+                    return False
+            
+            # Load scaler
+            scaler_file = model_path / "tabnet_scaler.joblib"
+            if scaler_file.exists():
+                self.tabnet_scaler = joblib.load(scaler_file)
+            else:
+                print(f"❌ TabNet scaler not found in {model_path}")
+                return False
+                
+            # Load feature configuration
+            config_file = model_path / "tabnet_config.json"
+            if config_file.exists():
+                with open(config_file, 'r') as f:
+                    config = json.load(f)
+                    self.tabnet_feature_columns = config.get('feature_columns', [])
+            else:
+                print(f"❌ TabNet config not found in {model_path}")
+                return False
+            
+            if self.verbose:
+                print(f"✅ TabNet model loaded from {model_path}")
+                print(f"📊 Features: {len(self.tabnet_feature_columns)}")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Failed to load TabNet model: {e}")
+            return False
+
+    def prepare_tabnet_features(self, race_df: pd.DataFrame) -> pd.DataFrame:
+        """Prepare features for TabNet prediction."""
+        if not self.use_tabnet or self.feature_orchestrator is None:
+            raise ValueError("TabNet mode not enabled or components not initialized")
+            
+        try:
+            # Apply feature calculator for musique preprocessing
+            if self.verbose:
+                print("🔧 Applying FeatureCalculator preprocessing...")
+            df_with_features = FeatureCalculator.calculate_all_features(race_df)
+            
+            # Prepare TabNet-specific features using the orchestrator
+            if self.verbose:
+                print("🔧 Preparing TabNet features...")
+            tabnet_df = self.feature_orchestrator.prepare_tabnet_features(df_with_features, use_cache=False)
+            
+            return tabnet_df
+            
+        except Exception as e:
+            print(f"❌ Failed to prepare TabNet features: {e}")
+            raise
+
+    def predict_with_tabnet(self, race_df: pd.DataFrame) -> pd.DataFrame:
+        """Generate predictions using TabNet model."""
+        if not self.use_tabnet:
+            raise ValueError("TabNet mode not enabled")
+            
+        if self.tabnet_model is None:
+            raise ValueError("TabNet model not loaded. Call load_tabnet_model() first")
+            
+        try:
+            # Prepare features
+            prepared_df = self.prepare_tabnet_features(race_df)
+            
+            # Select features that match training
+            available_features = [col for col in self.tabnet_feature_columns if col in prepared_df.columns]
+            missing_features = [col for col in self.tabnet_feature_columns if col not in prepared_df.columns]
+            
+            if missing_features and self.verbose:
+                print(f"⚠️  Missing features: {missing_features}")
+                
+            if not available_features:
+                raise ValueError("No matching features found for TabNet prediction")
+            
+            # Extract feature matrix
+            X = prepared_df[available_features].values
+            
+            # Scale features
+            if self.tabnet_scaler is not None:
+                X_scaled = self.tabnet_scaler.transform(X)
+            else:
+                X_scaled = X
+                
+            # Generate predictions
+            predictions = self.tabnet_model.predict(X_scaled).flatten()
+            
+            # Create result dataframe
+            result_df = prepared_df.copy()
+            result_df['predicted_position'] = predictions
+            result_df['predicted_rank'] = result_df['predicted_position'].rank(method='min').astype(int)
+            
+            # Create predicted arrival order
+            sorted_df = result_df.sort_values('predicted_position')
+            predicted_arriv = sorted_df['numero'].tolist()
+            result_df['predicted_arriv'] = str(predicted_arriv)
+            
+            if self.verbose:
+                print(f"✅ TabNet predictions generated for {len(result_df)} horses")
+                print(f"📊 Predicted top 3: {predicted_arriv[:3]}")
+            
+            return result_df
+            
+        except Exception as e:
+            print(f"❌ TabNet prediction failed: {e}")
+            raise
 
     def predict_races(self, date: str = None, skip_existing: bool = True) -> Dict:
         """Generate predictions for all races on a date."""
@@ -145,8 +329,17 @@ class DailyPredictor:
 
         race_df['comp'] = comp
 
-        # Generate prediction
-        result_df = self.orchestrator.predict_single_race(race_df)
+        # Generate prediction using appropriate model
+        if self.use_tabnet and self.tabnet_model is not None:
+            result_df = self.predict_with_tabnet(race_df)
+            model_info = {
+                'model_type': 'TabNet',
+                'model_path': 'TabNet Model',
+                'features_used': len(self.tabnet_feature_columns) if self.tabnet_feature_columns else 0
+            }
+        else:
+            result_df = self.orchestrator.predict_single_race(race_df)
+            model_info = self.orchestrator.get_model_info()
 
         # Prepare output
         output_cols = ['numero', 'cheval', 'predicted_position', 'predicted_rank']
@@ -161,7 +354,7 @@ class DailyPredictor:
             'metadata': {
                 'race_id': comp,
                 'prediction_time': datetime.now().isoformat(),
-                'model_info': self.orchestrator.get_model_info()
+                'model_info': model_info
             },
             'predictions': predictions,
             'predicted_arriv': predicted_arriv
@@ -183,15 +376,20 @@ def fetch_today(verbose: bool = True) -> Dict:
     return predictor.fetch_races()
 
 
-def predict_today(model_path: str = None, verbose: bool = True) -> Dict:
+def predict_today(model_path: str = None, verbose: bool = True, use_tabnet: bool = False) -> Dict:
     """Predict today's races."""
-    predictor = DailyPredictor(model_path=model_path, verbose=verbose)
+    predictor = DailyPredictor(model_path=model_path, verbose=verbose, use_tabnet=use_tabnet)
+    if use_tabnet:
+        predictor.load_tabnet_model(model_path)
     return predictor.predict_races()
 
 
-def fetch_and_predict_today(model_path: str = None, verbose: bool = True) -> Dict:
+def fetch_and_predict_today(model_path: str = None, verbose: bool = True, use_tabnet: bool = False) -> Dict:
     """Complete workflow: fetch and predict today's races."""
-    predictor = DailyPredictor(model_path=model_path, verbose=verbose)
+    predictor = DailyPredictor(model_path=model_path, verbose=verbose, use_tabnet=use_tabnet)
+    
+    if use_tabnet:
+        predictor.load_tabnet_model(model_path)
 
     fetch_results = predictor.fetch_races()
     prediction_results = predictor.predict_races()
@@ -214,9 +412,11 @@ def daily_report(date: str = None, verbose: bool = True) -> Dict:
     return predictor.daily_report(date)
 
 
-def predict_race(comp: str, model_path: str = None, verbose: bool = True) -> Dict:
+def predict_race(comp: str, model_path: str = None, verbose: bool = True, use_tabnet: bool = False) -> Dict:
     """Predict a specific race by ID."""
-    predictor = DailyPredictor(model_path=model_path, verbose=verbose)
+    predictor = DailyPredictor(model_path=model_path, verbose=verbose, use_tabnet=use_tabnet)
+    if use_tabnet:
+        predictor.load_tabnet_model(model_path)
     return predictor.orchestrator.predict_race(comp)
 
 

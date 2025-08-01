@@ -1,6 +1,12 @@
 base:
   active_db: 2years
   rootdir: /Users/mattg0/Docs/HorseAIv2/
+blend:
+  description: Optimal blend weights for position prediction accuracy
+  lstm_weight: 0.1
+  optimal_mae: 11.78
+  rf_weight: 0.8
+  tabnet_weight: 0.1
 cache:
   base_path: cache
   types:
@@ -44,6 +50,8 @@ features:
   embedding_dim: 8
   features_dir: ./data/feature_store
   keep_identifiers: false
+llm_url:
+  local: http://localhost:1234
 lstm:
   sequence_length: 5
   sequential_features:
@@ -75,7 +83,5 @@ lstm:
   - course_emb_2
   step_size: 1
 models:
-  latest_model: 2025-07-14/2years_120400
+  latest_model: 2025-07-25/2years_165819
   model_dir: ./models
-llm_url:
-  local: http://localhost:1234

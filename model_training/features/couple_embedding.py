@@ -105,7 +105,7 @@ class CoupleEmbedding:
         """Check if the model has been fitted."""
         return self.model is not None
 
-    def create_couple_id(self, horse_id: int, jockey_id: int) -> int:
+    def create_couple_id(self, horse_id: int, jockey_id: int, inference_mode: bool = False) -> int:
         """
         Create or retrieve a unique ID for a horse/jockey combination.
         Handles missing or invalid inputs by returning a reserved ID.
@@ -113,6 +113,7 @@ class CoupleEmbedding:
         Args:
             horse_id: The horse identifier
             jockey_id: The jockey identifier
+            inference_mode: If True, don't create new IDs (for prediction)
 
         Returns:
             Unique integer ID for this horse/jockey combination
@@ -131,9 +132,15 @@ class CoupleEmbedding:
         # Create or retrieve ID
         couple = (horse_id, jockey_id)
         if couple not in self.couple_to_id:
-            self.couple_to_id[couple] = self.next_id
-            self.id_to_couple[self.next_id] = couple
-            self.next_id += 1
+            if inference_mode:
+                # During inference, don't create new couples - use unknown ID
+                logger.debug(f"Unknown couple ({horse_id}, {jockey_id}) encountered during inference")
+                return self._reserved_id_for_unknown
+            else:
+                # During training, create new couples
+                self.couple_to_id[couple] = self.next_id
+                self.id_to_couple[self.next_id] = couple
+                self.next_id += 1
 
         return self.couple_to_id[couple]
 
@@ -156,12 +163,13 @@ class CoupleEmbedding:
 
         return self.id_to_couple[couple_id]
 
-    def create_couple_ids_from_df(self, df: pd.DataFrame) -> pd.DataFrame:
+    def create_couple_ids_from_df(self, df: pd.DataFrame, inference_mode: bool = False) -> pd.DataFrame:
         """
         Create couple IDs for all horse/jockey combinations in a dataframe.
 
         Args:
             df: DataFrame containing 'idche' and 'idJockey' columns
+            inference_mode: If True, don't create new IDs (for prediction)
 
         Returns:
             DataFrame with an additional 'couple_id' column
@@ -181,7 +189,7 @@ class CoupleEmbedding:
 
         # Create couple_ids
         result_df['couple_id'] = result_df.apply(
-            lambda row: self.create_couple_id(row['idche'], row['idJockey']),
+            lambda row: self.create_couple_id(row['idche'], row['idJockey'], inference_mode=inference_mode),
             axis=1
         )
 
@@ -481,9 +489,9 @@ class CoupleEmbedding:
         # Create a copy to avoid modifying the original
         result_df = df.copy()
 
-        # Add couple_ids if not already present
+        # Add couple_ids if not already present (use inference mode during prediction)
         if 'couple_id' not in result_df.columns:
-            result_df = self.create_couple_ids_from_df(result_df)
+            result_df = self.create_couple_ids_from_df(result_df, inference_mode=True)
 
         # Get all unique couple_ids in the DataFrame
         unique_couple_ids = result_df['couple_id'].unique()
@@ -497,9 +505,19 @@ class CoupleEmbedding:
                 if couple_id == self._reserved_id_for_unknown:
                     embeddings[couple_id] = np.zeros(self.embedding_dim)
                 else:
-                    couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self.device)
-                    _, embedding = self.model(couple_tensor)
-                    embeddings[couple_id] = embedding.cpu().numpy()[0]
+                    # Check if couple_id is within valid range
+                    if couple_id >= self.model.couple_embeddings.num_embeddings:
+                        logger.warning(f"Couple ID {couple_id} exceeds model capacity "
+                                     f"({self.model.couple_embeddings.num_embeddings}). Using zero embedding.")
+                        embeddings[couple_id] = np.zeros(self.embedding_dim)
+                    else:
+                        try:
+                            couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self.device)
+                            _, embedding = self.model(couple_tensor)
+                            embeddings[couple_id] = embedding.cpu().numpy()[0]
+                        except Exception as e:
+                            logger.warning(f"Error getting embedding for couple_id {couple_id}: {e}")
+                            embeddings[couple_id] = np.zeros(self.embedding_dim)
 
         # Determine embedding dimensions to use
         dims_to_use = min(self.embedding_dim, max_dim if max_dim is not None else self.embedding_dim)

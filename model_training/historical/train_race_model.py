@@ -208,18 +208,34 @@ class HorseRaceModel:
         test_rmse = np.sqrt(mean_squared_error(y_test, test_preds))
         test_r2 = r2_score(y_test, test_preds)
 
+        # Get feature importance from the base RF model
+        feature_importance = None
+        feature_names = list(X_train.columns) if hasattr(X_train, 'columns') else None
+        if hasattr(self.rf_model, 'base_regressor') and hasattr(self.rf_model.base_regressor, 'feature_importances_'):
+            feature_importance = self.rf_model.base_regressor.feature_importances_.tolist()
+
         return {
             'model_type': 'RandomForest',
             'train_samples': len(X_train),
             'test_samples': len(X_test),
-            'features': len(X_train.columns),
+            'features': len(X_train.columns) if hasattr(X_train, 'columns') else X_train.shape[1],
             'train_mae': float(train_mae),
             'test_mae': float(test_mae),
             'train_rmse': float(train_rmse),
             'test_rmse': float(test_rmse),
             'test_r2': float(test_r2),
             'test_predictions': test_preds.tolist(),
-            'test_targets': y_test.tolist()
+            'test_targets': y_test.tolist(),
+            'feature_importance': feature_importance,
+            'feature_names': feature_names,
+            'model_params': {
+                'n_estimators': 100,
+                'max_depth': None,
+                'min_samples_split': 2,
+                'min_samples_leaf': 1,
+                'random_state': 42,
+                'n_jobs': -1
+            }
         }
 
     def _train_lstm_model(self, X_seq_train, X_static_train, y_train,
@@ -432,16 +448,56 @@ def main(progress_callback=None):
     if progress_callback:
         progress_callback(100, "Training completed successfully!")
 
-# Print summary results
+    # Print detailed summary results
     print("\n" + "=" * 50)
-    print("TRAINING COMPLETED")
+    print("HYBRID TRAINING COMPLETED")
     print("=" * 50)
     print(f"Training time: {results['training_time']:.2f} seconds")
     print(f"Blend weight: {results['blend_weight']}")
-    print(f"RF Test MAE: {results['rf_results']['test_mae']:.4f}")
-    print(f"LSTM Test MAE: {results['lstm_results']['test_mae']:.4f}")
-    print(f"Blended Test MAE: {results['blended_results']['test_mae']:.4f}")
-    print(f"Models saved to: {saved_paths['rf_model']}")
+    
+    # RF model results
+    print(f"\n--- Random Forest Results ---")
+    print(f"Features used: {results['rf_results']['features']}")
+    print(f"Train samples: {results['rf_results']['train_samples']}")
+    print(f"Test samples: {results['rf_results']['test_samples']}")
+    print(f"Test MAE: {results['rf_results']['test_mae']:.4f}")
+    print(f"Test RMSE: {results['rf_results']['test_rmse']:.4f}")
+    print(f"Test R²: {results['rf_results']['test_r2']:.4f}")
+    
+    # LSTM model results
+    if results['lstm_results'].get('status') != 'failed':
+        print(f"\n--- LSTM Results ---")
+        print(f"Train samples: {results['lstm_results']['train_samples']}")
+        print(f"Test samples: {results['lstm_results']['test_samples']}")
+        print(f"Sequence length: {results['lstm_results']['sequence_length']}")
+        print(f"Sequential features: {results['lstm_results']['sequential_features']}")
+        print(f"Static features: {results['lstm_results']['static_features']}")
+        print(f"Test MAE: {results['lstm_results']['test_mae']:.4f}")
+        print(f"Test RMSE: {results['lstm_results']['test_rmse']:.4f}")
+        print(f"Test R²: {results['lstm_results']['test_r2']:.4f}")
+        print(f"Training epochs: {results['lstm_results']['training_history']['epochs']}")
+    
+    # Blended results
+    print(f"\n--- Blended Results ---")
+    print(f"Test MAE: {results['blended_results']['test_mae']:.4f}")
+    print(f"Test RMSE: {results['blended_results']['test_rmse']:.4f}")
+    print(f"Test R²: {results['blended_results']['test_r2']:.4f}")
+    
+    print(f"\nModel saved to: {saved_paths.get('rf_model', 'N/A')}")
+    
+    # Display top feature importance for RF model
+    if results['rf_results'].get('feature_importance') and results['rf_results'].get('feature_names'):
+        print("\nTop 10 Most Important Features (Random Forest):")
+        print("-" * 50)
+        feature_importance = results['rf_results']['feature_importance']
+        feature_names = results['rf_results']['feature_names']
+        
+        # Create list of (importance, name) pairs and sort by importance
+        importance_pairs = list(zip(feature_importance, feature_names))
+        importance_pairs.sort(key=lambda x: x[0], reverse=True)
+        
+        for i, (importance, name) in enumerate(importance_pairs[:10]):
+            print(f"{name}: {importance:.4f}")
 
 
 if __name__ == "__main__":

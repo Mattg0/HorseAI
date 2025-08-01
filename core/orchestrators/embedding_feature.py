@@ -160,7 +160,8 @@ class FeatureEmbeddingOrchestrator:
         # Try to get from cache
         if use_cache:
             try:
-                cached_data = self.cache_manager.load_dataframe(cache_key)
+                # Use a simple cache approach with the historical_data cache type
+                cached_data = self.cache_manager.load_dataframe('historical_data')
                 if cached_data is not None:
                     print("Using cached historical race data...")
                     return cached_data
@@ -212,7 +213,7 @@ class FeatureEmbeddingOrchestrator:
         # Cache the result
         if use_cache:
             try:
-                self.cache_manager.save_dataframe(expanded_df, cache_key)
+                self.cache_manager.save_dataframe(expanded_df, 'historical_data')
             except Exception as e:
                 print(f"Warning: Could not save to cache: {str(e)}")
 
@@ -745,9 +746,16 @@ class FeatureEmbeddingOrchestrator:
                         if na_pct > 0.3:  # If more than 30% NaNs after conversion
                             # For high-cardinality categorical, use label encoding
                             if col in ['corde', 'reunion', 'course', 'partant']:
-                                # These are likely categorical - create a code version
+                                # These are likely categorical - create a code version with safe encoding
                                 orig_col = clean_df[col].copy()
-                                clean_df[f"{col}_code"] = orig_col.astype('category').cat.codes
+                                # Fill NaN values first to avoid category issues
+                                orig_col = orig_col.fillna('unknown')
+                                # Create categorical with all unique values to avoid unseen category errors
+                                unique_values = sorted(orig_col.unique())
+                                if 'unknown' not in unique_values:
+                                    unique_values.append('unknown')
+                                categorical_col = pd.Categorical(orig_col, categories=unique_values)
+                                clean_df[f"{col}_code"] = categorical_col.codes
                                 clean_df = clean_df.drop(columns=[col])
                                 modifications['encoded'].append(f"{col} (label encoding)")
                             else:
@@ -800,6 +808,204 @@ class FeatureEmbeddingOrchestrator:
         self.log_info(f"Final feature count: {final_cols} (reduced from {initial_cols})")
 
         return clean_df
+
+    def prepare_tabnet_features(self, df, use_cache=True):
+        """
+        Prepare raw categorical and numerical features along with musique-derived features
+        for TabNet models, skipping the embedding pipeline entirely.
+
+        Args:
+            df: DataFrame with race and participant data
+            use_cache: Whether to use cached results
+
+        Returns:
+            DataFrame with raw features + musique-derived features, ready for TabNet
+        """
+        # Generate cache key (add target preservation flag to force cache refresh)
+        cache_params = {
+            'data_shape': df.shape,
+            'data_columns': sorted(df.columns.tolist()),
+            'method': 'tabnet_features_v2',  # Changed to force fresh calculation
+            'preserve_target': True
+        }
+        cache_key = self._generate_cache_key('tabnet_features', cache_params)
+
+        # Try to get from cache
+        if use_cache:
+            try:
+                cached_df = self.cache_manager.load_dataframe(cache_key)
+                if cached_df is not None:
+                    self.log_info("Using cached TabNet features...")
+                    return cached_df
+            except Exception as e:
+                self.log_info(f"Warning: Could not load TabNet features from cache: {str(e)}")
+
+        self.log_info("Preparing TabNet features (raw + musique-derived)...")
+
+        # Make a copy to avoid modifying the original
+        tabnet_df = df.copy()
+
+        # Step 1: Preserve target columns before feature preparation
+        target_backup = None
+        if 'final_position' in tabnet_df.columns:
+            target_backup = tabnet_df['final_position'].copy()
+            self.log_info("Preserving target column 'final_position' for TabNet")
+
+        # Remove other target-related columns that should not be features
+        target_columns_to_remove = ['cl', 'narrivee', 'position']
+        removed_targets = []
+        for target_col in target_columns_to_remove:
+            if target_col in tabnet_df.columns:
+                tabnet_df = tabnet_df.drop(columns=[target_col])
+                removed_targets.append(target_col)
+
+        if removed_targets:
+            self.log_info(f"Removed target columns from features: {removed_targets}")
+
+        # Basic feature preparation (handles NaN, categorical encoding, date features)
+        tabnet_df = self.prepare_features(tabnet_df, use_cache=False)
+
+        # Restore target column if it was backed up
+        if target_backup is not None:
+            tabnet_df['final_position'] = target_backup
+            self.log_info("Restored target column 'final_position' after feature preparation")
+
+        # Step 2: Select and organize features for TabNet
+        selected_features = []
+        feature_categories = {
+            'musique_derived': [],
+            'static_race': [],
+            'performance_stats': [],
+            'categorical': [],
+            'temporal': []
+        }
+
+        # Musique-derived features (che_*, joc_*)
+        musique_features = [col for col in tabnet_df.columns
+                          if any(prefix in col for prefix in ['che_global_', 'che_weighted_', 'che_bytype_',
+                                                             'joc_global_', 'joc_weighted_', 'joc_bytype_'])]
+        feature_categories['musique_derived'].extend(musique_features)
+        selected_features.extend(musique_features)
+
+        # Static race features
+        static_race_features = [
+            'age', 'dist', 'temperature', 'cotedirect', 'corde', 'nbprt',
+            'forceVent', 'directionVent', 'nebulosite', 'poidmont'
+        ]
+        available_static = [col for col in static_race_features if col in tabnet_df.columns]
+        feature_categories['static_race'].extend(available_static)
+        selected_features.extend(available_static)
+
+        # Performance statistics
+        performance_features = [
+            'victoirescheval', 'placescheval', 'coursescheval', 'gainsCarriere',
+            'ratio_victoires', 'ratio_places', 'gains_par_course',
+            'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'gainsAnneeEnCours',
+            'pourcVictJockHippo', 'pourcPlaceJockHippo'
+        ]
+        available_performance = [col for col in performance_features if col in tabnet_df.columns]
+        feature_categories['performance_stats'].extend(available_performance)
+        selected_features.extend(available_performance)
+
+        # Categorical features (will be encoded as integers for TabNet)
+        categorical_features = ['typec', 'natpis', 'meteo', 'pistegp', 'hippo']
+        available_categorical = [col for col in categorical_features if col in tabnet_df.columns]
+        feature_categories['categorical'].extend(available_categorical)
+        selected_features.extend(available_categorical)
+
+        # Temporal features (extracted from date)
+        temporal_features = ['year', 'month', 'dayofweek']
+        available_temporal = [col for col in temporal_features if col in tabnet_df.columns]
+        feature_categories['temporal'].extend(available_temporal)
+        selected_features.extend(available_temporal)
+
+        # Step 3: Process categorical features for TabNet
+        for col in available_categorical:
+            if col in tabnet_df.columns:
+                # Convert categorical to integer codes with safe handling of unseen categories
+                if tabnet_df[col].dtype == 'object' or tabnet_df[col].dtype.name == 'category':
+                    # Handle categorical columns properly to avoid "unknown category" errors
+                    if tabnet_df[col].dtype.name == 'category':
+                        # For existing categorical, get the categories and handle unseen ones
+                        existing_categories = tabnet_df[col].cat.categories.tolist()
+                        tabnet_df[col] = tabnet_df[col].astype(str)
+
+                    # For all string columns, fill NaN first
+                    tabnet_df[col] = tabnet_df[col].fillna('unknown')
+
+                    # Create a mapping for consistent categorical encoding
+                    unique_values = sorted(tabnet_df[col].unique())
+                    if 'unknown' not in unique_values:
+                        unique_values.append('unknown')
+
+                    # Create categorical with all known values to avoid unseen category errors
+                    tabnet_df[col] = pd.Categorical(tabnet_df[col], categories=unique_values)
+                    tabnet_df[col] = tabnet_df[col].cat.codes
+                else:
+                    # Already numeric, just fill NaN
+                    tabnet_df[col] = tabnet_df[col].fillna(-1)
+
+        # Step 4: Handle numerical features
+        numerical_features = [col for col in selected_features
+                            if col not in available_categorical and col in tabnet_df.columns]
+
+        for col in numerical_features:
+            # Ensure numeric type
+            if not pd.api.types.is_numeric_dtype(tabnet_df[col]):
+                tabnet_df[col] = pd.to_numeric(tabnet_df[col], errors='coerce')
+
+            # Fill NaN with appropriate values
+            if tabnet_df[col].isna().any():
+                if col.startswith(('che_', 'joc_')):
+                    # For musique features, use 0 as default (no performance data)
+                    tabnet_df[col] = tabnet_df[col].fillna(0)
+                elif 'ratio' in col or 'pourc' in col:
+                    # For ratios and percentages, use 0
+                    tabnet_df[col] = tabnet_df[col].fillna(0)
+                else:
+                    # For other features, use median
+                    median_val = tabnet_df[col].median()
+                    tabnet_df[col] = tabnet_df[col].fillna(median_val if not pd.isna(median_val) else 0)
+
+        # Step 5: Create final feature set
+        # Add target column if it exists
+        if 'final_position' in tabnet_df.columns:
+            selected_features.append('final_position')
+
+        # Keep identifier columns for potential grouping
+        identifier_cols = ['comp', 'idche', 'idJockey']
+        available_identifiers = [col for col in identifier_cols if col in tabnet_df.columns]
+        selected_features.extend(available_identifiers)
+
+        # Filter to selected features only
+        available_features = [col for col in selected_features if col in tabnet_df.columns]
+        final_df = tabnet_df[available_features].copy()
+
+        # Log feature summary
+        self.log_info(f"TabNet feature preparation complete:")
+        for category, features in feature_categories.items():
+            if features:
+                self.log_info(f"  - {category}: {len(features)} features")
+
+        self.log_info(f"Total features selected: {len(available_features) - len(available_identifiers) - (1 if 'final_position' in available_features else 0)}")
+        self.log_info(f"Final dataset shape: {final_df.shape}")
+
+        # Store preprocessing info
+        self.preprocessing_params['tabnet_features'] = {
+            'selected_features': available_features,
+            'feature_categories': feature_categories,
+            'categorical_features': available_categorical,
+            'numerical_features': [f for f in numerical_features if f in available_features]
+        }
+
+        # Cache the result
+        if use_cache:
+            try:
+                self.cache_manager.save_dataframe(final_df, cache_key)
+            except Exception as e:
+                self.log_info(f"Warning: Could not cache TabNet features: {str(e)}")
+
+        return final_df
 
     def apply_embeddings(self, df, use_cache=True):
         """
@@ -1220,17 +1426,27 @@ class FeatureEmbeddingOrchestrator:
 
                     elif col == 'directionVent':
                         # Wind direction - categorical, so use most common value or '0'
-                        # Convert to categorical then to numeric code
+                        # Convert to categorical then to numeric code with safe encoding
                         cleaned_df[col] = cleaned_df[col].fillna('unknown')
-                        # Create new column with categorical encoding
-                        cleaned_df[f'{col}_code'] = cleaned_df[col].astype('category').cat.codes
+                        # Create categorical with all unique values to avoid unseen category errors
+                        unique_values = sorted(cleaned_df[col].unique())
+                        if 'unknown' not in unique_values:
+                            unique_values.append('unknown')
+                        categorical_col = pd.Categorical(cleaned_df[col], categories=unique_values)
+                        cleaned_df[f'{col}_code'] = categorical_col.codes
                         # Drop original string column
                         cleaned_df = cleaned_df.drop(columns=[col])
 
                     elif col == 'nebulosite':
-                        # Cloud cover - categorical, similar approach
+                        # Cloud cover - categorical, similar approach with safe encoding
                         cleaned_df[col] = cleaned_df[col].fillna('unknown')
-                        cleaned_df[f'{col}_code'] = cleaned_df[col].astype('category').cat.codes
+                        # Create categorical with all unique values to avoid unseen category errors
+                        unique_values = sorted(cleaned_df[col].unique())
+                        if 'unknown' not in unique_values:
+                            unique_values.append('unknown')
+                        categorical_col = pd.Categorical(cleaned_df[col], categories=unique_values)
+                        cleaned_df[f'{col}_code'] = categorical_col.codes
+                        # Drop original string column
                         cleaned_df = cleaned_df.drop(columns=[col])
 
                     else:
@@ -1618,3 +1834,76 @@ class FeatureEmbeddingOrchestrator:
             import traceback
             traceback.print_exc()
             raise
+
+    def prepare_tabnet_features(self, df, use_cache=True):
+        """
+        Prepare features specifically for TabNet model.
+        TabNet can handle both numerical and categorical features directly.
+
+        Args:
+            df: DataFrame with race data
+            use_cache: Whether to use caching
+
+        Returns:
+            DataFrame with TabNet-ready features
+        """
+        # Step 1: Preserve target column before any processing
+        target_backup = None
+        if 'final_position' in df.columns:
+            target_backup = df['final_position'].copy()
+            self.log_info("Preserving target column 'final_position' for TabNet")
+
+        # Step 2: Apply basic feature preparation
+        processed_df = self.prepare_features(df, use_cache=use_cache)
+
+        # Step 3: TabNet-specific feature selection and preprocessing
+        tabnet_features = []
+
+        # Numerical features that TabNet can use directly
+        numerical_cols = [
+            'age', 'cotedirect', 'coteprob', 'dist', 'temperature', 'forceVent',
+            'numero', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo',
+            'pourcVictJockHippo', 'pourcPlaceJockHippo', 'victoirescheval',
+            'placescheval', 'coursescheval'
+        ]
+
+        # Add available numerical features
+        for col in numerical_cols:
+            if col in processed_df.columns:
+                tabnet_features.append(col)
+
+        # Categorical features (TabNet can handle these with label encoding)
+        categorical_cols = ['natpis', 'typec', 'meteo', 'corde']
+        # Label encode categorical features for TabNet
+        from sklearn.preprocessing import LabelEncoder
+
+        for col in categorical_cols:
+            if col in processed_df.columns:
+                le = LabelEncoder()
+                # Handle missing values properly for categorical columns
+                if pd.api.types.is_categorical_dtype(processed_df[col]):
+                    # For categorical columns, add 'unknown' to categories first
+                    if 'unknown' not in processed_df[col].cat.categories:
+                        processed_df[col] = processed_df[col].cat.add_categories(['unknown'])
+                    processed_df[col] = processed_df[col].fillna('unknown')
+                else:
+                    # For non-categorical columns, simple fillna works
+                    processed_df[col] = processed_df[col].fillna('unknown')
+
+                # Convert to string and encode
+                processed_df[f'{col}_encoded'] = le.fit_transform(processed_df[col].astype(str))
+                tabnet_features.append(f'{col}_encoded')
+
+        # Step 4: Create TabNet feature dataframe
+        tabnet_df = processed_df[tabnet_features].copy()
+
+        # Step 5: Restore target column if it was backed up
+        if target_backup is not None:
+            tabnet_df['final_position'] = target_backup
+            self.log_info("Restored target column 'final_position' after feature preparation")
+
+        # Step 6: Fill any remaining NaN values with 0 (but preserve target column)
+        feature_cols = [col for col in tabnet_df.columns if col != 'final_position']
+        tabnet_df[feature_cols] = tabnet_df[feature_cols].fillna(0)
+
+        return tabnet_df
