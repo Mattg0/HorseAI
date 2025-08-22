@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import yaml
 import json
 import os
-from UI.UIhelper import PipelineHelper
+from UIhelper import PipelineHelper
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -142,6 +142,10 @@ if 'config_loaded' not in st.session_state:
     st.session_state.config_loaded = False
 if 'training_active' not in st.session_state:
     st.session_state.training_active = False
+if 'daily_races_cache' not in st.session_state:
+    st.session_state.daily_races_cache = None
+if 'cache_timestamp' not in st.session_state:
+    st.session_state.cache_timestamp = None
 
 
 # Config management functions
@@ -290,16 +294,28 @@ def execute_predictions(selected_races, progress_bar, status_text, force_repredi
         if result["success"]:
             progress_bar.progress(100)
             status_text.text("Predictions completed!")
-            log_output(result["message"], "success")
+            success_msg = f"{result['message']} ({result.get('predicted_count', 0)}/{result.get('total_races', 0)} races)"
+            log_output(success_msg, "success")
+            
+            # Clear cache to show updated data
+            st.session_state.daily_races_cache = None
+            st.session_state.cache_timestamp = None
+            
+            # Show success notification
+            st.success(f"✅ {success_msg}")
         else:
             progress_bar.progress(0)
             status_text.text("Predictions failed!")
-            log_output(result["message"], "error")
+            error_msg = result.get("message", "Unknown error occurred")
+            log_output(error_msg, "error")
+            st.error(f"❌ {error_msg}")
 
     except Exception as e:
         progress_bar.progress(0)
         status_text.text("Prediction error!")
-        log_output(f"Prediction error: {str(e)}", "error")
+        error_msg = f"Prediction error: {str(e)}"
+        log_output(error_msg, "error")
+        st.error(f"❌ {error_msg}")
 
 
 def execute_comprehensive_evaluation(progress_bar, status_text):
@@ -560,6 +576,7 @@ def main():
         [
             "🎲 Execute Prediction",
             "✨ AI Insight",
+            "📊 Prediction Analysis",
             "📈 Execute Evaluation",
             "🔄 Incremental Training",
             "🎯 Execute Full Training",
@@ -813,9 +830,23 @@ def main():
                 date=st.date_input(label="Date to sync")
                 if st.button("🔄 Refresh Races", key="refresh_races"):
                     st.session_state.helper.sync_daily_races(date)
+                    # Clear cache to force refresh
+                    st.session_state.daily_races_cache = None
+                    st.session_state.cache_timestamp = None
 
-                    # Get daily races
-                daily_races = st.session_state.helper.get_daily_races()
+                # Get daily races with caching
+                current_time = datetime.now()
+                
+                # Use cache if it exists and is less than 5 minutes old
+                if (st.session_state.daily_races_cache is not None and 
+                    st.session_state.cache_timestamp is not None and
+                    (current_time - st.session_state.cache_timestamp).seconds < 300):
+                    daily_races = st.session_state.daily_races_cache
+                else:
+                    # Fetch fresh data and cache it
+                    daily_races = st.session_state.helper.get_daily_races()
+                    st.session_state.daily_races_cache = daily_races
+                    st.session_state.cache_timestamp = current_time
 
                 if daily_races:
                     st.markdown(f"{len(daily_races)}e races Today")
@@ -1240,6 +1271,537 @@ def main():
                 
                 st.markdown('</div>', unsafe_allow_html=True)
 
+            elif operation == "📊 Prediction Analysis":
+                st.markdown('''
+                <div class="config-panel">
+                    <h3>📊 Standalone Prediction Analysis</h3>
+                </div>
+                ''', unsafe_allow_html=True)
+                
+                st.success("🎯 **Standalone Analysis** - Independent prediction performance analytics using stored prediction data")
+                st.info("Analyze prediction performance, model bias, and optimization opportunities from historical prediction storage")
+                
+                # Analytics tabs  
+                tab1, tab2, tab3, tab4 = st.tabs(["📈 Performance Metrics", "🔍 Bias Analysis", "⚖️ Model Optimization", "💾 Data Export"])
+                
+                with tab1:
+                    st.markdown("### 📈 Prediction Performance Overview")
+                    
+                    # Time period selection
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        perf_days = st.selectbox("Analysis Period:", [7, 14, 30, 60, 90], index=2, key="perf_days")
+                    with col2:
+                        if st.button("🔄 Refresh Performance Data", key="refresh_perf"):
+                            st.rerun()
+                    
+                    # Get performance data
+                    perf_result = st.session_state.helper.get_prediction_storage_performance(perf_days)
+                    
+                    if perf_result.get("success"):
+                        perf_data = perf_result["data"]
+                        
+                        if "error" not in perf_data:
+                            # Summary metrics
+                            st.markdown("#### 📊 Summary Metrics")
+                            col1, col2, col3, col4 = st.columns(4)
+                            
+                            with col1:
+                                st.metric("Total Predictions", perf_data.get("total_predictions", 0))
+                            with col2:
+                                st.metric("Period (Days)", perf_data.get("period_days", perf_days))
+                            with col3:
+                                date_range = perf_data.get("date_range", {})
+                                start_date = str(date_range.get("start", "N/A"))[:10]
+                                st.metric("Start Date", start_date)
+                            with col4:
+                                end_date = str(date_range.get("end", "N/A"))[:10]
+                                st.metric("End Date", end_date)
+                            
+                            # Model performance comparison
+                            st.markdown("#### 🎯 Model Performance (MAE)")
+                            mae_data = []
+                            top3_data = []
+                            
+                            models = ['rf_prediction', 'lstm_prediction', 'tabnet_prediction', 'ensemble_prediction']
+                            model_names = ['Random Forest', 'LSTM', 'TabNet', 'Ensemble']
+                            
+                            for model, name in zip(models, model_names):
+                                mae_key = f"{model}_mae"
+                                acc_key = f"{model}_top3_accuracy"
+                                
+                                if mae_key in perf_data:
+                                    mae_data.append({
+                                        'Model': name,
+                                        'MAE': perf_data[mae_key],
+                                        'MAE_Rounded': round(perf_data[mae_key], 3)
+                                    })
+                                
+                                if acc_key in perf_data:
+                                    top3_data.append({
+                                        'Model': name,
+                                        'Top-3 Accuracy': perf_data[acc_key] * 100,
+                                        'Accuracy_Rounded': round(perf_data[acc_key] * 100, 1)
+                                    })
+                            
+                            # If no individual model data available, show ensemble-only message
+                            if not mae_data and not top3_data:
+                                st.info("📊 **Ensemble Model Performance Available**")
+                                st.markdown(f"- **Total Predictions**: {perf_data.get('total_predictions', 0):,}")
+                                if 'ensemble_prediction_mae' in perf_data:
+                                    st.markdown(f"- **Ensemble MAE**: {perf_data['ensemble_prediction_mae']:.3f}")
+                                if 'ensemble_prediction_top3_accuracy' in perf_data:
+                                    st.markdown(f"- **Top-3 Accuracy**: {perf_data['ensemble_prediction_top3_accuracy']*100:.1f}%")
+                                st.markdown("*Individual model metrics will be available after running new predictions with the enhanced pipeline*")
+                            
+                            # MAE comparison chart
+                            if mae_data:
+                                col1, col2 = st.columns(2)
+                                
+                                with col1:
+                                    mae_df = pd.DataFrame(mae_data)
+                                    fig_mae = px.bar(
+                                        mae_df,
+                                        x='Model',
+                                        y='MAE',
+                                        title="Mean Absolute Error by Model",
+                                        color='MAE',
+                                        color_continuous_scale=['#90AEAD', '#874F41', '#E64833'],
+                                        text='MAE_Rounded'
+                                    )
+                                    fig_mae.update_traces(textposition='outside')
+                                    fig_mae.update_layout(
+                                        showlegend=False,
+                                        height=400,
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(0,0,0,0)'
+                                    )
+                                    st.plotly_chart(fig_mae, use_container_width=True)
+                                
+                                with col2:
+                                    if top3_data:
+                                        acc_df = pd.DataFrame(top3_data)
+                                        fig_acc = px.bar(
+                                            acc_df,
+                                            x='Model',
+                                            y='Top-3 Accuracy',
+                                            title="Top-3 Accuracy by Model (%)",
+                                            color='Top-3 Accuracy',
+                                            color_continuous_scale=['#E64833', '#874F41', '#90AEAD'],
+                                            text='Accuracy_Rounded'
+                                        )
+                                        fig_acc.update_traces(textposition='outside')
+                                        fig_acc.update_layout(
+                                            showlegend=False,
+                                            height=400,
+                                            paper_bgcolor='rgba(0,0,0,0)',
+                                            plot_bgcolor='rgba(0,0,0,0)'
+                                        )
+                                        st.plotly_chart(fig_acc, use_container_width=True)
+                            
+                            # Detailed metrics table
+                            st.markdown("#### 📋 Detailed Performance Metrics")
+                            metrics_table = []
+                            
+                            for model, name in zip(models, model_names):
+                                mae_key = f"{model}_mae"
+                                acc_key = f"{model}_top3_accuracy"
+                                
+                                row = {'Model': name}
+                                
+                                if mae_key in perf_data:
+                                    row['MAE'] = f"{perf_data[mae_key]:.3f}"
+                                else:
+                                    row['MAE'] = "N/A"
+                                
+                                if acc_key in perf_data:
+                                    row['Top-3 Accuracy'] = f"{perf_data[acc_key]:.1%}"
+                                else:
+                                    row['Top-3 Accuracy'] = "N/A"
+                                
+                                metrics_table.append(row)
+                            
+                            if metrics_table:
+                                st.dataframe(pd.DataFrame(metrics_table), hide_index=True, use_container_width=True)
+                        
+                        else:
+                            st.warning(f"⚠️ {perf_data['error']}")
+                    else:
+                        st.error(f"❌ Failed to get performance data: {perf_result.get('error', 'Unknown error')}")
+                
+                with tab2:
+                    st.markdown("### 🔍 Model Bias Analysis")
+                    
+                    # Time period selection for bias
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        bias_days = st.selectbox("Analysis Period:", [30, 60, 90, 120], index=1, key="bias_days")
+                    with col2:
+                        if st.button("🔄 Refresh Bias Analysis", key="refresh_bias"):
+                            st.rerun()
+                    
+                    # Get bias analysis data
+                    bias_result = st.session_state.helper.get_prediction_storage_bias_analysis(bias_days)
+                    
+                    if bias_result.get("success"):
+                        bias_data = bias_result["data"]
+                        
+                        if "error" not in bias_data:
+                            # Track condition bias
+                            if 'track_condition_bias' in bias_data:
+                                st.markdown("#### 🏃 Track Condition Bias")
+                                track_bias = bias_data['track_condition_bias']
+                                
+                                if track_bias.get('ensemble_prediction') and track_bias.get('actual_position'):
+                                    track_df = []
+                                    for condition in track_bias['ensemble_prediction'].keys():
+                                        predicted = track_bias['ensemble_prediction'][condition]
+                                        actual = track_bias['actual_position'][condition]
+                                        bias = predicted - actual
+                                        
+                                        track_df.append({
+                                            'Track Condition': condition,
+                                            'Predicted Avg': f"{predicted:.2f}",
+                                            'Actual Avg': f"{actual:.2f}",
+                                            'Bias': f"{bias:+.2f}",
+                                            'Bias_Value': bias
+                                        })
+                                    
+                                    if track_df:
+                                        # Bias visualization
+                                        bias_df = pd.DataFrame(track_df)
+                                        fig_track = px.bar(
+                                            bias_df,
+                                            x='Track Condition',
+                                            y='Bias_Value',
+                                            title="Prediction Bias by Track Condition",
+                                            color='Bias_Value',
+                                            color_continuous_scale='RdYlBu_r',
+                                            text='Bias'
+                                        )
+                                        fig_track.update_traces(textposition='outside')
+                                        fig_track.update_layout(
+                                            showlegend=False,
+                                            height=400,
+                                            paper_bgcolor='rgba(0,0,0,0)',
+                                            plot_bgcolor='rgba(0,0,0,0)',
+                                            yaxis_title="Bias (Predicted - Actual)"
+                                        )
+                                        st.plotly_chart(fig_track, use_container_width=True)
+                                        
+                                        # Detailed table
+                                        display_df = bias_df[['Track Condition', 'Predicted Avg', 'Actual Avg', 'Bias']].copy()
+                                        st.dataframe(display_df, hide_index=True, use_container_width=True)
+                            
+                            # Weather bias
+                            if 'weather_bias' in bias_data:
+                                st.markdown("#### 🌤️ Weather Bias")
+                                weather_bias = bias_data['weather_bias']
+                                
+                                if weather_bias.get('ensemble_prediction') and weather_bias.get('actual_position'):
+                                    weather_df = []
+                                    for weather in weather_bias['ensemble_prediction'].keys():
+                                        predicted = weather_bias['ensemble_prediction'][weather]
+                                        actual = weather_bias['actual_position'][weather]
+                                        bias = predicted - actual
+                                        
+                                        weather_df.append({
+                                            'Weather': weather,
+                                            'Predicted Avg': f"{predicted:.2f}",
+                                            'Actual Avg': f"{actual:.2f}",
+                                            'Bias': f"{bias:+.2f}"
+                                        })
+                                    
+                                    if weather_df:
+                                        st.dataframe(pd.DataFrame(weather_df), hide_index=True, use_container_width=True)
+                            
+                            # Field size bias
+                            if 'field_size_bias' in bias_data:
+                                st.markdown("#### 👥 Field Size Bias")
+                                field_bias = bias_data['field_size_bias']
+                                
+                                if field_bias.get('ensemble_prediction') and field_bias.get('actual_position'):
+                                    field_df = []
+                                    for size in field_bias['ensemble_prediction'].keys():
+                                        predicted = field_bias['ensemble_prediction'][size]
+                                        actual = field_bias['actual_position'][size]
+                                        bias = predicted - actual
+                                        
+                                        field_df.append({
+                                            'Field Size': size,
+                                            'Predicted Avg': f"{predicted:.2f}",
+                                            'Actual Avg': f"{actual:.2f}",
+                                            'Bias': f"{bias:+.2f}"
+                                        })
+                                    
+                                    if field_df:
+                                        st.dataframe(pd.DataFrame(field_df), hide_index=True, use_container_width=True)
+                            
+                            # Distance bias
+                            if 'distance_bias' in bias_data:
+                                st.markdown("#### 🏁 Distance Bias")
+                                distance_bias = bias_data['distance_bias']
+                                
+                                if distance_bias.get('ensemble_prediction') and distance_bias.get('actual_position'):
+                                    distance_df = []
+                                    for distance in distance_bias['ensemble_prediction'].keys():
+                                        predicted = distance_bias['ensemble_prediction'][distance]
+                                        actual = distance_bias['actual_position'][distance]
+                                        bias = predicted - actual
+                                        
+                                        distance_df.append({
+                                            'Distance Category': distance,
+                                            'Predicted Avg': f"{predicted:.2f}",
+                                            'Actual Avg': f"{actual:.2f}",
+                                            'Bias': f"{bias:+.2f}"
+                                        })
+                                    
+                                    if distance_df:
+                                        st.dataframe(pd.DataFrame(distance_df), hide_index=True, use_container_width=True)
+                        
+                        else:
+                            st.warning(f"⚠️ {bias_data['error']}")
+                    else:
+                        st.error(f"❌ Failed to get bias analysis: {bias_result.get('error', 'Unknown error')}")
+                
+                with tab3:
+                    st.markdown("### ⚖️ Model Optimization")
+                    
+                    # Blend weight optimization
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        opt_days = st.selectbox("Optimization Period:", [14, 30, 45, 60], index=1, key="opt_days")
+                    with col2:
+                        if st.button("🔄 Refresh Optimization", key="refresh_opt"):
+                            st.rerun()
+                    
+                    # Get blend weight suggestions
+                    opt_result = st.session_state.helper.get_prediction_storage_blend_suggestions(opt_days)
+                    
+                    if opt_result.get("success"):
+                        opt_data = opt_result["data"]
+                        
+                        if "error" not in opt_data:
+                            st.markdown("#### 🎯 Suggested Optimal Blend Weights")
+                            
+                            # Current vs suggested weights
+                            col1, col2, col3 = st.columns(3)
+                            
+                            with col1:
+                                st.metric(
+                                    "RF Weight",
+                                    f"{opt_data.get('rf_weight', 0):.3f}",
+                                    help="Suggested Random Forest model weight"
+                                )
+                            with col2:
+                                st.metric(
+                                    "LSTM Weight", 
+                                    f"{opt_data.get('lstm_weight', 0):.3f}",
+                                    help="Suggested LSTM model weight"
+                                )
+                            with col3:
+                                st.metric(
+                                    "TabNet Weight",
+                                    f"{opt_data.get('tabnet_weight', 0):.3f}",
+                                    help="Suggested TabNet model weight"
+                                )
+                            
+                            # Performance metrics comparison
+                            if 'performance_metrics' in opt_data:
+                                st.markdown("#### 📊 Performance Metrics")
+                                perf_metrics = opt_data['performance_metrics']
+                                
+                                metrics_df = pd.DataFrame([
+                                    {'Model': 'Random Forest', 'MAE': perf_metrics.get('rf_mae', 0)},
+                                    {'Model': 'LSTM', 'MAE': perf_metrics.get('lstm_mae', 0)},
+                                    {'Model': 'TabNet', 'MAE': perf_metrics.get('tabnet_mae', 0)},
+                                    {'Model': 'Current Ensemble', 'MAE': perf_metrics.get('current_ensemble_mae', 0)}
+                                ])
+                                
+                                # Performance chart
+                                fig_perf = px.bar(
+                                    metrics_df,
+                                    x='Model',
+                                    y='MAE',
+                                    title="Model Performance (Lower is Better)",
+                                    color='MAE',
+                                    color_continuous_scale=['#90AEAD', '#874F41', '#E64833'],
+                                    text='MAE'
+                                )
+                                fig_perf.update_traces(texttemplate='%{text:.3f}', textposition='outside')
+                                fig_perf.update_layout(
+                                    showlegend=False,
+                                    height=400,
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    plot_bgcolor='rgba(0,0,0,0)'
+                                )
+                                st.plotly_chart(fig_perf, use_container_width=True)
+                                
+                                st.dataframe(metrics_df, hide_index=True, use_container_width=True)
+                            
+                            # Weight recommendations
+                            st.markdown("#### 💡 Optimization Recommendations")
+                            
+                            # Get current config weights for comparison
+                            current_blend = st.session_state.helper._config_data.get('blend', {}) if st.session_state.helper._config_data else {}
+                            current_rf = current_blend.get('rf_weight', 0.8)
+                            current_lstm = current_blend.get('lstm_weight', 0.1)
+                            current_tabnet = current_blend.get('tabnet_weight', 0.1)
+                            
+                            suggested_rf = opt_data.get('rf_weight', 0)
+                            suggested_lstm = opt_data.get('lstm_weight', 0)
+                            suggested_tabnet = opt_data.get('tabnet_weight', 0)
+                            
+                            # Compare and recommend
+                            if abs(suggested_rf - current_rf) > 0.05:
+                                if suggested_rf > current_rf:
+                                    st.info(f"🔼 **RF Weight**: Increase from {current_rf:.3f} to {suggested_rf:.3f} (+{suggested_rf-current_rf:.3f})")
+                                else:
+                                    st.info(f"🔽 **RF Weight**: Decrease from {current_rf:.3f} to {suggested_rf:.3f} ({suggested_rf-current_rf:.3f})")
+                            else:
+                                st.success(f"✅ **RF Weight**: Current weight ({current_rf:.3f}) is optimal")
+                            
+                            if abs(suggested_lstm - current_lstm) > 0.05:
+                                if suggested_lstm > current_lstm:
+                                    st.info(f"🔼 **LSTM Weight**: Increase from {current_lstm:.3f} to {suggested_lstm:.3f} (+{suggested_lstm-current_lstm:.3f})")
+                                else:
+                                    st.info(f"🔽 **LSTM Weight**: Decrease from {current_lstm:.3f} to {suggested_lstm:.3f} ({suggested_lstm-current_lstm:.3f})")
+                            else:
+                                st.success(f"✅ **LSTM Weight**: Current weight ({current_lstm:.3f}) is optimal")
+                            
+                            if abs(suggested_tabnet - current_tabnet) > 0.05:
+                                if suggested_tabnet > current_tabnet:
+                                    st.info(f"🔼 **TabNet Weight**: Increase from {current_tabnet:.3f} to {suggested_tabnet:.3f} (+{suggested_tabnet-current_tabnet:.3f})")
+                                else:
+                                    st.info(f"🔽 **TabNet Weight**: Decrease from {current_tabnet:.3f} to {suggested_tabnet:.3f} ({suggested_tabnet-current_tabnet:.3f})")
+                            else:
+                                st.success(f"✅ **TabNet Weight**: Current weight ({current_tabnet:.3f}) is optimal")
+                        
+                        else:
+                            if 'Insufficient data for blend weight optimization' in opt_data['error']:
+                                st.info("📊 **Individual Model Data Required**")
+                                st.markdown("Blend weight optimization requires individual RF, LSTM, and TabNet prediction data. Current data contains ensemble predictions only.")
+                                st.markdown("*Run new predictions with the enhanced 3-model pipeline to enable blend optimization*")
+                            else:
+                                st.warning(f"⚠️ {opt_data['error']}")
+                    else:
+                        st.error(f"❌ Failed to get optimization suggestions: {opt_result.get('error', 'Unknown error')}")
+                    
+                    # Confidence calibration
+                    st.markdown("#### 🎚️ Model Confidence Calibration")
+                    
+                    calib_result = st.session_state.helper.get_prediction_storage_confidence_calibration(opt_days)
+                    
+                    if calib_result.get("success"):
+                        calib_data = calib_result["data"]
+                        
+                        if "error" not in calib_data:
+                            st.metric("Total Analyzed", calib_data.get("total_predictions_analyzed", 0))
+                            
+                            # Calibration analysis
+                            if 'calibration_by_confidence' in calib_data and 'accuracy_by_confidence' in calib_data:
+                                calib_df = []
+                                calib_dict = calib_data['calibration_by_confidence']
+                                acc_dict = calib_data['accuracy_by_confidence']
+                                
+                                for conf_bin in calib_dict.get('ensemble_confidence_score', {}).keys():
+                                    calib_df.append({
+                                        'Confidence Bin': conf_bin,
+                                        'Avg Confidence': f"{calib_dict['ensemble_confidence_score'][conf_bin]:.3f}",
+                                        'Prediction Accuracy': f"{acc_dict.get(conf_bin, 0):.1%}"
+                                    })
+                                
+                                if calib_df:
+                                    st.dataframe(pd.DataFrame(calib_df), hide_index=True, use_container_width=True)
+                        
+                        else:
+                            if 'No predictions with confidence scores found' in calib_data['error']:
+                                st.info("📊 **Confidence Score Data Required**")
+                                st.markdown("Confidence calibration requires ensemble confidence scores. Current data is missing confidence information.")
+                                st.markdown("*New predictions with the enhanced pipeline will include confidence scores for calibration analysis*")
+                            else:
+                                st.warning(f"⚠️ {calib_data['error']}")
+                    else:
+                        st.warning("⚠️ Confidence calibration data not available")
+                
+                with tab4:
+                    st.markdown("### 💾 Data Export & Management")
+                    
+                    # Export configuration
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        export_days = st.selectbox("Export Period:", [7, 14, 30, 60, 90, 180], index=2, key="export_days")
+                    with col2:
+                        st.metric("Estimated Records", f"~{export_days * 100}-{export_days * 500}")
+                    
+                    # Export data
+                    if st.button("📤 Export Prediction Data", key="export_data"):
+                        with st.spinner("Exporting prediction data..."):
+                            export_result = st.session_state.helper.export_prediction_storage_data(export_days)
+                            
+                            if export_result.get("success"):
+                                st.success(f"✅ {export_result['message']}")
+                                st.info(f"📁 File saved to: {export_result['export_path']}")
+                            else:
+                                st.error(f"❌ Export failed: {export_result.get('error', 'Unknown error')}")
+                    
+                    # Training feedback data
+                    st.markdown("#### 🔄 Training Feedback")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        feedback_days = st.selectbox("Feedback Period:", [3, 7, 14, 30], index=1, key="feedback_days")
+                    with col2:
+                        if st.button("🔄 Refresh Feedback", key="refresh_feedback"):
+                            st.rerun()
+                    
+                    feedback_result = st.session_state.helper.get_prediction_storage_training_feedback(feedback_days)
+                    
+                    if feedback_result.get("success"):
+                        feedback_data = feedback_result["data"]
+                        
+                        if feedback_data:
+                            st.success(f"✅ Found {len(feedback_data)} completed predictions for training feedback")
+                            
+                            # Sample of feedback data
+                            if len(feedback_data) > 0:
+                                sample_size = min(10, len(feedback_data))
+                                sample_df = pd.DataFrame(feedback_data[:sample_size])
+                                
+                                if not sample_df.empty:
+                                    display_cols = ['race_id', 'horse_id', 'predicted_position', 'actual_position']
+                                    available_cols = [col for col in display_cols if col in sample_df.columns]
+                                    
+                                    st.markdown(f"**Sample Feedback Data (showing {sample_size} of {len(feedback_data)}):**")
+                                    st.dataframe(sample_df[available_cols], hide_index=True, use_container_width=True)
+                        else:
+                            st.info("ℹ️ No training feedback data available for the selected period")
+                    else:
+                        st.error(f"❌ Failed to get training feedback: {feedback_result.get('error', 'Unknown error')}")
+                    
+                    # System summary
+                    st.markdown("#### 📋 Storage System Summary")
+                    
+                    summary_result = st.session_state.helper.get_prediction_storage_summary()
+                    
+                    if summary_result.get("success"):
+                        summary_data = summary_result["data"]
+                        
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.metric("Recent Predictions (7d)", summary_data.get("recent_predictions", 0))
+                        with col2:
+                            st.metric("Monthly Predictions", summary_data.get("monthly_predictions", 0))
+                        with col3:
+                            st.metric("Training Feedback Available", summary_data.get("training_feedback_available", 0))
+                        
+                        st.info(f"🗄️ Database: {summary_data.get('database_path', 'Unknown')}")
+                    else:
+                        st.error(f"❌ Failed to get system summary: {summary_result.get('error', 'Unknown error')}")
+                
+                st.markdown('</div>', unsafe_allow_html=True)
+
             elif operation == "🔄 Incremental Training":
 
                 st.markdown('<div class="config-panel">', unsafe_allow_html=True)
@@ -1558,6 +2120,112 @@ def main():
             st.metric("Last Training", last_training)
         with col_status2:
             st.metric("Model Version", model_version)
+        
+        # Enhanced Model Status Information
+        try:
+            model_info_result = st.session_state.helper.get_prediction_model_info()
+            if model_info_result.get("success"):
+                prediction_info = model_info_result["prediction_info"]
+                
+                st.markdown("#### 🎯 3-Model Ensemble Status")
+                
+                # Model availability overview
+                model_status = prediction_info.get('model_status', {})
+                available_count = prediction_info.get('available_models_count', 0)
+                available_models = prediction_info.get('available_models', [])
+                
+                status_col1, status_col2, status_col3 = st.columns(3)
+                
+                with status_col1:
+                    rf_status = model_status.get('rf', 'unknown')
+                    rf_icon = "✅" if rf_status == "loaded" else "❌"
+                    st.write(f"{rf_icon} **RF Model**: {rf_status.title()}")
+                
+                with status_col2:
+                    lstm_status = model_status.get('lstm', 'unknown') 
+                    lstm_icon = "✅" if lstm_status == "loaded" else "❌"
+                    st.write(f"{lstm_icon} **LSTM Model**: {lstm_status.title()}")
+                
+                with status_col3:
+                    tabnet_status = model_status.get('tabnet', 'unknown')
+                    
+                    if tabnet_status == "loaded":
+                        tabnet_icon = "✅"
+                        tabnet_display = "Loaded"
+                    elif tabnet_status == "loaded_fallback":
+                        tabnet_icon = "🔄"
+                        tabnet_display = "Fallback"
+                    elif tabnet_status == "missing":
+                        tabnet_icon = "❌"
+                        tabnet_display = "Missing"
+                    elif tabnet_status == "unavailable":
+                        tabnet_icon = "⚠️"
+                        tabnet_display = "Unavailable"
+                    else:
+                        tabnet_icon = "❓"
+                        tabnet_display = tabnet_status.title()
+                    
+                    st.write(f"{tabnet_icon} **TabNet Model**: {tabnet_display}")
+                
+                # Overall system status with enhanced messaging
+                system_status = prediction_info.get('system_status', 'unknown')
+                
+                if system_status == 'fully_operational':
+                    st.success(f"🎉 **Full Ensemble Active**: All 3 models operational")
+                elif system_status == 'operational_with_fallback':
+                    st.success(f"✅ **Full Ensemble Active**: All 3 models operational (TabNet using fallback)")
+                elif system_status == 'operational_degraded':
+                    st.warning(f"⚠️ **Partial Ensemble**: {available_count}/3 models active ({', '.join(available_models).upper()})")
+                elif system_status == 'minimal_operation':
+                    st.error(f"🚨 **Minimal Operation**: Only {available_models[0].upper()} model active")
+                elif system_status == 'no_models_loaded':
+                    st.error("❌ **System Error**: No models available")
+                else:
+                    # Fallback to count-based logic for unknown status
+                    if available_count == 3:
+                        st.success(f"✅ **Full Ensemble Active**: All 3 models operational")
+                    elif available_count >= 2:
+                        st.warning(f"⚠️ **Partial Ensemble**: {available_count}/3 models active ({', '.join(available_models).upper()})")
+                    elif available_count == 1:
+                        st.error(f"🚨 **Minimal Operation**: Only {available_models[0].upper()} model active")
+                    else:
+                        st.error("❌ **System Error**: No models available")
+                
+                # Show model details and any issues
+                model_errors = prediction_info.get('model_errors', {})
+                tabnet_info = prediction_info.get('tabnet_info', {})
+                
+                if model_errors or tabnet_info.get('fallback_used'):
+                    with st.expander("🔍 Model Details & Status"):
+                        for model, error in model_errors.items():
+                            if model == 'tabnet' and tabnet_info.get('fallback_used'):
+                                # Special handling for TabNet fallback
+                                st.info(f"**{model.upper()}**: {error}")
+                                if tabnet_info.get('fallback_path'):
+                                    st.caption(f"Fallback source: {tabnet_info['fallback_path']}")
+                            else:
+                                st.error(f"**{model.upper()}**: {error}")
+                        
+                        # Show TabNet fallback details if available
+                        if tabnet_info.get('fallback_used') and tabnet_info.get('fallback_path'):
+                            st.markdown("---")
+                            st.markdown("**TabNet Fallback Information:**")
+                            st.text(f"• Using TabNet model from: {tabnet_info['fallback_path']}")
+                            st.text(f"• Current model directory missing TabNet files")
+                            st.text(f"• Automatically loaded from most recent available model")
+                
+                # Show effective weights
+                effective_weights = prediction_info.get('effective_weights', {})
+                if effective_weights and len(effective_weights) > 1:
+                    st.markdown("**Active Blend Weights:**")
+                    weights_text = " | ".join([f"{model.upper()}: {weight:.1%}" for model, weight in effective_weights.items()])
+                    st.text(weights_text)
+                
+            else:
+                st.error("❌ Could not retrieve model information")
+                
+        except Exception as e:
+            st.error(f"❌ Error getting model status: {str(e)}")
 
         st.markdown('</div>', unsafe_allow_html=True)
 

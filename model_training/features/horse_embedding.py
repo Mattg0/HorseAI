@@ -44,19 +44,62 @@ class HorseEmbedding:
             'che_bytype_dnf_rate'
         ]
 
+        # Device configuration - CPU for training, GPU available for prediction
+        self.device = torch.device('cpu')
+        self.prediction_device = None  # Will be set dynamically for prediction
+        print(f"HorseEmbedding using device: {self.device}")
+        
         # Proprietaire encoding
         self.proprietaire_to_id = {}
         self.next_proprietaire_id = 0
 
         # Initialize proprietaire embedding layer (will be used if proprietaire info is available)
         self.proprietaire_embedding_dim = 4  # Dimension for proprietaire embeddings
-        self.proprietaire_embedding = nn.Embedding(1000, self.proprietaire_embedding_dim)
+        self.proprietaire_embedding = nn.Embedding(1000, self.proprietaire_embedding_dim).to(self.device)
 
         # Simple embedding network
         # We'll initialize it during the first call to generate_embeddings
         # to determine the correct input dimension based on available features
         self.embedding_network = None
         self.initialized = False
+
+    def enable_gpu_for_prediction(self):
+        """Enable GPU/MPS device for faster prediction feature preparation."""
+        try:
+            if torch.backends.mps.is_available():
+                self.prediction_device = torch.device('mps')
+                self._move_models_to_device()
+                print(f"HorseEmbedding: GPU enabled for prediction (MPS)")
+                return True
+        except:
+            pass
+        
+        if torch.cuda.is_available():
+            self.prediction_device = torch.device('cuda')
+            self._move_models_to_device()
+            print(f"HorseEmbedding: GPU enabled for prediction (CUDA)")
+            return True
+            
+        print(f"HorseEmbedding: GPU not available, staying on CPU")
+        return False
+
+    def disable_gpu_for_prediction(self):
+        """Disable GPU and return to CPU for prediction."""
+        self.prediction_device = None
+        self._move_models_to_device()
+        print(f"HorseEmbedding: GPU disabled, using CPU")
+
+    def _move_models_to_device(self):
+        """Move models to the currently active device."""
+        active_device = self._get_active_device()
+        if self.proprietaire_embedding is not None:
+            self.proprietaire_embedding = self.proprietaire_embedding.to(active_device)
+        if self.embedding_network is not None:
+            self.embedding_network = self.embedding_network.to(active_device)
+
+    def _get_active_device(self):
+        """Get the currently active device (GPU for prediction if enabled, otherwise CPU)."""
+        return self.prediction_device if self.prediction_device is not None else self.device
 
     def _json_to_dataframe(self, json_data: Union[str, List[Dict]]) -> pd.DataFrame:
         """
@@ -151,7 +194,7 @@ class HorseEmbedding:
             proprietaire_ids.append(self.proprietaire_to_id[prop])
 
         # Convert to tensor and get embeddings
-        proprietaire_id_tensor = torch.tensor(proprietaire_ids, dtype=torch.long)
+        proprietaire_id_tensor = torch.tensor(proprietaire_ids, dtype=torch.long).to(self._get_active_device())
         with torch.no_grad():
             proprietaire_embeddings = self.proprietaire_embedding(proprietaire_id_tensor)
 
@@ -168,7 +211,7 @@ class HorseEmbedding:
             nn.Linear(input_dim, 32),
             nn.ReLU(),
             nn.Linear(32, self.embedding_dim)
-        )
+        ).to(self._get_active_device())
         self.initialized = True
 
     def generate_embeddings(self, data: Union[pd.DataFrame, List[Dict], str]) -> Dict[int, np.ndarray]:
@@ -198,7 +241,7 @@ class HorseEmbedding:
         proprietaire_embeddings = self._process_proprietaires(df)
 
         # Convert features to tensor
-        features_tensor = torch.tensor(preprocessed_df.values, dtype=torch.float32)
+        features_tensor = torch.tensor(preprocessed_df.values, dtype=torch.float32).to(self._get_active_device())
 
         # Determine input dimension and initialize network if needed
         if proprietaire_embeddings is not None:
@@ -213,7 +256,7 @@ class HorseEmbedding:
 
         # Generate embeddings
         with torch.no_grad():
-            embeddings = self.embedding_network(input_features).numpy()
+            embeddings = self.embedding_network(input_features.to(self._get_active_device())).cpu().numpy()
 
         # Create mapping from horse ID to embedding
         horse_ids = df['idche'].values

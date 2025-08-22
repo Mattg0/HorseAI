@@ -11,6 +11,7 @@ from pathlib import Path
 from utils.env_setup import AppConfig
 from core.connectors.api_daily_sync import RaceFetcher
 from race_prediction.race_predict import RacePredictor
+from core.storage.prediction_storage import PredictionStorage, PredictionRecord
 
 
 class PredictionOrchestrator:
@@ -25,18 +26,20 @@ class PredictionOrchestrator:
 
     # In PredictionOrchestrator.__init__:
 
-    def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False):
+    def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False, 
+                 auto_storage: bool = True):
         """
         Initialize the prediction orchestrator.
 
         Args:
             model_path: Path to the model or model name
             db_name: Database name from config (default: active_db from config)
-            model_type: Type of model ('hybrid_model' or 'incremental_models')
             verbose: Whether to output verbose logs
+            auto_storage: Whether to automatically store predictions in prediction storage (default: True)
         """
         # Initialize config
         self.verbose = verbose
+        self.auto_storage = auto_storage
         self.config = AppConfig()
 
         if db_name is None:
@@ -50,6 +53,9 @@ class PredictionOrchestrator:
             db_name=db_name,
             verbose=verbose
         )
+        
+        # Initialize prediction storage
+        self.prediction_storage = PredictionStorage(self.config)
 
         self._setup_logging()
 
@@ -148,6 +154,11 @@ class PredictionOrchestrator:
 
         # Select columns for output
         output_columns = ['numero', 'cheval', 'predicted_position', 'predicted_rank']
+        
+        # Add individual model predictions and confidence scores
+        for col in ['rf_prediction', 'lstm_prediction', 'tabnet_prediction', 'ensemble_confidence_score']:
+            if col in result_df.columns:
+                output_columns.append(col)
 
             # Add optional columns if available
         for col in ['cotedirect', 'jockey', 'idJockey', 'idche']:
@@ -184,6 +195,16 @@ class PredictionOrchestrator:
 
             # Update database
         self.race_fetcher.update_prediction_results(comp, json.dumps(prediction_data))
+        
+        # Store predictions in prediction storage system if auto_storage is enabled
+        if self.auto_storage:
+            try:
+                self._store_race_predictions(comp, race_data, result_df, metadata)
+                self.logger.info(f"Auto-stored predictions for race {comp} in prediction storage")
+            except Exception as e:
+                self.logger.warning(f"Failed to auto-store predictions in prediction storage: {e}")
+        else:
+            self.logger.debug(f"Auto-storage disabled, skipping prediction storage for race {comp}")
 
             # Calculate elapsed time
         elapsed_time = (datetime.now() - start_time).total_seconds()
@@ -1003,3 +1024,151 @@ class PredictionOrchestrator:
             'pmu_bets': pmu_bets,
             'winning_bets': winning_bets
         }
+    
+    def _store_race_predictions(self, race_id: str, race_data: Dict, result_df: pd.DataFrame, metadata: Dict):
+        """Store race predictions in the prediction storage system"""
+        try:
+            # Get model versions from race predictor
+            model_versions = {}
+            if hasattr(self.race_predictor, 'rf_model') and self.race_predictor.rf_model is not None:
+                model_versions['rf'] = str(self.race_predictor.model_path)
+            if hasattr(self.race_predictor, 'lstm_model') and self.race_predictor.lstm_model is not None:
+                model_versions['lstm'] = str(self.race_predictor.model_path)
+            if hasattr(self.race_predictor, 'tabnet_model') and self.race_predictor.tabnet_model is not None:
+                model_versions['tabnet'] = str(self.race_predictor.model_path)
+            
+            # Prepare prediction records for each horse
+            prediction_records = []
+            timestamp = datetime.now()
+            
+            for _, row in result_df.iterrows():
+                # Extract individual model predictions if available
+                rf_pred = row.get('rf_prediction', None)
+                lstm_pred = row.get('lstm_prediction', None)
+                tabnet_pred = row.get('tabnet_prediction', None)
+                ensemble_pred = row.get('predicted_position', None)
+                
+                # Calculate confidence score if available
+                confidence_score = None
+                if all(pred is not None for pred in [rf_pred, lstm_pred, tabnet_pred]):
+                    # Simple confidence based on model agreement
+                    predictions = [rf_pred, lstm_pred, tabnet_pred]
+                    mean_pred = np.mean(predictions)
+                    std_pred = np.std(predictions)
+                    confidence_score = 1.0 / (1.0 + std_pred) if std_pred > 0 else 1.0
+                
+                # Create prediction record
+                record = PredictionRecord(
+                    race_id=race_id,
+                    timestamp=timestamp,
+                    horse_id=str(row.get('numero', row.get('idche', 'unknown'))),
+                    rf_prediction=rf_pred,
+                    lstm_prediction=lstm_pred,
+                    tabnet_prediction=tabnet_pred,
+                    ensemble_prediction=ensemble_pred,
+                    ensemble_confidence_score=confidence_score,
+                    actual_position=None,  # Will be updated later when results are available
+                    distance=race_data.get('dist'),
+                    track_condition=race_data.get('natpis'),
+                    weather=race_data.get('meteo'),
+                    field_size=len(result_df),
+                    race_type=race_data.get('typec'),
+                    model_versions=model_versions,
+                    prediction_metadata={
+                        'hippo': race_data.get('hippo'),
+                        'prix': race_data.get('prix'),
+                        'jour': race_data.get('jour'),
+                        'quinte': race_data.get('quinte', 0),
+                        'blend_weight': metadata.get('blend_weight'),
+                        'horse_name': row.get('cheval', ''),
+                        'jockey': row.get('jockey', ''),
+                        'predicted_rank': row.get('predicted_rank', None)
+                    }
+                )
+                prediction_records.append(record)
+            
+            # Store batch predictions
+            record_ids = self.prediction_storage.store_batch_predictions(prediction_records)
+            self.logger.info(f"Stored {len(record_ids)} prediction records for race {race_id}")
+            
+        except Exception as e:
+            self.logger.error(f"Error storing predictions for race {race_id}: {e}")
+            raise
+    
+    def store_race_predictions_manually(self, race_id: str) -> Dict[str, Any]:
+        """Manually store predictions for a specific race (useful when auto_storage is disabled)"""
+        try:
+            # Get race data and prediction results
+            race_data = self.race_fetcher.get_race_by_comp(race_id)
+            if not race_data:
+                return {
+                    "success": False,
+                    "error": f"Race {race_id} not found"
+                }
+            
+            prediction_results = race_data.get('prediction_results')
+            if not prediction_results:
+                return {
+                    "success": False,
+                    "error": f"No prediction results found for race {race_id}"
+                }
+            
+            # Parse prediction results if they're stored as JSON string
+            if isinstance(prediction_results, str):
+                try:
+                    prediction_results = json.loads(prediction_results)
+                except json.JSONDecodeError:
+                    return {
+                        "success": False,
+                        "error": "Invalid prediction results format"
+                    }
+            
+            # Convert predictions back to DataFrame format for storage
+            predictions_df = pd.DataFrame(prediction_results.get('predictions', []))
+            metadata = prediction_results.get('metadata', {})
+            
+            # Store using existing method
+            self._store_race_predictions(race_id, race_data, predictions_df, metadata)
+            
+            return {
+                "success": True,
+                "message": f"Manually stored predictions for race {race_id}",
+                "race_id": race_id,
+                "predictions_count": len(predictions_df)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error manually storing predictions for race {race_id}: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def update_race_results(self, race_id: str, results: Dict[str, int]):
+        """Update actual race results in prediction storage"""
+        try:
+            self.prediction_storage.update_actual_results(race_id, results)
+            self.logger.info(f"Updated actual results for race {race_id}")
+        except Exception as e:
+            self.logger.error(f"Error updating results for race {race_id}: {e}")
+    
+    def get_prediction_performance(self, days: int = 30) -> Dict[str, Any]:
+        """Get recent prediction performance metrics"""
+        return self.prediction_storage.get_recent_performance(days)
+    
+    def analyze_prediction_bias(self, days: int = 60) -> Dict[str, Any]:
+        """Analyze systematic biases in predictions"""
+        return self.prediction_storage.analyze_model_bias(days)
+    
+    def get_training_feedback_data(self, days: int = 7) -> List[Dict[str, Any]]:
+        """Get recent prediction data for model training feedback"""
+        return self.prediction_storage.get_training_feedback(days)
+    
+    def export_prediction_data(self, start_date: Optional[datetime] = None, 
+                              end_date: Optional[datetime] = None) -> str:
+        """Export prediction data for analysis"""
+        return self.prediction_storage.export_for_analysis(start_date, end_date)
+    
+    def suggest_optimal_blend_weights(self, days: int = 30) -> Dict[str, float]:
+        """Get suggestions for optimal model blend weights based on recent performance"""
+        return self.prediction_storage.suggest_blend_weights(days)

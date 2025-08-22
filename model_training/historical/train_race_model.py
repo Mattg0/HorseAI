@@ -18,8 +18,8 @@ from utils.model_manager import ModelManager
 
 class HorseRaceModel:
     """
-    Simplified horse race prediction model that trains both RF and LSTM models
-    in a single streamlined workflow.
+    3-Model Ensemble horse race prediction model that trains RF, LSTM, and TabNet models
+    in a single streamlined workflow with fail-fast approach.
     """
 
     def __init__(self, config_path: str = 'config.yaml', verbose: bool = False):
@@ -45,23 +45,19 @@ class HorseRaceModel:
             verbose=verbose
         )
 
-        # Get blend weight from config (default to 0.7 if not specified)
-        try:
-            self.blend_weight = getattr(self.config._config, 'blend_weight', 0.9)
-        except:
-            self.blend_weight = 0.9
-
         # Model containers
         self.rf_model = None
         self.lstm_model = None
+        self.tabnet_model = None
         self.training_results = None
 
         # Data containers
         self.rf_data = None
         self.lstm_data = None
+        self.tabnet_data = None
 
-        self.log_info(f"Initialized HorseRaceModel with database: {self.db_type}")
-        self.log_info(f"Blend weight: {self.blend_weight}")
+        self.log_info(f"Initialized 3-Model training pipeline with database: {self.db_type}")
+        self.log_info("Individual models will be trained independently - blending occurs during prediction")
 
     def log_info(self, message):
         """Simple logging method."""
@@ -132,23 +128,44 @@ class HorseRaceModel:
             X_sequences, X_static, y_lstm, test_size=test_size, random_state=random_state
         )
 
-        # Step 4: Train Random Forest model
+        # Step 3.5: Extract TabNet features just before training
+        tabnet_df = self.orchestrator.prepare_tabnet_features(self.complete_df, use_cache=True)
+        
+        # Extract features and target from TabNet DataFrame
+        if 'final_position' in tabnet_df.columns:
+            X_tabnet = tabnet_df.drop('final_position', axis=1)
+            y_tabnet = tabnet_df['final_position']
+        else:
+            raise ValueError("Target column 'final_position' not found in TabNet features")
+            
+        X_tabnet_train, X_tabnet_test, y_tabnet_train, y_tabnet_test = train_test_split(
+            X_tabnet, y_tabnet, test_size=test_size, random_state=random_state
+        )
+
+        # Step 4: Train Random Forest model (fail-fast)
         self.log_info("Training Random Forest model...")
         rf_results = self._train_rf_model(X_rf_train, y_rf_train, X_rf_test, y_rf_test)
+        if rf_results.get('status') == 'failed':
+            raise RuntimeError(f"RF model training failed: {rf_results.get('error', 'Unknown error')}")
 
-        # Step 5: Train LSTM model
+        # Step 5: Train LSTM model (fail-fast)
         self.log_info("Training LSTM model...")
         lstm_results = self._train_lstm_model(
             X_seq_train, X_static_train, y_lstm_train,
             X_seq_test, X_static_test, y_lstm_test
         )
+        if lstm_results.get('status') == 'failed':
+            raise RuntimeError(f"LSTM model training failed: {lstm_results.get('error', 'Unknown error')}")
 
-        # Step 6: Generate blended predictions
-        self.log_info(f"Generating blended predictions with weight {self.blend_weight}...")
-        blended_results = self._generate_blended_predictions(
-            rf_results, lstm_results, X_rf_test, y_rf_test,
-            X_seq_test, X_static_test, y_lstm_test
+        # Step 6: Train TabNet model (fail-fast)
+        self.log_info("Training TabNet model...")
+        tabnet_results = self._train_tabnet_model(
+            X_tabnet_train, y_tabnet_train, X_tabnet_test, y_tabnet_test
         )
+        if tabnet_results.get('status') == 'failed':
+            raise RuntimeError(f"TabNet model training failed: {tabnet_results.get('error', 'Unknown error')}")
+
+        # Step 7: Training completed - no blending during training
 
         # Step 6: Compile complete results
         training_time = (datetime.now() - start_time).total_seconds()
@@ -156,12 +173,11 @@ class HorseRaceModel:
         self.training_results = {
             'status': 'success',
             'training_time': training_time,
-            'model_type': 'hybrid',
-            'blend_weight': self.blend_weight,
+            'model_type': 'individual_models',
             'data_preparation': data_prep_results,
             'rf_results': rf_results,
             'lstm_results': lstm_results,
-            'blended_results': blended_results,
+            'tabnet_results': tabnet_results,
             'training_config': {
                 'test_size': test_size,
                 'random_state': random_state,
@@ -169,10 +185,11 @@ class HorseRaceModel:
             }
         }
 
-        self.log_info(f"Training completed in {training_time:.2f} seconds")
+        self.log_info(f"3-Model training completed in {training_time:.2f} seconds")
         self.log_info(f"RF Test MAE: {rf_results['test_mae']:.4f}")
         self.log_info(f"LSTM Test MAE: {lstm_results['test_mae']:.4f}")
-        self.log_info(f"Blended Test MAE: {blended_results['test_mae']:.4f}")
+        self.log_info(f"TabNet Test MAE: {tabnet_results['test_mae']:.4f}")
+        self.log_info("Individual models trained successfully - blending will occur during prediction")
 
         return self.training_results
 
@@ -315,76 +332,122 @@ class HorseRaceModel:
                 'final_val_loss': float(history.history['val_loss'][-1])
             }
         }
-    def _generate_blended_predictions(self, rf_results, lstm_results,
-                                      X_rf_test, y_rf_test,
-                                      X_seq_test, X_static_test, y_lstm_test) -> Dict[str, Any]:
-        """Generate blended predictions from both models."""
 
-        if lstm_results.get('status') == 'failed':
-            # If LSTM failed, return RF results only
+    def _train_tabnet_model(self, X_train, y_train, X_test, y_test) -> Dict[str, Any]:
+        """Train TabNet model with provided split data."""
+        try:
+            from pytorch_tabnet.tab_model import TabNetRegressor
+            from sklearn.preprocessing import StandardScaler
+            
+            # Scale the features
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
+            
+            # Import torch optimizer functions
+            import torch.optim as optim
+            
+            # TabNet parameters optimized for horse race prediction
+            tabnet_params = {
+                'n_d': 32,  # Dimension of the feature transformer
+                'n_a': 32,  # Dimension of the attention transformer
+                'n_steps': 5,  # Number of decision steps
+                'gamma': 1.5,  # Coefficient for feature reusage regularization
+                'n_independent': 2,  # Number of independent GLU layers
+                'n_shared': 2,  # Number of shared GLU layers
+                'lambda_sparse': 1e-4,  # Sparsity regularization coefficient
+                'optimizer_fn': optim.Adam,  # Use torch optimizer function
+                'optimizer_params': {'lr': 2e-2},
+                'mask_type': 'entmax',
+                'scheduler_params': {'step_size': 30, 'gamma': 0.95},
+                'scheduler_fn': optim.lr_scheduler.StepLR,  # Use torch scheduler function
+                'verbose': 1 if self.verbose else 0,
+                'device_name': 'cpu'  # Use CPU for better compatibility
+            }
+            
+            # Create and train TabNet regressor
+            print(f"TabNet using device: {tabnet_params['device_name']}")
+            self.tabnet_model = TabNetRegressor(**tabnet_params)
+            
+            # Convert pandas Series to numpy arrays and ensure float32 for MPS compatibility
+            X_train_np = X_train_scaled if isinstance(X_train_scaled, np.ndarray) else X_train_scaled.values
+            X_test_np = X_test_scaled if isinstance(X_test_scaled, np.ndarray) else X_test_scaled.values
+            y_train_np = y_train.to_numpy() if hasattr(y_train, 'to_numpy') else y_train.values if hasattr(y_train, 'values') else y_train
+            y_test_np = y_test.to_numpy() if hasattr(y_test, 'to_numpy') else y_test.values if hasattr(y_test, 'values') else y_test
+            
+            # Convert to float32 for compatibility
+            X_train_np = X_train_np.astype(np.float32)
+            X_test_np = X_test_np.astype(np.float32)
+            y_train_np = y_train_np.astype(np.float32)
+            y_test_np = y_test_np.astype(np.float32)
+            
+            # Train the model with numpy arrays
+            self.tabnet_model.fit(
+                X_train=X_train_np,
+                y_train=y_train_np.reshape(-1, 1),  # 2D array for TabNet
+                eval_set=[(X_test_np, y_test_np.reshape(-1, 1))],
+                max_epochs=100,
+                patience=15,
+                batch_size=256,
+                virtual_batch_size=128,
+                num_workers=0,
+                drop_last=False
+            )
+            
+            # Generate predictions using numpy arrays
+            train_preds = self.tabnet_model.predict(X_train_np).flatten()
+            test_preds = self.tabnet_model.predict(X_test_np).flatten()
+            
+            # Calculate metrics
+            train_mae = mean_absolute_error(y_train, train_preds)
+            test_mae = mean_absolute_error(y_test, test_preds)
+            train_rmse = np.sqrt(mean_squared_error(y_train, train_preds))
+            test_rmse = np.sqrt(mean_squared_error(y_test, test_preds))
+            test_r2 = r2_score(y_test, test_preds)
+            
             return {
-                'status': 'rf_only',
-                'message': 'LSTM training failed, using RF predictions only',
-                'test_mae': rf_results['test_mae'],
-                'test_rmse': rf_results['test_rmse'],
-                'test_r2': rf_results['test_r2'],
-                'test_predictions': rf_results['test_predictions'],
-                'test_targets': rf_results['test_targets']
+                'model_type': 'TabNet',
+                'train_samples': len(X_train),
+                'test_samples': len(X_test),
+                'features': X_train.shape[1],
+                'train_mae': float(train_mae),
+                'test_mae': float(test_mae),
+                'train_rmse': float(train_rmse),
+                'test_rmse': float(test_rmse),
+                'test_r2': float(test_r2),
+                'test_predictions': test_preds.tolist(),
+                'test_targets': y_test.tolist(),
+                'training_history': {'epochs': len(self.tabnet_model.history['loss'])}
             }
-
-        # Get predictions from both models
-        rf_preds = np.array(rf_results['test_predictions'])
-        lstm_preds = np.array(lstm_results['test_predictions'])
-
-        # Handle different prediction lengths
-        if len(rf_preds) != len(lstm_preds):
-            self.log_info(f"Warning: Prediction lengths differ (RF: {len(rf_preds)}, LSTM: {len(lstm_preds)})")
-            # Use the shorter length
-            min_len = min(len(rf_preds), len(lstm_preds))
-            rf_preds = rf_preds[:min_len]
-            lstm_preds = lstm_preds[:min_len]
-            y_test = np.array(y_rf_test)[:min_len]
-        else:
-            y_test = np.array(y_rf_test)
-
-        # Blend predictions
-        blended_preds = rf_preds * self.blend_weight + lstm_preds * (1 - self.blend_weight)
-
-        # Calculate metrics
-        test_mae = mean_absolute_error(y_test, blended_preds)
-        test_rmse = np.sqrt(mean_squared_error(y_test, blended_preds))
-        test_r2 = r2_score(y_test, blended_preds)
-
-        return {
-            'status': 'success',
-            'blend_weight': self.blend_weight,
-            'rf_weight': self.blend_weight,
-            'lstm_weight': 1 - self.blend_weight,
-            'test_samples': len(blended_preds),
-            'test_mae': float(test_mae),
-            'test_rmse': float(test_rmse),
-            'test_r2': float(test_r2),
-            'test_predictions': blended_preds.tolist(),
-            'test_targets': y_test.tolist(),
-            'individual_predictions': {
-                'rf_predictions': rf_preds.tolist(),
-                'lstm_predictions': lstm_preds.tolist()
+            
+        except Exception as e:
+            self.log_info(f"TabNet model training failed: {str(e)}")
+            return {
+                'status': 'failed',
+                'error': f'TabNet model training failed: {str(e)}'
             }
-        }
+    
 
-    def save_incremental_model(self, rf_model, lstm_model=None, orchestrator=None, blend_weight=0.9):
+    def save_incremental_model(self, rf_model, lstm_model=None, tabnet_model=None, orchestrator=None):
         """
-        Save models trained incrementally on daily data.
+        Save all three models trained incrementally on daily data.
 
         Args:
-            rf_model: Random Forest model to save
-            lstm_model: LSTM model to save (optional)
+            rf_model: Random Forest model to save (required)
+            lstm_model: LSTM model to save (required)
+            tabnet_model: TabNet model to save (required)
             orchestrator: Orchestrator with feature state (optional)
-            blend_weight: Blend weight for predictions
 
         Returns:
             Dictionary with paths to saved artifacts
         """
+        # Fail-fast validation
+        if rf_model is None:
+            raise ValueError("RF model is required for 3-model ensemble")
+        if lstm_model is None:
+            raise ValueError("LSTM model is required for 3-model ensemble")
+        if tabnet_model is None:
+            raise ValueError("TabNet model is required for 3-model ensemble")
         from utils.model_manager import get_model_manager
 
         print("===== SAVING INCREMENTAL MODEL =====")
@@ -398,13 +461,13 @@ class HorseRaceModel:
                 'sequence_length': getattr(orchestrator, 'sequence_length', 5)
             }
 
-        # Get the model manager and save
+        # Get the model manager and save all three models
         model_manager = get_model_manager()
         saved_paths = model_manager.save_models(
             rf_model=rf_model,
             lstm_model=lstm_model,
-            feature_state=feature_state,
-            blend_weight=blend_weight
+            tabnet_model=tabnet_model,
+            feature_state=feature_state
         )
 
         print(f"Incremental model saved successfully")
@@ -421,16 +484,16 @@ def main(progress_callback=None):
         progress_callback(5, "Initializing model...")
 
     # Initialize the model
-    model = HorseRaceModel(verbose=False)
+    model = HorseRaceModel(verbose=True)
 
     if progress_callback:
         progress_callback(10, "Loading and preparing data...")
 
-    # Train the model with your desired parameters
+    # Train the model with all available data
     results = model.train(
-        limit=None,  # Set to a number like 1000 to limit races for testing
-        race_filter=None,  # Set to 'A' for Attele, 'P' for Plat, etc.
-        date_filter=None,  # Set to "jour > '2023-01-01'" to limit date range
+        limit=None,  # Process ALL races (no limit)
+        race_filter=None,  # Use all race types
+        date_filter=None,  # Use all available dates
         test_size=0.2,  # 20% for testing
         random_state=42  # For reproducible results
     )
@@ -438,11 +501,18 @@ def main(progress_callback=None):
     if progress_callback:
         progress_callback(90, "Saving trained models...")
 
-    # Save the trained models
+    # Save all three trained models (fail-fast approach)
+    if model.rf_model is None:
+        raise RuntimeError("RF model was not trained properly")
+    if model.lstm_model is None:
+        raise RuntimeError("LSTM model was not trained properly")
+    if model.tabnet_model is None:
+        raise RuntimeError("TabNet model was not trained properly")
+        
     saved_paths = model.model_manager.save_models(
         rf_model=model.rf_model,
         lstm_model=model.lstm_model,
-        blend_weight=model.blend_weight  # optional
+        tabnet_model=model.tabnet_model
     )
 
     if progress_callback:
@@ -450,10 +520,10 @@ def main(progress_callback=None):
 
     # Print detailed summary results
     print("\n" + "=" * 50)
-    print("HYBRID TRAINING COMPLETED")
+    print("3-MODEL TRAINING COMPLETED")
     print("=" * 50)
     print(f"Training time: {results['training_time']:.2f} seconds")
-    print(f"Blend weight: {results['blend_weight']}")
+    print("Individual models trained successfully - blending will occur during prediction")
     
     # RF model results
     print(f"\n--- Random Forest Results ---")
@@ -464,24 +534,26 @@ def main(progress_callback=None):
     print(f"Test RMSE: {results['rf_results']['test_rmse']:.4f}")
     print(f"Test R²: {results['rf_results']['test_r2']:.4f}")
     
-    # LSTM model results
-    if results['lstm_results'].get('status') != 'failed':
-        print(f"\n--- LSTM Results ---")
-        print(f"Train samples: {results['lstm_results']['train_samples']}")
-        print(f"Test samples: {results['lstm_results']['test_samples']}")
-        print(f"Sequence length: {results['lstm_results']['sequence_length']}")
-        print(f"Sequential features: {results['lstm_results']['sequential_features']}")
-        print(f"Static features: {results['lstm_results']['static_features']}")
-        print(f"Test MAE: {results['lstm_results']['test_mae']:.4f}")
-        print(f"Test RMSE: {results['lstm_results']['test_rmse']:.4f}")
-        print(f"Test R²: {results['lstm_results']['test_r2']:.4f}")
-        print(f"Training epochs: {results['lstm_results']['training_history']['epochs']}")
+    # LSTM model results (must be successful due to fail-fast)
+    print(f"\n--- LSTM Results ---")
+    print(f"Train samples: {results['lstm_results']['train_samples']}")
+    print(f"Test samples: {results['lstm_results']['test_samples']}")
+    print(f"Sequence length: {results['lstm_results']['sequence_length']}")
+    print(f"Sequential features: {results['lstm_results']['sequential_features']}")
+    print(f"Static features: {results['lstm_results']['static_features']}")
+    print(f"Test MAE: {results['lstm_results']['test_mae']:.4f}")
+    print(f"Test RMSE: {results['lstm_results']['test_rmse']:.4f}")
+    print(f"Test R²: {results['lstm_results']['test_r2']:.4f}")
+    print(f"Training epochs: {results['lstm_results']['training_history']['epochs']}")
     
-    # Blended results
-    print(f"\n--- Blended Results ---")
-    print(f"Test MAE: {results['blended_results']['test_mae']:.4f}")
-    print(f"Test RMSE: {results['blended_results']['test_rmse']:.4f}")
-    print(f"Test R²: {results['blended_results']['test_r2']:.4f}")
+    # TabNet model results (must be successful due to fail-fast)
+    print(f"\n--- TabNet Results ---")
+    print(f"Train samples: {results['tabnet_results']['train_samples']}")
+    print(f"Test samples: {results['tabnet_results']['test_samples']}")
+    print(f"Features: {results['tabnet_results']['features']}")
+    print(f"Test MAE: {results['tabnet_results']['test_mae']:.4f}")
+    print(f"Test RMSE: {results['tabnet_results']['test_rmse']:.4f}")
+    print(f"Test R²: {results['tabnet_results']['test_r2']:.4f}")
     
     print(f"\nModel saved to: {saved_paths.get('rf_model', 'N/A')}")
     

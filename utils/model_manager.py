@@ -7,6 +7,12 @@ from tensorflow.keras.models import load_model
 
 from utils.env_setup import AppConfig
 
+try:
+    from pytorch_tabnet.tab_model import TabNetRegressor
+    TABNET_AVAILABLE = True
+except ImportError:
+    TABNET_AVAILABLE = False
+
 
 class ModelManager:
     """Simple model manager for saving and loading models."""
@@ -66,7 +72,8 @@ class ModelManager:
 
         return sorted(timestamp_dirs)[-1]
 
-    def save_models(self, rf_model=None, lstm_model=None, feature_state=None, blend_weight=None):
+    def save_models(self, rf_model=None, lstm_model=None, tabnet_model=None, tabnet_scaler=None, 
+                    tabnet_feature_columns=None, feature_state=None):
         """Save models with simple date/db based path."""
         # Ensure models directory exists
         self.model_dir.mkdir(parents=True, exist_ok=True)
@@ -94,6 +101,34 @@ class ModelManager:
             lstm_model.save(lstm_path)
             saved_files['lstm_model'] = lstm_path
 
+        # Save TabNet model and related files
+        if tabnet_model is not None:
+            try:
+                # Save TabNet model
+                tabnet_path = save_path / "tabnet_model"
+                tabnet_model.save_model(str(tabnet_path))
+                saved_files['tabnet_model'] = tabnet_path
+                
+                # Save TabNet scaler if available
+                if tabnet_scaler is not None:
+                    scaler_path = save_path / "tabnet_scaler.joblib"
+                    joblib.dump(tabnet_scaler, scaler_path)
+                    saved_files['tabnet_scaler'] = scaler_path
+                
+                # Save TabNet feature configuration
+                if tabnet_feature_columns is not None:
+                    config_path = save_path / "tabnet_config.json"
+                    tabnet_config = {
+                        'feature_columns': tabnet_feature_columns,
+                        'created_at': datetime.now().isoformat()
+                    }
+                    with open(config_path, 'w') as f:
+                        json.dump(tabnet_config, f, indent=2)
+                    saved_files['tabnet_config'] = config_path
+                    
+            except Exception as e:
+                print(f"Warning: Could not save TabNet model: {e}")
+
         # Save feature engineering state if provided
         if feature_state is not None:
             feature_path = save_path / "hybrid_feature_engineer.joblib"
@@ -103,12 +138,9 @@ class ModelManager:
         # Save minimal config
         config_data = {
             'db_type': db_type,
-            'created_at': datetime.now().isoformat()
+            'created_at': datetime.now().isoformat(),
+            'blending_approach': 'prediction_time_configurable'
         }
-
-        # Add blend_weight if provided
-        if blend_weight is not None:
-            config_data['blend_weight'] = blend_weight
 
         config_path = save_path / "model_config.json"
         with open(config_path, 'w') as f:
@@ -143,6 +175,32 @@ class ModelManager:
         lstm_path = model_path / "hybrid_lstm_model.keras"
         if lstm_path.exists():
             models['lstm_model'] = load_model(lstm_path)
+
+        # Load TabNet model and related files
+        if TABNET_AVAILABLE:
+            tabnet_path = model_path / "tabnet_model.zip"
+            scaler_path = model_path / "tabnet_scaler.joblib"
+            config_path = model_path / "tabnet_config.json"
+
+
+            if tabnet_path.exists():
+                try:
+                    tabnet_model = TabNetRegressor()
+                    tabnet_model.load_model(str(tabnet_path))
+                    models['tabnet_model'] = tabnet_model
+
+                    # Load TabNet scaler if available
+                    if scaler_path.exists():
+                        models['tabnet_scaler'] = joblib.load(scaler_path)
+                    
+                    # Load TabNet configuration if available
+                    if config_path.exists():
+                        with open(config_path, 'r') as f:
+                            models['tabnet_config'] = json.load(f)
+                            models['tabnet_feature_columns'] = models['tabnet_config'].get('feature_columns', [])
+                            
+                except Exception as e:
+                    print(f"Warning: Could not load TabNet model: {e}")
 
         # Load feature engineering state
         feature_path = model_path / "hybrid_feature_engineer.joblib"

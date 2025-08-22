@@ -125,7 +125,7 @@ class DailyPredictor:
                 self.tabnet_model.load_model(str(tabnet_model_file))
             else:
                 # Try alternative naming
-                tabnet_model_file = model_path / "tabnet_model.zip.zip"
+                tabnet_model_file = model_path / "tabnet_model.zip"
                 if tabnet_model_file.exists():
                     self.tabnet_model = TabNetRegressor()
                     self.tabnet_model.load_model(str(tabnet_model_file))
@@ -452,11 +452,11 @@ if __name__ == "__main__":
     # Step 1: Fetch and predict
    # print("📊 Fetching and predicting races...")
     predictor= DailyPredictor()
-   # prediction_results = predictor.fetch_races('2025-06-30')
+    prediction_results = predictor.fetch_races('2025-08-05')
 
     # Step 2: Evaluate predictions with formatted report
     print("\n📊 Evaluating predictions...")
-    evaluation = evaluate_today('2025-06-30')
+    evaluation = evaluate_today('2025-08-05')
 
     # Step 3: Generate and print the evaluation report
     if 'summary_metrics' in evaluation:

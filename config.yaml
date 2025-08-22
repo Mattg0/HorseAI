@@ -1,12 +1,6 @@
 base:
   active_db: 2years
   rootdir: /Users/mattg0/Docs/HorseAIv2/
-blend:
-  description: Optimal blend weights for position prediction accuracy
-  lstm_weight: 0.1
-  optimal_mae: 11.78
-  rf_weight: 0.8
-  tabnet_weight: 0.1
 cache:
   base_path: cache
   types:
@@ -82,6 +76,86 @@ lstm:
   - course_emb_1
   - course_emb_2
   step_size: 1
+model_blending:
+  default:
+    lstm: 0.0
+    rf: 0.7
+    tabnet: 0.3
+  rules:
+    attele:
+      condition:
+        typec:
+        - "Attel\xE9"
+      weights:
+        lstm: 0.0
+        rf: 0.7
+        tabnet: 0.3
+    cross_country:
+      condition:
+        typec:
+        - Cross-country
+      weights:
+        lstm: 0.0
+        rf: 0.7
+        tabnet: 0.3
+    haies:
+      condition:
+        typec:
+        - Haies
+      weights:
+        lstm: 0.0
+        rf: 0.7
+        tabnet: 0.3
+    large_field:
+      condition:
+        partant_min: 12
+      weights:
+        lstm: 0.0
+        rf: 0.7
+        tabnet: 0.3
+    monte:
+      condition:
+        typec:
+        - "Mont\xE9"
+      weights:
+        lstm: 0.0
+        rf: 0.7
+        tabnet: 0.3
+    plat_long:
+      condition:
+        distance_max: 4000
+        distance_min: 2000
+        typec:
+        - Plat
+      weights:
+        lstm: 0.0
+        rf: 0.7
+        tabnet: 0.3
+    plat_sprint:
+      condition:
+        distance_max: 1400
+        distance_min: 800
+        typec:
+        - Plat
+      weights:
+        lstm: 0.0
+        rf: 0.7
+        tabnet: 0.3
+    small_field:
+      condition:
+        partant_max: 8
+      weights:
+        lstm: 0.0
+        rf: 0.7
+        tabnet: 0.3
+    steeplechase:
+      condition:
+        typec:
+        - Steeple-chase
+      weights:
+        lstm: 0.0
+        rf: 0.7
+        tabnet: 0.3
 models:
-  latest_model: 2025-07-25/2years_165819
+  latest_model: 2025-08-21/2years_222259
   model_dir: ./models

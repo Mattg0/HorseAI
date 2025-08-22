@@ -1,14 +1,14 @@
-
 import yaml
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, Tuple, Optional, List
 import threading
 import queue
 import sys
 from pathlib import Path
+import numpy as np
 
 # Add project root to Python path
 current_dir = Path(__file__).parent  # UI directory
@@ -23,6 +23,7 @@ from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
 from utils.predict_evaluator import PredictEvaluator
 from model_training.regressions.regression_enhancement import IncrementalTrainingPipeline
 from utils.ai_advisor import BettingAdvisor
+from core.storage.prediction_storage import PredictionStorage
 
 class PipelineHelper:
     """Helper class for config management and status calculations"""
@@ -35,6 +36,14 @@ class PipelineHelper:
         self.training_queue = queue.Queue()
         self.training_thread = None
         self.is_training = False
+        
+        # Initialize prediction storage
+        try:
+            app_config = AppConfig()
+            self.prediction_storage = PredictionStorage(app_config)
+        except Exception as e:
+            print(f"Warning: Could not initialize prediction storage: {e}")
+            self.prediction_storage = None
 
     def load_config(self) -> Optional[Dict[str, Any]]:
         """Load config.yaml file"""
@@ -283,10 +292,38 @@ class PipelineHelper:
             # Get model information for debugging
             model_info = predictor.get_model_info()
             models_loaded = model_info.get('models_loaded', {})
+            model_status = model_info.get('model_status', {})
+            model_errors = model_info.get('model_errors', {})
+            effective_weights = model_info.get('effective_weights', {})
             
-            # Debug output showing which models are loaded
+            # Enhanced debug output showing which models are loaded and any errors
+            available_models = model_info.get('available_models', [])
             debug_message = f"Models loaded: RF={models_loaded.get('rf', False)}, LSTM={models_loaded.get('lstm', False)}, TabNet={models_loaded.get('tabnet', False)}"
             print(f"[DEBUG] {debug_message}")
+            
+            # Log model errors and special statuses
+            if model_errors:
+                for model, error in model_errors.items():
+                    # Handle TabNet fallback status specially
+                    if model == 'tabnet' and model_status.get('tabnet') == 'loaded_fallback':
+                        print(f"[INFO] TabNet using fallback model: {error}")
+                    else:
+                        print(f"[WARNING] {model.upper()} Model Issue: {error}")
+            
+            # Log effective weights 
+            if effective_weights:
+                weights_str = ", ".join([f"{model.upper()}={weight:.3f}" for model, weight in effective_weights.items()])
+                print(f"[INFO] Effective blend weights: {weights_str}")
+            
+            # Check for TabNet fallback and display clear message
+            if model_status.get('tabnet') == 'loaded_fallback':
+                print(f"[INFO] ✅ All 3 models loaded successfully (TabNet using fallback from previous model)")
+            elif len(available_models) == 3:
+                print(f"[INFO] ✅ All 3 models loaded successfully")
+            else:
+                # Warning if not all 3 models are available
+                missing_models = [model for model in ['rf', 'lstm', 'tabnet'] if model not in available_models]
+                print(f"[WARNING] ❌ Missing models: {', '.join(missing_models).upper()}. Using {len(available_models)}/3 models for predictions.")
             
             if progress_callback:
                 progress_callback(10, f"Getting races to predict... {debug_message}")
@@ -353,7 +390,8 @@ class PipelineHelper:
                 progress_callback(100, f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful")
 
             # Add model debug info to the final result
-            final_message = f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful. {debug_message}"
+            model_summary = f"Using {len(available_models)}/3 models: {', '.join(available_models).upper()}"
+            final_message = f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful. {model_summary}"
             
             return {
                 "success": True,
@@ -769,17 +807,20 @@ class PipelineHelper:
                     'tabnet_weight': blend_config.get('tabnet_weight', 0.1)
                 },
                 'optimal_mae': blend_config.get('optimal_mae', 11.78),
-                'model_status': {
-                    'rf_loaded': model_info.get('has_rf', False),
-                    'lstm_loaded': model_info.get('has_lstm', False),
-                    'tabnet_loaded': model_info.get('has_tabnet', False)
-                },
+                'model_status': model_info.get('model_status', {}),
+                'model_errors': model_info.get('model_errors', {}),
+                'effective_weights': model_info.get('effective_weights', {}),
                 'model_path': model_info.get('model_path', 'Unknown'),
                 'tabnet_info': {
                     'available': model_info.get('tabnet_available', False),
-                    'expected_features': model_info.get('expected_tabnet_features', 0)
+                    'installed': model_info.get('tabnet_available', False),
+                    'status': model_info.get('model_status', {}).get('tabnet', 'unknown'),
+                    'fallback_used': model_info.get('model_status', {}).get('tabnet') == 'loaded_fallback',
+                    'fallback_path': model_info.get('model_errors', {}).get('tabnet', '') if model_info.get('model_status', {}).get('tabnet') == 'loaded_fallback' else None
                 },
-                'system_status': 'operational' if any(model_info.get(k, False) for k in ['has_rf', 'has_lstm', 'has_tabnet']) else 'no_models_loaded'
+                'available_models': model_info.get('available_models', []),
+                'available_models_count': model_info.get('available_models_count', 0),
+                'system_status': self._determine_system_status(model_info)
             }
             
             return {
@@ -794,6 +835,24 @@ class PipelineHelper:
                 "error": str(e),
                 "message": f"Failed to get model information: {str(e)}"
             }
+    
+    def _determine_system_status(self, model_info: Dict[str, Any]) -> str:
+        """Determine system status based on model availability and issues."""
+        available_models_count = model_info.get('available_models_count', 0)
+        model_status = model_info.get('model_status', {})
+        
+        if available_models_count == 0:
+            return 'no_models_loaded'
+        elif available_models_count == 3:
+            # Check if TabNet is using fallback
+            if model_status.get('tabnet') == 'loaded_fallback':
+                return 'operational_with_fallback'
+            else:
+                return 'fully_operational'
+        elif available_models_count >= 2:
+            return 'operational_degraded'
+        else:
+            return 'minimal_operation'
 
     def get_ai_quinte_advice(self, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
         """Get AI betting advice specifically focused on quinte races with 3 refined recommendations"""
@@ -831,4 +890,513 @@ class PipelineHelper:
                 "success": False,
                 "error": str(e),
                 "message": f"Failed to get AI quinte betting advice: {str(e)}"
+            }
+
+    # Prediction Storage Analytics Methods
+    def get_prediction_storage_performance(self, days: int = 30) -> Dict[str, Any]:
+        """Get prediction storage performance analytics"""
+        if not self.prediction_storage:
+            return {"error": "Prediction storage not initialized"}
+        
+        try:
+            performance = self.prediction_storage.get_recent_performance(days)
+            return {
+                "success": True,
+                "data": performance
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_prediction_storage_bias_analysis(self, days: int = 60) -> Dict[str, Any]:
+        """Get prediction storage bias analysis"""
+        if not self.prediction_storage:
+            return {"error": "Prediction storage not initialized"}
+        
+        try:
+            bias_analysis = self.prediction_storage.analyze_model_bias(days)
+            return {
+                "success": True,
+                "data": bias_analysis
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_prediction_storage_blend_suggestions(self, days: int = 30) -> Dict[str, Any]:
+        """Get blend weight optimization suggestions"""
+        if not self.prediction_storage:
+            return {"error": "Prediction storage not initialized"}
+        
+        try:
+            suggestions = self.prediction_storage.suggest_blend_weights(days)
+            return {
+                "success": True,
+                "data": suggestions
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_prediction_storage_confidence_calibration(self, days: int = 30) -> Dict[str, Any]:
+        """Get model confidence calibration analysis"""
+        if not self.prediction_storage:
+            return {"error": "Prediction storage not initialized"}
+        
+        try:
+            calibration = self.prediction_storage.get_model_confidence_calibration(days)
+            return {
+                "success": True,
+                "data": calibration
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def export_prediction_storage_data(self, days: int = 30) -> Dict[str, Any]:
+        """Export prediction storage data for analysis"""
+        if not self.prediction_storage:
+            return {"error": "Prediction storage not initialized"}
+        
+        try:
+            from datetime import datetime, timedelta
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
+            
+            export_path = self.prediction_storage.export_for_analysis(start_date, end_date)
+            return {
+                "success": True,
+                "export_path": export_path,
+                "message": f"Data exported to {export_path}"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_prediction_storage_training_feedback(self, days: int = 7) -> Dict[str, Any]:
+        """Get training feedback data from prediction storage"""
+        if not self.prediction_storage:
+            return {"error": "Prediction storage not initialized"}
+        
+        try:
+            feedback_data = self.prediction_storage.get_training_feedback(days)
+            return {
+                "success": True,
+                "data": feedback_data
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    def get_prediction_storage_summary(self) -> Dict[str, Any]:
+        """Get summary statistics from prediction storage"""
+        if not self.prediction_storage:
+            return {"error": "Prediction storage not initialized"}
+        
+        try:
+            # Get recent performance (7 days)
+            recent_performance = self.prediction_storage.get_recent_performance(7)
+            
+            # Get monthly performance for comparison
+            monthly_performance = self.prediction_storage.get_recent_performance(30)
+            
+            # Get training feedback count
+            feedback_data = self.prediction_storage.get_training_feedback(7)
+            
+            summary = {
+                "recent_predictions": recent_performance.get("total_predictions", 0) if "error" not in recent_performance else 0,
+                "monthly_predictions": monthly_performance.get("total_predictions", 0) if "error" not in monthly_performance else 0,
+                "recent_ensemble_mae": recent_performance.get("ensemble_prediction_mae", "N/A") if "error" not in recent_performance else "N/A",
+                "training_feedback_available": len(feedback_data) if isinstance(feedback_data, list) else 0,
+                "storage_initialized": True,
+                "database_path": self.prediction_storage.db_path
+            }
+            
+            return {
+                "success": True,
+                "data": summary
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    # Continuous Learning Methods for Phase 1 Foundation
+    def store_daily_predictions(self, force_reprocess: bool = False) -> Dict[str, Any]:
+        """Manual trigger to store predictions from latest daily run into prediction storage"""
+        try:
+            if not self.prediction_storage:
+                return {
+                    "success": False,
+                    "error": "Prediction storage not initialized"
+                }
+            
+            # Get daily races with predictions
+            daily_races = self.get_daily_races()
+            
+            if not daily_races:
+                return {
+                    "success": False,
+                    "message": "No daily races found"
+                }
+            
+            # Filter races with predictions
+            races_with_predictions = [race for race in daily_races if race.get('has_predictions', 0) == 1]
+            
+            if not races_with_predictions:
+                return {
+                    "success": False,
+                    "message": "No races with predictions found"
+                }
+            
+            from core.storage.prediction_storage import PredictionRecord
+            from core.connectors.api_daily_sync import RaceFetcher
+            import json
+            
+            # Initialize race fetcher for getting detailed race data
+            race_fetcher = RaceFetcher()
+            stored_count = 0
+            error_count = 0
+            
+            for race in races_with_predictions:
+                try:
+                    race_comp = race['comp']
+                    
+                    # Get detailed race data with predictions
+                    detailed_race = race_fetcher.get_race_by_comp(race_comp)
+                    if not detailed_race or not detailed_race.get('prediction_results'):
+                        continue
+                    
+                    # Parse prediction results
+                    prediction_results = detailed_race['prediction_results']
+                    if isinstance(prediction_results, str):
+                        try:
+                            prediction_results = json.loads(prediction_results)
+                        except json.JSONDecodeError:
+                            error_count += 1
+                            continue
+                    
+                    # Extract predictions for each horse
+                    if 'predictions' in prediction_results:
+                        for pred in prediction_results['predictions']:
+                            horse_id = str(pred.get('numero', ''))
+                            if not horse_id:
+                                continue
+                            
+                            # Create prediction record
+                            record = PredictionRecord(
+                                race_id=race_comp,
+                                timestamp=datetime.now(),
+                                horse_id=horse_id,
+                                rf_prediction=pred.get('rf_prediction'),
+                                lstm_prediction=pred.get('lstm_prediction'),
+                                tabnet_prediction=pred.get('tabnet_prediction'),
+                                ensemble_prediction=pred.get('predicted_rank', pred.get('predicted_position', 0)),
+                                ensemble_confidence_score=pred.get('ensemble_confidence_score', pred.get('confidence', pred.get('predicted_prob'))),
+                                actual_position=pred.get('actual_position'),  # Will be None for future races
+                                distance=race.get('distance'),
+                                track_condition=race.get('etat_terrain'),
+                                weather=race.get('meteo'),
+                                field_size=race.get('partant'),
+                                race_type=race.get('typec'),
+                                model_versions={'stored_at': datetime.now().isoformat()},
+                                prediction_metadata={
+                                    'race_date': race.get('jour'),
+                                    'track': race.get('hippo'),
+                                    'race_number': race.get('prix'),
+                                    'quinte': bool(race.get('quinte', 0))
+                                }
+                            )
+                            
+                            # Store the record
+                            self.prediction_storage.store_prediction(record)
+                            stored_count += 1
+                            
+                except Exception as e:
+                    print(f"Error processing race {race.get('comp', 'unknown')}: {str(e)}")
+                    error_count += 1
+                    continue
+            
+            return {
+                "success": True,
+                "message": f"Stored {stored_count} predictions from {len(races_with_predictions)} races",
+                "predictions_stored": stored_count,
+                "races_processed": len(races_with_predictions),
+                "errors": error_count
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to store daily predictions: {str(e)}"
+            }
+    
+    def show_performance_metrics(self, days: int = 30) -> Dict[str, Any]:
+        """Display recent model performance metrics from prediction storage"""
+        try:
+            if not self.prediction_storage:
+                return {
+                    "success": False,
+                    "error": "Prediction storage not initialized"
+                }
+            
+            # Get performance metrics
+            performance = self.prediction_storage.get_recent_performance(days)
+            
+            if "error" in performance:
+                return {
+                    "success": False,
+                    "error": performance["error"]
+                }
+            
+            # Get bias analysis
+            bias_analysis = self.prediction_storage.analyze_model_bias(days)
+            
+            # Get blend suggestions
+            blend_suggestions = self.prediction_storage.suggest_blend_weights(days)
+            
+            return {
+                "success": True,
+                "performance_metrics": performance,
+                "bias_analysis": bias_analysis,
+                "blend_suggestions": blend_suggestions,
+                "message": f"Performance analysis for last {days} days completed"
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to get performance metrics: {str(e)}"
+            }
+    
+    def run_weekly_delta_training(self, days_back: int = 7, progress_callback=None) -> Dict[str, Any]:
+        """Manual trigger for regression enhancement on recent prediction feedback data"""
+        try:
+            if progress_callback:
+                progress_callback(10, "Initializing weekly delta training...")
+            
+            # Get training feedback data from prediction storage
+            if not self.prediction_storage:
+                return {
+                    "success": False,
+                    "error": "Prediction storage not initialized"
+                }
+            
+            feedback_data = self.prediction_storage.get_training_feedback(days_back)
+            
+            if not feedback_data:
+                return {
+                    "success": False,
+                    "message": f"No training feedback data found for last {days_back} days"
+                }
+            
+            if progress_callback:
+                progress_callback(30, f"Found {len(feedback_data)} training samples...")
+            
+            # Use the existing incremental training pipeline
+            from model_training.regressions.regression_enhancement import IncrementalTrainingPipeline
+            
+            pipeline = IncrementalTrainingPipeline(
+                model_path=None,  # Use latest model from config
+                db_name=self.get_active_db(),
+                verbose=True
+            )
+            
+            if progress_callback:
+                progress_callback(50, "Running incremental training on feedback data...")
+            
+            # Calculate date range for the pipeline
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            start_date = (datetime.now() - timedelta(days=days_back)).strftime('%Y-%m-%d')
+            
+            # Run incremental training
+            results = pipeline.run_incremental_training_pipeline(
+                date_from=start_date,
+                date_to=end_date,
+                limit=len(feedback_data)
+            )
+            
+            if progress_callback:
+                progress_callback(90, "Processing training results...")
+            
+            # Format results similar to existing incremental training
+            success = results.get("status") == "success"
+            
+            formatted_results = {
+                "success": success,
+                "message": f"Weekly delta training completed on {len(feedback_data)} samples",
+                "feedback_samples": len(feedback_data),
+                "training_results": results,
+                "days_analyzed": days_back
+            }
+            
+            if progress_callback:
+                progress_callback(100, "Weekly delta training completed\!")
+            
+            return formatted_results
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Weekly delta training failed: {str(e)}"
+            }
+    
+    def show_prediction_analytics(self, days: int = 30) -> Dict[str, Any]:
+        """Basic bias detection and analytics by track/weather/distance"""
+        try:
+            if not self.prediction_storage:
+                return {
+                    "success": False,
+                    "error": "Prediction storage not initialized"
+                }
+            
+            # Get comprehensive analytics
+            bias_analysis = self.prediction_storage.analyze_model_bias(days)
+            performance_metrics = self.prediction_storage.get_recent_performance(days)
+            confidence_calibration = self.prediction_storage.get_model_confidence_calibration(days)
+            
+            # Analyze performance by different contexts
+            contexts_to_analyze = [
+                ('track_condition', ['Good', 'Soft', 'Heavy', 'Hard']),
+                ('weather', ['Clear', 'Cloudy', 'Rain', 'Windy']),
+                ('race_type', ['PLAT', 'OBSTACLE', 'TROT'])
+            ]
+            
+            context_performance = {}
+            for context_type, values in contexts_to_analyze:
+                context_performance[context_type] = {}
+                for value in values:
+                    try:
+                        context_df = self.prediction_storage.get_predictions_by_context(
+                            **{context_type: value}, days=days
+                        )
+                        if not context_df.empty and 'actual_position' in context_df.columns:
+                            completed_preds = context_df[context_df['actual_position'].notna()]
+                            if len(completed_preds) > 0:
+                                mae = np.mean(np.abs(completed_preds['ensemble_prediction'] - completed_preds['actual_position']))
+                                accuracy = np.mean(completed_preds['ensemble_prediction'] <= 3)
+                                context_performance[context_type][value] = {
+                                    'mae': round(mae, 3),
+                                    'top3_accuracy': round(accuracy, 3),
+                                    'sample_size': len(completed_preds)
+                                }
+                    except:
+                        continue
+            
+            return {
+                "success": True,
+                "bias_analysis": bias_analysis,
+                "performance_metrics": performance_metrics,
+                "confidence_calibration": confidence_calibration,
+                "context_performance": context_performance,
+                "message": f"Prediction analytics for last {days} days completed"
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to get prediction analytics: {str(e)}"
+            }
+    
+    def update_results_from_database(self, progress_callback=None) -> Dict[str, Any]:
+        """Update prediction storage with actual results from completed races"""
+        try:
+            if not self.prediction_storage:
+                return {
+                    "success": False,
+                    "error": "Prediction storage not initialized"
+                }
+            
+            if progress_callback:
+                progress_callback(10, "Getting races with results...")
+            
+            # Get recent races that have results
+            from core.connectors.api_daily_sync import RaceFetcher
+            race_fetcher = RaceFetcher()
+            
+            # Get recent completed races (last 30 days)
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+            
+            completed_races = []
+            try:
+                # Fallback: get races and check for results
+                daily_races = self.get_daily_races()
+                completed_races = [race for race in daily_races if race.get('has_results', 0) == 1]
+            except Exception:
+                return {
+                    "success": False,
+                    "error": "Could not retrieve completed races"
+                }
+            
+            if progress_callback:
+                progress_callback(30, f"Found {len(completed_races)} completed races...")
+            
+            updated_count = 0
+            error_count = 0
+            
+            for i, race in enumerate(completed_races):
+                try:
+                    if progress_callback:
+                        progress = 30 + (i / len(completed_races)) * 60
+                        progress_callback(int(progress), f"Updating results for race {race.get('comp', 'unknown')}...")
+                    
+                    race_comp = race['comp']
+                    
+                    # Get detailed race with results
+                    detailed_race = race_fetcher.get_race_by_comp(race_comp)
+                    if not detailed_race or not detailed_race.get('race_results'):
+                        continue
+                    
+                    # Parse race results
+                    race_results = detailed_race['race_results']
+                    if isinstance(race_results, str):
+                        try:
+                            race_results = json.loads(race_results)
+                        except json.JSONDecodeError:
+                            continue
+                    
+                    # Update actual positions in prediction storage
+                    if isinstance(race_results, dict):
+                        self.prediction_storage.update_actual_results(race_comp, race_results)
+                        updated_count += 1
+                    
+                except Exception as e:
+                    print(f"Error updating results for race {race.get('comp', 'unknown')}: {str(e)}")
+                    error_count += 1
+                    continue
+            
+            if progress_callback:
+                progress_callback(100, f"Results update completed\!")
+            
+            return {
+                "success": True,
+                "message": f"Updated results for {updated_count} races",
+                "races_updated": updated_count,
+                "races_processed": len(completed_races),
+                "errors": error_count
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to update results: {str(e)}"
             }

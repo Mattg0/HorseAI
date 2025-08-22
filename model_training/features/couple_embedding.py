@@ -69,7 +69,7 @@ class CoupleEmbedding:
     """
 
     def __init__(self, embedding_dim: int = 32, learning_rate: float = 0.001,
-                 batch_size: int = 64, epochs: int = 4):
+                 batch_size: int = 256, epochs: int = 3):
         """
         Initialize the CoupleEmbedding class.
 
@@ -92,7 +92,10 @@ class CoupleEmbedding:
 
         # Model will be initialized during training
         self.model = None
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # Use CPU for better compatibility, GPU available for prediction
+        self.device = torch.device('cpu')
+        self.prediction_device = None  # Will be set dynamically for prediction
+        print(f"CoupleEmbedding using device: {self.device}")
 
         # Performance stats for couples
         self.couple_stats = {}  # Maps couple_id to performance statistics
@@ -104,6 +107,42 @@ class CoupleEmbedding:
     def is_fitted(self) -> bool:
         """Check if the model has been fitted."""
         return self.model is not None
+
+    def enable_gpu_for_prediction(self):
+        """Enable GPU/MPS device for faster prediction feature preparation."""
+        try:
+            if torch.backends.mps.is_available():
+                self.prediction_device = torch.device('mps')
+                self._move_models_to_device()
+                print(f"CoupleEmbedding: GPU enabled for prediction (MPS)")
+                return True
+        except:
+            pass
+        
+        if torch.cuda.is_available():
+            self.prediction_device = torch.device('cuda')
+            self._move_models_to_device()
+            print(f"CoupleEmbedding: GPU enabled for prediction (CUDA)")
+            return True
+            
+        print(f"CoupleEmbedding: GPU not available, staying on CPU")
+        return False
+
+    def disable_gpu_for_prediction(self):
+        """Disable GPU and return to CPU for prediction."""
+        self.prediction_device = None
+        self._move_models_to_device()
+        print(f"CoupleEmbedding: GPU disabled, using CPU")
+
+    def _move_models_to_device(self):
+        """Move models to the currently active device."""
+        active_device = self._get_active_device()
+        if self.model is not None:
+            self.model = self.model.to(active_device)
+
+    def _get_active_device(self):
+        """Get the currently active device (GPU for prediction if enabled, otherwise CPU)."""
+        return self.prediction_device if self.prediction_device is not None else self.device
 
     def create_couple_id(self, horse_id: int, jockey_id: int, inference_mode: bool = False) -> int:
         """
@@ -166,6 +205,7 @@ class CoupleEmbedding:
     def create_couple_ids_from_df(self, df: pd.DataFrame, inference_mode: bool = False) -> pd.DataFrame:
         """
         Create couple IDs for all horse/jockey combinations in a dataframe.
+        OPTIMIZED: Uses vectorized operations instead of slow apply().
 
         Args:
             df: DataFrame containing 'idche' and 'idJockey' columns
@@ -187,17 +227,46 @@ class CoupleEmbedding:
             if not pd.api.types.is_numeric_dtype(result_df[col]):
                 result_df[col] = pd.to_numeric(result_df[col], errors='coerce')
 
-        # Create couple_ids
-        result_df['couple_id'] = result_df.apply(
-            lambda row: self.create_couple_id(row['idche'], row['idJockey'], inference_mode=inference_mode),
-            axis=1
-        )
+        # OPTIMIZATION: Vectorized couple ID creation
+        # Handle NaN values first
+        result_df['couple_id'] = self._reserved_id_for_unknown
+        valid_mask = result_df['idche'].notna() & result_df['idJockey'].notna()
+        
+        if valid_mask.any():
+            # Get unique valid combinations
+            valid_df = result_df[valid_mask][['idche', 'idJockey']].copy()
+            valid_df['idche'] = valid_df['idche'].astype(int)
+            valid_df['idJockey'] = valid_df['idJockey'].astype(int)
+            
+            # Create tuples for mapping
+            couples = list(zip(valid_df['idche'], valid_df['idJockey']))
+            unique_couples = list(set(couples))
+            
+            # Create new IDs for unseen couples if not in inference mode
+            new_mappings = {}
+            for couple in unique_couples:
+                if couple not in self.couple_to_id:
+                    if not inference_mode:
+                        new_mappings[couple] = self.next_id
+                        self.couple_to_id[couple] = self.next_id
+                        self.id_to_couple[self.next_id] = couple
+                        self.next_id += 1
+                    else:
+                        new_mappings[couple] = self._reserved_id_for_unknown
+                else:
+                    new_mappings[couple] = self.couple_to_id[couple]
+            
+            # Vectorized mapping using pd.Series.map()
+            couple_series = pd.Series(couples, index=valid_df.index)
+            mapped_ids = couple_series.map(new_mappings)
+            result_df.loc[valid_mask, 'couple_id'] = mapped_ids
 
         return result_df
 
     def update_couple_stats(self, df: pd.DataFrame) -> None:
         """
         Update performance statistics for each couple.
+        OPTIMIZED: Uses vectorized operations instead of slow iterrows().
 
         Args:
             df: DataFrame with race results including 'couple_id' and result columns
@@ -206,24 +275,36 @@ class CoupleEmbedding:
         if 'couple_id' not in df.columns:
             df = self.create_couple_ids_from_df(df)
 
-        # Calculate stats for each couple
-        couple_groups = df.groupby('couple_id')
-
-        for couple_id, group in couple_groups:
-            races_total = len(group)
-
-            # Calculate performance metrics
-            wins = sum(1 for pos in group['cl'] if pd.notnull(pos) and pos == 1)
-            places = sum(1 for pos in group['cl'] if pd.notnull(pos) and pos <= 3)
-
-            # Store stats
+        # OPTIMIZATION: Vectorized stats calculation
+        # Only process rows with valid 'cl' values
+        df_valid = df.dropna(subset=['cl']).copy()
+        df_valid['cl'] = pd.to_numeric(df_valid['cl'], errors='coerce')
+        df_valid = df_valid.dropna(subset=['cl'])
+        
+        if len(df_valid) == 0:
+            return
+        
+        # Vectorized calculations using groupby.agg()
+        stats = df_valid.groupby('couple_id').agg({
+            'cl': ['count', 'mean', lambda x: (x == 1).sum(), lambda x: (x <= 3).sum()]
+        }).round(4)
+        
+        # Flatten column names
+        stats.columns = ['races_total', 'avg_position', 'wins', 'places']
+        
+        # Calculate rates vectorized
+        stats['win_rate'] = (stats['wins'] / stats['races_total']).fillna(0)
+        stats['place_rate'] = (stats['places'] / stats['races_total']).fillna(0)
+        
+        # Convert to dictionary format for storage
+        for couple_id, row in stats.iterrows():
             self.couple_stats[couple_id] = {
-                'races_total': races_total,
-                'wins': wins,
-                'places': places,
-                'win_rate': wins / races_total if races_total > 0 else 0,
-                'place_rate': places / races_total if races_total > 0 else 0,
-                'avg_position': group['cl'].mean() if pd.api.types.is_numeric_dtype(group['cl']) else None
+                'races_total': int(row['races_total']),
+                'wins': int(row['wins']),
+                'places': int(row['places']),
+                'win_rate': float(row['win_rate']),
+                'place_rate': float(row['place_rate']),
+                'avg_position': float(row['avg_position']) if pd.notnull(row['avg_position']) else None
             }
 
     def prepare_training_data(self, df: pd.DataFrame, target_col: str = 'cl',
@@ -248,13 +329,15 @@ class CoupleEmbedding:
 
         # Handle different target types
         if target_type == 'classification':
-            # Binary classification (1 for top 3, 0 otherwise)
-            df_clean['target'] = df_clean[target_col].apply(
-                lambda x: 1.0 if pd.notnull(x) and (
-                        isinstance(x, (int, float)) and x <= 3 or
-                        isinstance(x, str) and x.isdigit() and int(x) <= 3
-                ) else 0.0
-            )
+            # OPTIMIZATION: Vectorized binary classification (1 for top 3, 0 otherwise)
+            df_clean['target'] = 0.0
+            
+            # Convert target column to numeric
+            target_numeric = pd.to_numeric(df_clean[target_col], errors='coerce')
+            valid_targets = target_numeric.notna()
+            
+            # Vectorized condition: 1.0 if position <= 3, 0.0 otherwise
+            df_clean.loc[valid_targets & (target_numeric <= 3), 'target'] = 1.0
         elif target_type == 'regression':
             # Regression (predict finish position)
             df_clean['target'] = pd.to_numeric(df_clean[target_col], errors='coerce')
@@ -314,7 +397,7 @@ class CoupleEmbedding:
         self.model = CoupleEmbeddingModel(
             num_couples=max(self.next_id, 10),  # Ensure we have at least 10 slots
             embedding_dim=self.embedding_dim
-        ).to(self.device)
+        ).to(self._get_active_device())
 
         # Split data into train and validation sets
         num_samples = len(couple_ids)
@@ -357,8 +440,8 @@ class CoupleEmbedding:
             train_correct = 0
 
             for batch_couple_ids, batch_targets in train_loader:
-                batch_couple_ids = batch_couple_ids.to(self.device)
-                batch_targets = batch_targets.to(self.device)
+                batch_couple_ids = batch_couple_ids.to(self._get_active_device())
+                batch_targets = batch_targets.to(self._get_active_device())
 
                 optimizer.zero_grad()
                 predictions, _ = self.model(batch_couple_ids)
@@ -387,8 +470,8 @@ class CoupleEmbedding:
 
             with torch.no_grad():
                 for batch_couple_ids, batch_targets in valid_loader:
-                    batch_couple_ids = batch_couple_ids.to(self.device)
-                    batch_targets = batch_targets.to(self.device)
+                    batch_couple_ids = batch_couple_ids.to(self._get_active_device())
+                    batch_targets = batch_targets.to(self._get_active_device())
 
                     predictions, _ = self.model(batch_couple_ids)
                     loss = criterion(predictions.squeeze(), batch_targets)
@@ -443,7 +526,7 @@ class CoupleEmbedding:
         if couple_id == self._reserved_id_for_unknown:
             return np.zeros(self.embedding_dim)
 
-        couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self.device)
+        couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self._get_active_device())
 
         self.model.eval()
         with torch.no_grad():
@@ -466,7 +549,7 @@ class CoupleEmbedding:
 
         with torch.no_grad():
             for couple, couple_id in self.couple_to_id.items():
-                couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self.device)
+                couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self._get_active_device())
                 _, embedding = self.model(couple_tensor)
                 embeddings[couple] = embedding.cpu().numpy()[0]
 
@@ -512,7 +595,7 @@ class CoupleEmbedding:
                         embeddings[couple_id] = np.zeros(self.embedding_dim)
                     else:
                         try:
-                            couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self.device)
+                            couple_tensor = torch.tensor([couple_id], dtype=torch.long).to(self._get_active_device())
                             _, embedding = self.model(couple_tensor)
                             embeddings[couple_id] = embedding.cpu().numpy()[0]
                         except Exception as e:
@@ -584,7 +667,7 @@ class CoupleEmbedding:
                 self.model = CoupleEmbeddingModel(
                     num_couples=max(self.next_id, 10),
                     embedding_dim=self.embedding_dim
-                ).to(self.device)
+                ).to(self._get_active_device())
 
                 self.model.load_state_dict(torch.load(model_path, map_location=self.device))
                 self.model.eval()
