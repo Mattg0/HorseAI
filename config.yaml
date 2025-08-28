@@ -85,3 +85,47 @@ lstm:
 models:
   latest_model: 2025-07-25/2years_165819
   model_dir: ./models
+
+alternative_models:
+  model_selection:
+    - feedforward
+    - transformer
+    - ensemble
+  
+  performance_thresholds:
+    improvement_threshold: 0.05  # 5% improvement required
+    mae_threshold: 2.0
+    top3_accuracy_threshold: 0.6
+    
+  feedforward:
+    hidden_units: 96
+    learning_rate: 0.005
+    batch_size: 64
+    epochs: 100
+    dropout_rate: 0.3
+    early_stopping_patience: 15
+    position_encoding_dim: 16
+    
+  transformer:
+    num_attention_heads: 4
+    hidden_dim: 128
+    num_layers: 2
+    learning_rate: 0.001
+    batch_size: 32
+    epochs: 100
+    dropout_rate: 0.2
+    early_stopping_patience: 20
+    max_sequence_length: 10
+    
+  ensemble:
+    meta_learner: logistic_regression
+    cv_folds: 5
+    include_models:
+      - feedforward
+      - random_forest
+      - transformer
+    stacking_method: blending
+    blend_weights:
+      feedforward: 0.4
+      random_forest: 0.4
+      transformer: 0.2

@@ -346,7 +346,6 @@ class FeatureEmbeddingOrchestrator:
                 self.cache_manager.save_dataframe(embeddings_status, cache_key)
             except Exception as e:
                 print(f"Warning: Could not cache embedding status: {str(e)}")
-
         return self
     def prepare_features(self, df, use_cache=True):
         """
@@ -1822,6 +1821,7 @@ class FeatureEmbeddingOrchestrator:
             # Debug output
             print(
                 f"[DEBUG-LSTM] Model output layer: {model.layers[-1].name}, activation: {model.layers[-1].activation.__name__}")
+            print(f"[DEBUG-LSTM] Model compiled successfully. Total parameters: {model.count_params()}")
 
             return {
                 'lstm': model,

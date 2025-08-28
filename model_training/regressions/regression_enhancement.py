@@ -27,6 +27,7 @@ from utils.env_setup import AppConfig
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from utils.model_manager import get_model_manager
 from core.orchestrators.race_archiver import RaceArchiver
+from model_training.models import FeedforwardModel, TransformerModel, EnsembleModel
 
 
 class IncrementalTrainingPipeline:
@@ -772,6 +773,21 @@ class IncrementalTrainingPipeline:
                     "message": "No TabNet data available"
                 }
 
+            # Step 6.7: Train alternative models if LSTM data available
+            if lstm_data and 'X_sequences' in lstm_data:
+                alternative_results = self.train_alternative_models(lstm_data)
+                pipeline_results["alternative_models"] = alternative_results
+                
+                if self.verbose:
+                    print(f"Alternative models trained: {alternative_results.get('models_trained', [])}")
+                    if alternative_results.get('best_model'):
+                        print(f"Best alternative model: {alternative_results['best_model']} (MAE: {alternative_results['best_mae']:.4f})")
+            else:
+                pipeline_results["alternative_models"] = {
+                    "status": "skipped",
+                    "message": "No LSTM data available for alternative models"
+                }
+
             if self.verbose:
                 print("pipeline STEP 7 NOW")
 
@@ -1453,6 +1469,202 @@ class IncrementalTrainingPipeline:
             if self.verbose:
                 print(f"Error training TabNet model: {e}")
             return {"status": "error", "message": str(e)}
+
+    def train_alternative_models(self, lstm_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Train alternative models (Feedforward, Transformer, Ensemble) to replace LSTM.
+        
+        Args:
+            lstm_data: Dictionary with LSTM-compatible features and targets
+            
+        Returns:
+            Dictionary with training results for all alternative models
+        """
+        if not lstm_data or 'X_sequences' not in lstm_data:
+            return {"status": "error", "message": "No LSTM training data available for alternative models"}
+        
+        if self.verbose:
+            print("Training alternative models...")
+        
+        # Get alternative models configuration
+        alt_config = self.config._config.get('alternative_models', {})
+        model_selection = alt_config.get('model_selection', ['feedforward', 'transformer', 'ensemble'])
+        
+        results = {
+            'status': 'success',
+            'models_trained': [],
+            'training_results': {},
+            'performance_comparison': {}
+        }
+        
+        X_sequences = lstm_data['X_sequences']
+        X_static = lstm_data['X_static']
+        y = lstm_data['y']
+        
+        # Baseline performance (LSTM if available)
+        baseline_mae = None
+        if self.lstm_model is not None:
+            try:
+                from sklearn.model_selection import train_test_split
+                _, X_seq_test, _, X_static_test, _, y_test = train_test_split(
+                    X_sequences, X_static, y, test_size=0.3, random_state=42
+                )
+                baseline_pred = self.lstm_model.predict([X_seq_test, X_static_test], verbose=0).flatten()
+                baseline_mae = mean_absolute_error(y_test, baseline_pred)
+                results['baseline_lstm_mae'] = float(baseline_mae)
+                
+                if self.verbose:
+                    print(f"LSTM baseline MAE: {baseline_mae:.4f}")
+            except Exception as e:
+                if self.verbose:
+                    print(f"Could not evaluate LSTM baseline: {e}")
+        
+        # Train Feedforward model
+        if 'feedforward' in model_selection:
+            try:
+                if self.verbose:
+                    print("Training Feedforward model...")
+                
+                ff_config = alt_config.get('feedforward', {})
+                ff_model = FeedforwardModel(ff_config, verbose=self.verbose)
+                
+                ff_results = ff_model.train(X_sequences, X_static, y, validation_split=0.2)
+                
+                # Evaluate against baseline
+                ff_performance = ff_model.evaluate(X_sequences, X_static, y)
+                ff_results['evaluation'] = ff_performance
+                
+                if baseline_mae:
+                    improvement = ((baseline_mae - ff_performance['mae']) / baseline_mae) * 100
+                    ff_results['lstm_improvement_pct'] = float(improvement)
+                    ff_results['significant_improvement'] = improvement > 5.0
+                
+                results['training_results']['feedforward'] = ff_results
+                results['models_trained'].append('feedforward')
+                
+                if self.verbose:
+                    print(f"Feedforward MAE: {ff_performance['mae']:.4f}")
+                    if baseline_mae:
+                        print(f"Improvement over LSTM: {ff_results.get('lstm_improvement_pct', 0):+.2f}%")
+                
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error training Feedforward model: {e}")
+                results['training_results']['feedforward'] = {
+                    'status': 'error',
+                    'message': str(e)
+                }
+        
+        # Train Transformer model
+        if 'transformer' in model_selection:
+            try:
+                if self.verbose:
+                    print("Training Transformer model...")
+                
+                transformer_config = alt_config.get('transformer', {})
+                transformer_model = TransformerModel(transformer_config, verbose=self.verbose)
+                
+                transformer_results = transformer_model.train(X_sequences, X_static, y, validation_split=0.2)
+                
+                # Evaluate against baseline
+                transformer_performance = transformer_model.evaluate(X_sequences, X_static, y)
+                transformer_results['evaluation'] = transformer_performance
+                
+                if baseline_mae:
+                    improvement = ((baseline_mae - transformer_performance['mae']) / baseline_mae) * 100
+                    transformer_results['lstm_improvement_pct'] = float(improvement)
+                    transformer_results['significant_improvement'] = improvement > 5.0
+                
+                results['training_results']['transformer'] = transformer_results
+                results['models_trained'].append('transformer')
+                
+                if self.verbose:
+                    print(f"Transformer MAE: {transformer_performance['mae']:.4f}")
+                    if baseline_mae:
+                        print(f"Improvement over LSTM: {transformer_results.get('lstm_improvement_pct', 0):+.2f}%")
+                
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error training Transformer model: {e}")
+                results['training_results']['transformer'] = {
+                    'status': 'error',
+                    'message': str(e)
+                }
+        
+        # Train Ensemble model
+        if 'ensemble' in model_selection:
+            try:
+                if self.verbose:
+                    print("Training Ensemble model...")
+                
+                ensemble_config = alt_config.copy()  # Include all alternative model configs
+                ensemble_model = EnsembleModel(ensemble_config, verbose=self.verbose)
+                
+                ensemble_results = ensemble_model.train(X_sequences, X_static, y, validation_split=0.0)
+                
+                # Evaluate against baseline
+                ensemble_performance = ensemble_model.evaluate(X_sequences, X_static, y)
+                ensemble_results['evaluation'] = ensemble_performance
+                
+                if baseline_mae:
+                    improvement = ((baseline_mae - ensemble_performance['mae']) / baseline_mae) * 100
+                    ensemble_results['lstm_improvement_pct'] = float(improvement)
+                    ensemble_results['significant_improvement'] = improvement > 5.0
+                
+                results['training_results']['ensemble'] = ensemble_results
+                results['models_trained'].append('ensemble')
+                
+                if self.verbose:
+                    print(f"Ensemble MAE: {ensemble_performance['mae']:.4f}")
+                    if baseline_mae:
+                        print(f"Improvement over LSTM: {ensemble_results.get('lstm_improvement_pct', 0):+.2f}%")
+                
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error training Ensemble model: {e}")
+                results['training_results']['ensemble'] = {
+                    'status': 'error',
+                    'message': str(e)
+                }
+        
+        # Create performance comparison
+        performance_data = []
+        for model_name in results['models_trained']:
+            model_results = results['training_results'].get(model_name, {})
+            evaluation = model_results.get('evaluation', {})
+            
+            performance_data.append({
+                'model': model_name,
+                'mae': evaluation.get('mae', float('inf')),
+                'rmse': evaluation.get('rmse', float('inf')),
+                'top3_accuracy': evaluation.get('top3_accuracy', 0),
+                'improvement_over_lstm': model_results.get('lstm_improvement_pct', 0)
+            })
+        
+        # Add LSTM baseline if available
+        if baseline_mae:
+            performance_data.append({
+                'model': 'lstm_baseline',
+                'mae': baseline_mae,
+                'rmse': results.get('baseline_lstm_rmse', float('inf')),
+                'top3_accuracy': 0,  # Not calculated for baseline
+                'improvement_over_lstm': 0
+            })
+        
+        # Sort by MAE (best first)
+        performance_data.sort(key=lambda x: x['mae'])
+        results['performance_comparison'] = performance_data
+        
+        # Determine best model
+        if performance_data:
+            best_model = performance_data[0]
+            results['best_model'] = best_model['model']
+            results['best_mae'] = best_model['mae']
+            
+            if self.verbose:
+                print(f"\nBest performing model: {best_model['model']} (MAE: {best_model['mae']:.4f})")
+        
+        return results
 
 def main():
     """

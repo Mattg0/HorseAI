@@ -15,11 +15,19 @@ from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from model_training.regressions.isotonic_calibration import CalibratedRegressor
 from utils.model_manager import ModelManager
 
+# Import alternative models
+try:
+    from model_training.models import FeedforwardModel, TransformerModel, EnsembleModel
+    ALTERNATIVE_MODELS_AVAILABLE = True
+except ImportError:
+    ALTERNATIVE_MODELS_AVAILABLE = False
+
 
 class HorseRaceModel:
     """
-    Simplified horse race prediction model that trains both RF and LSTM models
-    in a single streamlined workflow.
+    Enhanced horse race training orchestrator that trains RF, LSTM, TabNet, and alternative models
+    (Feedforward, Transformer, Ensemble) using historical data. Focuses on individual model training
+    without blending - blending is handled in the prediction pipeline.
     """
 
     def __init__(self, config_path: str = 'config.yaml', verbose: bool = False):
@@ -45,23 +53,27 @@ class HorseRaceModel:
             verbose=verbose
         )
 
-        # Get blend weight from config (default to 0.7 if not specified)
-        try:
-            self.blend_weight = getattr(self.config._config, 'blend_weight', 0.9)
-        except:
-            self.blend_weight = 0.9
+        # Alternative models configuration
+        self.alt_models_config = getattr(self.config._config, 'alternative_models', {})
+        self.alt_models_enabled = self.alt_models_config.get('model_selection', [])
 
         # Model containers
         self.rf_model = None
         self.lstm_model = None
+        self.tabnet_model = None
+        self.alternative_models = {}
         self.training_results = None
 
         # Data containers
         self.rf_data = None
         self.lstm_data = None
+        self.tabnet_data = None
 
         self.log_info(f"Initialized HorseRaceModel with database: {self.db_type}")
-        self.log_info(f"Blend weight: {self.blend_weight}")
+        if ALTERNATIVE_MODELS_AVAILABLE and self.alt_models_enabled:
+            self.log_info(f"Alternative models enabled: {self.alt_models_enabled}")
+        else:
+            self.log_info("Alternative models: Not available or not configured")
 
     def log_info(self, message):
         """Simple logging method."""
@@ -143,36 +155,45 @@ class HorseRaceModel:
             X_seq_test, X_static_test, y_lstm_test
         )
 
-        # Step 6: Generate blended predictions
-        self.log_info(f"Generating blended predictions with weight {self.blend_weight}...")
-        blended_results = self._generate_blended_predictions(
-            rf_results, lstm_results, X_rf_test, y_rf_test,
-            X_seq_test, X_static_test, y_lstm_test
-        )
+        # Step 6: Train alternative models (if enabled)
+        alternative_results = {}
+        if ALTERNATIVE_MODELS_AVAILABLE and self.alt_models_enabled:
+            self.log_info("Training alternative models...")
+            alternative_results = self._train_alternative_models(
+                X_sequences, X_static, y_lstm, test_size, random_state
+            )
 
-        # Step 6: Compile complete results
+        # Step 7: Compile complete results
         training_time = (datetime.now() - start_time).total_seconds()
 
         self.training_results = {
             'status': 'success',
             'training_time': training_time,
-            'model_type': 'hybrid',
-            'blend_weight': self.blend_weight,
+            'model_type': 'multi_model_ensemble',
             'data_preparation': data_prep_results,
             'rf_results': rf_results,
             'lstm_results': lstm_results,
-            'blended_results': blended_results,
+            'alternative_models': alternative_results,
             'training_config': {
                 'test_size': test_size,
                 'random_state': random_state,
-                'db_type': self.db_type
+                'db_type': self.db_type,
+                'alternative_models_enabled': self.alt_models_enabled
             }
         }
 
         self.log_info(f"Training completed in {training_time:.2f} seconds")
         self.log_info(f"RF Test MAE: {rf_results['test_mae']:.4f}")
         self.log_info(f"LSTM Test MAE: {lstm_results['test_mae']:.4f}")
-        self.log_info(f"Blended Test MAE: {blended_results['test_mae']:.4f}")
+        
+        # Log alternative model results
+        if alternative_results:
+            for model_name, result in alternative_results.items():
+                if result.get('status') == 'success':
+                    mae = result.get('evaluation', {}).get('mae', 'N/A')
+                    self.log_info(f"{model_name.title()} Test MAE: {mae}")
+                else:
+                    self.log_info(f"{model_name.title()}: {result.get('message', 'Training failed')}")
 
         return self.training_results
 
@@ -259,41 +280,160 @@ class HorseRaceModel:
 
         self.lstm_model = lstm_model_components['lstm']
 
-        # Configure training
-        from tensorflow.keras.callbacks import EarlyStopping
-
+        # Configure training callbacks with advanced plateau and overfitting management
+        from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint, Callback
+        
+        # Custom callback to monitor training progress and detect issues
+        class TrainingMonitor(Callback):
+            def __init__(self):
+                super().__init__()
+                self.epoch_start_time = None
+                self.stalled_epochs = 0
+                self.previous_loss = float('inf')
+                
+            def on_epoch_begin(self, epoch, logs=None):
+                import time
+                self.epoch_start_time = time.time()
+                print(f"[DEBUG-LSTM] Starting epoch {epoch + 1}...")
+                
+            def on_epoch_end(self, epoch, logs=None):
+                import time
+                epoch_time = time.time() - self.epoch_start_time
+                current_loss = logs.get('val_loss', logs.get('loss', 0))
+                current_mae = logs.get('val_mae', logs.get('mae', 0))
+                
+                print(f"[DEBUG-LSTM] Epoch {epoch + 1} completed in {epoch_time:.2f}s")
+                print(f"[DEBUG-LSTM] Loss: {current_loss:.4f}, MAE: {current_mae:.4f}")
+                
+                # Check for stalled training
+                if abs(current_loss - self.previous_loss) < 0.0001:
+                    self.stalled_epochs += 1
+                    if self.stalled_epochs >= 3:
+                        print(f"[DEBUG-LSTM] Warning: Training may be stalled (loss unchanged for {self.stalled_epochs} epochs)")
+                else:
+                    self.stalled_epochs = 0
+                    
+                self.previous_loss = current_loss
+                
+            def on_train_begin(self, logs=None):
+                print("[DEBUG-LSTM] Training started successfully!")
+                
+            def on_train_end(self, logs=None):
+                print("[DEBUG-LSTM] Training completed!")
+        
+        training_monitor = TrainingMonitor()
+        
         callbacks = [
+            # Add our custom training monitor first
+            training_monitor,
+            
+            # Early stopping with improved patience and monitoring
             EarlyStopping(
                 monitor='val_loss',
-                patience=10,
-                restore_best_weights=True
+                patience=15,  # Increased patience for better convergence
+                restore_best_weights=True,
+                verbose=1,
+                min_delta=0.001  # Minimum change to qualify as improvement
+            ),
+            
+            # Reduce learning rate when loss plateaus
+            ReduceLROnPlateau(
+                monitor='val_loss',
+                factor=0.5,  # Reduce LR by half
+                patience=5,   # Wait 5 epochs before reducing
+                min_lr=1e-7,  # Minimum learning rate
+                verbose=1,
+                min_delta=0.001
+            ),
+            
+            # Additional early stopping for overfitting detection
+            EarlyStopping(
+                monitor='val_mae',
+                patience=20,  # Monitor MAE separately with higher patience
+                restore_best_weights=False,  # Don't restore for this one
+                verbose=0,
+                min_delta=0.01,
+                mode='min'
             )
         ]
+        
+        # Add model checkpointing if we can determine a save path
+        try:
+            from pathlib import Path
+            model_checkpoint_path = Path("models") / "lstm_best_checkpoint.keras"
+            model_checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            callbacks.append(
+                ModelCheckpoint(
+                    filepath=str(model_checkpoint_path),
+                    monitor='val_loss',
+                    save_best_only=True,
+                    save_weights_only=False,
+                    verbose=1,
+                    mode='min'
+                )
+            )
+            print(f"[DEBUG-LSTM] Added model checkpoint: {model_checkpoint_path}")
+        except Exception as e:
+            print(f"[DEBUG-LSTM] Could not add model checkpoint: {e}")
+        
 
         # Train the model with provided data
+        print(f"[DEBUG-LSTM] Starting model training...")
+        print(f"[DEBUG-LSTM] Training data shapes: X_seq={X_seq_train.shape}, X_static={X_static_train.shape}, y={y_train.shape}")
+        print(f"[DEBUG-LSTM] Validation data shapes: X_seq={X_seq_test.shape}, X_static={X_static_test.shape}, y={y_test.shape}")
+        print(f"[DEBUG-LSTM] Using batch_size=32, epochs=50...")
+        
         history = self.lstm_model.fit(
             [X_seq_train, X_static_train], y_train,
             validation_data=([X_seq_test, X_static_test], y_test),
             epochs=50,
             batch_size=32,
             callbacks=callbacks,
-            verbose=0 if not self.verbose else 1
+            verbose=2  # Show progress per epoch
         )
 
+        print(f"[DEBUG-LSTM] Training completed successfully!")
+        print(f"[DEBUG-LSTM] Total epochs trained: {len(history.history['loss'])}")
+        print(f"[DEBUG-LSTM] Final training loss: {history.history['loss'][-1]:.4f}")
+        print(f"[DEBUG-LSTM] Final validation loss: {history.history['val_loss'][-1]:.4f}")
+        print(f"[DEBUG-LSTM] Best validation loss: {min(history.history['val_loss']):.4f}")
+        
+        # Check if early stopping was triggered
+        if len(history.history['loss']) < 50:
+            print(f"[DEBUG-LSTM] Early stopping triggered at epoch {len(history.history['loss'])}")
+        
         # Generate predictions
+        print(f"[DEBUG-LSTM] Generating predictions on training data...")
         train_preds = self.lstm_model.predict([X_seq_train, X_static_train], verbose=0)
+        print(f"[DEBUG-LSTM] Training predictions shape: {train_preds.shape}")
+        
+        print(f"[DEBUG-LSTM] Generating predictions on test data...")
         test_preds = self.lstm_model.predict([X_seq_test, X_static_test], verbose=0)
+        print(f"[DEBUG-LSTM] Test predictions shape: {test_preds.shape}")
 
         # Flatten predictions if needed
+        print(f"[DEBUG-LSTM] Flattening predictions...")
+        print(f"[DEBUG-LSTM] Pre-flatten shapes: train={train_preds.shape}, test={test_preds.shape}")
         train_preds = train_preds.flatten()
         test_preds = test_preds.flatten()
+        print(f"[DEBUG-LSTM] Post-flatten shapes: train={train_preds.shape}, test={test_preds.shape}")
 
         # Calculate metrics
+        print(f"[DEBUG-LSTM] Calculating performance metrics...")
         train_mae = mean_absolute_error(y_train, train_preds)
         test_mae = mean_absolute_error(y_test, test_preds)
         train_rmse = np.sqrt(mean_squared_error(y_train, train_preds))
         test_rmse = np.sqrt(mean_squared_error(y_test, test_preds))
         test_r2 = r2_score(y_test, test_preds)
+        
+        print(f"[DEBUG-LSTM] === FINAL LSTM PERFORMANCE ===")
+        print(f"[DEBUG-LSTM] Training MAE: {train_mae:.4f}")
+        print(f"[DEBUG-LSTM] Test MAE: {test_mae:.4f}")
+        print(f"[DEBUG-LSTM] Training RMSE: {train_rmse:.4f}")
+        print(f"[DEBUG-LSTM] Test RMSE: {test_rmse:.4f}")
+        print(f"[DEBUG-LSTM] Test R²: {test_r2:.4f}")
+        print(f"[DEBUG-LSTM] ================================")
 
         return {
             'model_type': 'LSTM',
@@ -315,10 +455,112 @@ class HorseRaceModel:
                 'final_val_loss': float(history.history['val_loss'][-1])
             }
         }
-    def _generate_blended_predictions(self, rf_results, lstm_results,
+        
+        return lstm_results
+    
+    def _train_alternative_models(self, X_sequences, X_static, y, test_size=0.2, random_state=42) -> Dict[str, Any]:
+        """Train alternative models (Feedforward, Transformer, Ensemble) using LSTM-compatible data."""
+        
+        if not ALTERNATIVE_MODELS_AVAILABLE:
+            return {"status": "skipped", "message": "Alternative models not available"}
+        
+        if not self.alt_models_enabled:
+            return {"status": "skipped", "message": "Alternative models not enabled in configuration"}
+        
+        results = {}
+        
+        # Split data for alternative models
+        X_seq_train, X_seq_test, X_static_train, X_static_test, y_train, y_test = train_test_split(
+            X_sequences, X_static, y, test_size=test_size, random_state=random_state
+        )
+        
+        # Train Feedforward model
+        if 'feedforward' in self.alt_models_enabled:
+            try:
+                self.log_info("Training Feedforward model...")
+                ff_config = self.alt_models_config.get('feedforward', {})
+                ff_model = FeedforwardModel(ff_config, verbose=self.verbose)
+                
+                ff_training_result = ff_model.train(X_seq_train, X_static_train, y_train, validation_split=0.2)
+                ff_evaluation = ff_model.evaluate(X_seq_test, X_static_test, y_test)
+                
+                results['feedforward'] = {
+                    'status': 'success',
+                    'model': ff_model,
+                    'training_result': ff_training_result,
+                    'evaluation': ff_evaluation
+                }
+                
+                # Store model
+                self.alternative_models['feedforward'] = ff_model
+                
+            except Exception as e:
+                self.log_info(f"Feedforward model training failed: {e}")
+                results['feedforward'] = {
+                    'status': 'failed',
+                    'message': str(e)
+                }
+        
+        # Train Transformer model
+        if 'transformer' in self.alt_models_enabled:
+            try:
+                self.log_info("Training Transformer model...")
+                trans_config = self.alt_models_config.get('transformer', {})
+                trans_model = TransformerModel(trans_config, verbose=self.verbose)
+                
+                trans_training_result = trans_model.train(X_seq_train, X_static_train, y_train, validation_split=0.2)
+                trans_evaluation = trans_model.evaluate(X_seq_test, X_static_test, y_test)
+                
+                results['transformer'] = {
+                    'status': 'success',
+                    'model': trans_model,
+                    'training_result': trans_training_result,
+                    'evaluation': trans_evaluation
+                }
+                
+                # Store model
+                self.alternative_models['transformer'] = trans_model
+                
+            except Exception as e:
+                self.log_info(f"Transformer model training failed: {e}")
+                results['transformer'] = {
+                    'status': 'failed',
+                    'message': str(e)
+                }
+        
+        # Train Ensemble model  
+        if 'ensemble' in self.alt_models_enabled:
+            try:
+                self.log_info("Training Ensemble model...")
+                ens_config = self.alt_models_config.get('ensemble', {})
+                ens_model = EnsembleModel(ens_config, verbose=self.verbose)
+                
+                ens_training_result = ens_model.train(X_seq_train, X_static_train, y_train, validation_split=0.0)
+                ens_evaluation = ens_model.evaluate(X_seq_test, X_static_test, y_test)
+                
+                results['ensemble'] = {
+                    'status': 'success',
+                    'model': ens_model,
+                    'training_result': ens_training_result,
+                    'evaluation': ens_evaluation
+                }
+                
+                # Store model
+                self.alternative_models['ensemble'] = ens_model
+                
+            except Exception as e:
+                self.log_info(f"Ensemble model training failed: {e}")
+                results['ensemble'] = {
+                    'status': 'failed',
+                    'message': str(e)
+                }
+        
+        return results
+
+    def _old_generate_blended_predictions(self, rf_results, lstm_results,
                                       X_rf_test, y_rf_test,
                                       X_seq_test, X_static_test, y_lstm_test) -> Dict[str, Any]:
-        """Generate blended predictions from both models."""
+        """DEPRECATED: Generate blended predictions from both models."""
 
         if lstm_results.get('status') == 'failed':
             # If LSTM failed, return RF results only
@@ -372,22 +614,19 @@ class HorseRaceModel:
             }
         }
 
-    def save_incremental_model(self, rf_model, lstm_model=None, orchestrator=None, blend_weight=0.9):
+    def save_models(self, orchestrator=None):
         """
-        Save models trained incrementally on daily data.
+        Save all trained models (RF, LSTM, and alternative models).
 
         Args:
-            rf_model: Random Forest model to save
-            lstm_model: LSTM model to save (optional)
             orchestrator: Orchestrator with feature state (optional)
-            blend_weight: Blend weight for predictions
 
         Returns:
             Dictionary with paths to saved artifacts
         """
         from utils.model_manager import get_model_manager
 
-        print("===== SAVING INCREMENTAL MODEL =====")
+        print("===== SAVING ALL TRAINED MODELS =====")
 
         # Prepare feature state if orchestrator provided
         feature_state = None
@@ -398,17 +637,43 @@ class HorseRaceModel:
                 'sequence_length': getattr(orchestrator, 'sequence_length', 5)
             }
 
-        # Get the model manager and save
+        # Get the model manager and save legacy models
         model_manager = get_model_manager()
         saved_paths = model_manager.save_models(
-            rf_model=rf_model,
-            lstm_model=lstm_model,
-            feature_state=feature_state,
-            blend_weight=blend_weight
+            rf_model=self.rf_model,
+            lstm_model=self.lstm_model,
+            feature_state=feature_state
         )
+        
+        # Save alternative models if available
+        if self.alternative_models:
+            alt_model_paths = {}
+            models_dir = Path("models")
+            
+            for model_name, model in self.alternative_models.items():
+                if model is not None:
+                    try:
+                        # Create a timestamped directory for alternative models
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        model_file = models_dir / f"{model_name}_{timestamp}.h5"
+                        
+                        if model_name in ['feedforward', 'transformer']:
+                            # Save Keras models
+                            model.save_model(str(model_file))
+                        elif model_name == 'ensemble':
+                            # Save ensemble model (pickle)
+                            model_file = models_dir / f"{model_name}_{timestamp}.pkl"
+                            model.save_ensemble(str(model_file))
+                        
+                        alt_model_paths[model_name] = str(model_file)
+                        print(f"Saved {model_name} model to {model_file}")
+                        
+                    except Exception as e:
+                        print(f"Failed to save {model_name} model: {e}")
+                        
+            saved_paths['alternative_models'] = alt_model_paths
 
-        print(f"Incremental model saved successfully")
-
+        print(f"All models saved successfully")
         return saved_paths
 
 
@@ -438,50 +703,57 @@ def main(progress_callback=None):
     if progress_callback:
         progress_callback(90, "Saving trained models...")
 
-    # Save the trained models
-    saved_paths = model.model_manager.save_models(
-        rf_model=model.rf_model,
-        lstm_model=model.lstm_model,
-        blend_weight=model.blend_weight  # optional
-    )
+    # Save all trained models
+    saved_paths = model.save_models(model.orchestrator)
 
     if progress_callback:
         progress_callback(100, "Training completed successfully!")
 
     # Print detailed summary results
-    print("\n" + "=" * 50)
-    print("HYBRID TRAINING COMPLETED")
-    print("=" * 50)
+    print("\n" + "=" * 60)
+    print("MULTI-MODEL TRAINING COMPLETED")
+    print("=" * 60)
     print(f"Training time: {results['training_time']:.2f} seconds")
-    print(f"Blend weight: {results['blend_weight']}")
+    print(f"Model type: {results['model_type']}")
     
     # RF model results
     print(f"\n--- Random Forest Results ---")
-    print(f"Features used: {results['rf_results']['features']}")
-    print(f"Train samples: {results['rf_results']['train_samples']}")
-    print(f"Test samples: {results['rf_results']['test_samples']}")
-    print(f"Test MAE: {results['rf_results']['test_mae']:.4f}")
-    print(f"Test RMSE: {results['rf_results']['test_rmse']:.4f}")
-    print(f"Test R²: {results['rf_results']['test_r2']:.4f}")
+    rf_results = results['rf_results']
+    print(f"Features used: {rf_results['features']}")
+    print(f"Train samples: {rf_results['train_samples']}")
+    print(f"Test samples: {rf_results['test_samples']}")
+    print(f"Test MAE: {rf_results['test_mae']:.4f}")
+    print(f"Test RMSE: {rf_results['test_rmse']:.4f}")
+    print(f"Test R²: {rf_results['test_r2']:.4f}")
     
     # LSTM model results
-    if results['lstm_results'].get('status') != 'failed':
+    lstm_results = results['lstm_results']
+    if lstm_results.get('status') != 'failed':
         print(f"\n--- LSTM Results ---")
-        print(f"Train samples: {results['lstm_results']['train_samples']}")
-        print(f"Test samples: {results['lstm_results']['test_samples']}")
-        print(f"Sequence length: {results['lstm_results']['sequence_length']}")
-        print(f"Sequential features: {results['lstm_results']['sequential_features']}")
-        print(f"Static features: {results['lstm_results']['static_features']}")
-        print(f"Test MAE: {results['lstm_results']['test_mae']:.4f}")
-        print(f"Test RMSE: {results['lstm_results']['test_rmse']:.4f}")
-        print(f"Test R²: {results['lstm_results']['test_r2']:.4f}")
-        print(f"Training epochs: {results['lstm_results']['training_history']['epochs']}")
+        print(f"Train samples: {lstm_results['train_samples']}")
+        print(f"Test samples: {lstm_results['test_samples']}")
+        print(f"Sequence length: {lstm_results['sequence_length']}")
+        print(f"Sequential features: {lstm_results['sequential_features']}")
+        print(f"Static features: {lstm_results['static_features']}")
+        print(f"Test MAE: {lstm_results['test_mae']:.4f}")
+        print(f"Test RMSE: {lstm_results['test_rmse']:.4f}")
+        print(f"Test R²: {lstm_results['test_r2']:.4f}")
+        print(f"Training epochs: {lstm_results['training_history']['epochs']}")
     
-    # Blended results
-    print(f"\n--- Blended Results ---")
-    print(f"Test MAE: {results['blended_results']['test_mae']:.4f}")
-    print(f"Test RMSE: {results['blended_results']['test_rmse']:.4f}")
-    print(f"Test R²: {results['blended_results']['test_r2']:.4f}")
+    # Alternative model results
+    alt_results = results.get('alternative_models', {})
+    if alt_results:
+        print(f"\n--- Alternative Models Results ---")
+        for model_name, model_result in alt_results.items():
+            if model_result.get('status') == 'success':
+                evaluation = model_result.get('evaluation', {})
+                print(f"{model_name.title()}: MAE={evaluation.get('mae', 'N/A'):.4f}, "
+                      f"RMSE={evaluation.get('rmse', 'N/A'):.4f}, "
+                      f"Top3 Acc={evaluation.get('top3_accuracy', 'N/A'):.3f}")
+            else:
+                print(f"{model_name.title()}: {model_result.get('message', 'Failed')}")
+    else:
+        print(f"\n--- Alternative Models: Not enabled ---")
     
     print(f"\nModel saved to: {saved_paths.get('rf_model', 'N/A')}")
     

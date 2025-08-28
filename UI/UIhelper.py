@@ -751,35 +751,73 @@ class PipelineHelper:
         return formatted_results
 
     def get_prediction_model_info(self) -> Dict[str, Any]:
-        """Get comprehensive information about the three-model prediction system"""
+        """Get comprehensive information about all prediction models"""
         try:
             # Initialize prediction orchestrator to get model info
             predictor = PredictionOrchestrator()
             model_info = predictor.get_model_info()
             
-            # Get blend configuration from config
-            blend_config = self._config_data.get('blend', {}) if self._config_data else {}
+            # Get blend configuration from config (with fallbacks)
+            blend_config = {}
+            if self._config_data:
+                blend_config = self._config_data.get('blend', {
+                    'rf_weight': 0.8,
+                    'lstm_weight': 0.1, 
+                    'tabnet_weight': 0.1,
+                    'optimal_mae': 11.78
+                })
+            
+            # Get alternative models configuration (with fallbacks)
+            alt_models_config = {}
+            if self._config_data:
+                alt_models_config = self._config_data.get('alternative_models', {
+                    'model_selection': ['feedforward', 'transformer', 'ensemble']
+                })
+            
+            # Check for alternative model files
+            alternative_model_status = self._check_alternative_models()
             
             # Format comprehensive model information
             prediction_info = {
-                'ensemble_type': 'Three-Model Ensemble (RF + LSTM + TabNet)',
-                'blend_weights': {
-                    'rf_weight': blend_config.get('rf_weight', 0.8),
-                    'lstm_weight': blend_config.get('lstm_weight', 0.1),
-                    'tabnet_weight': blend_config.get('tabnet_weight', 0.1)
+                'ensemble_type': 'Multi-Model Ensemble (RF + LSTM + TabNet + Alternative Models)',
+                'legacy_models': {
+                    'blend_weights': {
+                        'rf_weight': blend_config.get('rf_weight', 0.8),
+                        'lstm_weight': blend_config.get('lstm_weight', 0.1),
+                        'tabnet_weight': blend_config.get('tabnet_weight', 0.1)
+                    },
+                    'optimal_mae': blend_config.get('optimal_mae', 11.78),
+                    'model_status': {
+                        'rf_loaded': model_info.get('has_rf', False),
+                        'lstm_loaded': model_info.get('has_lstm', False),
+                        'tabnet_loaded': model_info.get('has_tabnet', False)
+                    }
                 },
-                'optimal_mae': blend_config.get('optimal_mae', 11.78),
-                'model_status': {
-                    'rf_loaded': model_info.get('has_rf', False),
-                    'lstm_loaded': model_info.get('has_lstm', False),
-                    'tabnet_loaded': model_info.get('has_tabnet', False)
+                'alternative_models': {
+                    'enabled': alt_models_config.get('model_selection', []),
+                    'status': alternative_model_status,
+                    'feedforward': {
+                        'configured': 'feedforward' in alt_models_config.get('model_selection', []),
+                        'loaded': alternative_model_status.get('feedforward_loaded', False),
+                        'config': alt_models_config.get('feedforward', {})
+                    },
+                    'transformer': {
+                        'configured': 'transformer' in alt_models_config.get('model_selection', []),
+                        'loaded': alternative_model_status.get('transformer_loaded', False),
+                        'config': alt_models_config.get('transformer', {})
+                    },
+                    'ensemble': {
+                        'configured': 'ensemble' in alt_models_config.get('model_selection', []),
+                        'loaded': alternative_model_status.get('ensemble_loaded', False),
+                        'config': alt_models_config.get('ensemble', {})
+                    }
                 },
                 'model_path': model_info.get('model_path', 'Unknown'),
                 'tabnet_info': {
                     'available': model_info.get('tabnet_available', False),
                     'expected_features': model_info.get('expected_tabnet_features', 0)
                 },
-                'system_status': 'operational' if any(model_info.get(k, False) for k in ['has_rf', 'has_lstm', 'has_tabnet']) else 'no_models_loaded'
+                'system_status': self._get_overall_system_status(model_info, alternative_model_status)
             }
             
             return {
@@ -789,11 +827,75 @@ class PipelineHelper:
             }
             
         except Exception as e:
+            # Enhanced error handling with fallback information
+            error_msg = str(e)
+            
+            # If it's a config/blending related error, provide more context
+            if 'model_blending' in error_msg or 'Configuration must contain' in error_msg:
+                error_msg = "Legacy blending configuration error - system has been updated to use enhanced prediction pipeline"
+            
             return {
                 "success": False,
-                "error": str(e),
-                "message": f"Failed to get model information: {str(e)}"
+                "error": error_msg,
+                "message": f"Failed to get model information: {error_msg}",
+                "fallback_info": {
+                    "system_status": "configuration_error",
+                    "legacy_models": {
+                        "model_status": {
+                            "rf_loaded": False,
+                            "lstm_loaded": False,
+                            "tabnet_loaded": False
+                        }
+                    },
+                    "alternative_models": {
+                        "enabled": [],
+                        "status": {},
+                        "message": "Could not load alternative models due to configuration error"
+                    }
+                }
             }
+    
+    def _check_alternative_models(self) -> Dict[str, bool]:
+        """Check if alternative model files exist"""
+        model_status = {
+            'feedforward_loaded': False,
+            'transformer_loaded': False,
+            'ensemble_loaded': False
+        }
+        
+        try:
+            models_dir = Path("models")
+            if models_dir.exists():
+                # Check for feedforward model files
+                feedforward_files = list(models_dir.glob("*feedforward*.h5")) + list(models_dir.glob("*feedforward*.keras"))
+                model_status['feedforward_loaded'] = len(feedforward_files) > 0
+                
+                # Check for transformer model files
+                transformer_files = list(models_dir.glob("*transformer*.h5")) + list(models_dir.glob("*transformer*.keras"))
+                model_status['transformer_loaded'] = len(transformer_files) > 0
+                
+                # Check for ensemble model files (pickle files)
+                ensemble_files = list(models_dir.glob("*ensemble*.pkl")) + list(models_dir.glob("*ensemble*.joblib"))
+                model_status['ensemble_loaded'] = len(ensemble_files) > 0
+                
+        except Exception as e:
+            print(f"Warning: Could not check alternative model status: {e}")
+            
+        return model_status
+    
+    def _get_overall_system_status(self, legacy_model_info: Dict, alt_model_status: Dict) -> str:
+        """Determine overall system status"""
+        legacy_loaded = any(legacy_model_info.get(k, False) for k in ['has_rf', 'has_lstm', 'has_tabnet'])
+        alt_loaded = any(alt_model_status.values())
+        
+        if legacy_loaded and alt_loaded:
+            return 'full_operational'
+        elif legacy_loaded:
+            return 'legacy_operational'
+        elif alt_loaded:
+            return 'alternative_operational'
+        else:
+            return 'no_models_loaded'
 
     def get_ai_quinte_advice(self, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
         """Get AI betting advice specifically focused on quinte races with 3 refined recommendations"""

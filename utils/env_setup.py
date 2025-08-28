@@ -487,5 +487,102 @@ def test_config():
         print("Please ensure your config.yaml is properly configured.")
 
 
+import os
+import sys
+from pathlib import Path
+
+
+def detect_environment():
+    """
+    Detect if we're running on vast.ai or localhost.
+
+    Returns:
+        str: 'vast.ai' or 'localhost'
+    """
+    return 'vast.ai' if os.getenv('VAST_CONTAINERLABEL') else 'localhost'
+
+
+def setup_pythonpath():
+    """
+    Automatically set PYTHONPATH based on detected environment.
+    """
+
+    env_type = detect_environment()
+    print(f"🔍 Detected environment: {env_type}")
+
+    if env_type == 'vast.ai':
+        # Vast.ai setup - assume workspace is mounted at /workspace
+        project_root = Path('/workspace')
+    else:
+        # Localhost setup - use config or current directory
+        try:
+            from utils.env_setup import AppConfig
+            config = AppConfig()
+            project_root = Path(config._config.base.rootdir)
+        except Exception as e:
+            print(f"⚠️ Could not load config ({e}), using current directory")
+            project_root = Path.cwd()
+
+    # Define paths to add
+    paths_to_add = [
+        str(project_root),
+        str(project_root / 'core'),
+        str(project_root / 'utils'),
+        str(project_root / 'model_training'),
+    ]
+
+    # Add paths to sys.path if not already present
+    added_paths = []
+    for path in paths_to_add:
+        if os.path.exists(path) and path not in sys.path:
+            sys.path.insert(0, path)
+            added_paths.append(path)
+
+    # Also set PYTHONPATH environment variable
+    current_pythonpath = os.environ.get('PYTHONPATH', '')
+    new_paths = [p for p in paths_to_add if p not in current_pythonpath.split(os.pathsep)]
+
+    if new_paths:
+        if current_pythonpath:
+            os.environ['PYTHONPATH'] = os.pathsep.join(new_paths + [current_pythonpath])
+        else:
+            os.environ['PYTHONPATH'] = os.pathsep.join(new_paths)
+
+    print(f"✅ Added {len(added_paths)} paths to sys.path")
+    for path in added_paths:
+        print(f"   📁 {path}")
+
+    return env_type, project_root
+
+
+def init_environment():
+    """
+    Initialize environment and return config.
+    Call this at the top of your scripts.
+    """
+    env_type, project_root = setup_pythonpath()
+
+    try:
+        from utils.env_setup import AppConfig
+        config = AppConfig()
+        print(f"✅ Configuration loaded successfully")
+        return config, env_type
+    except Exception as e:
+        print(f"❌ Failed to load configuration: {e}")
+        return None, env_type
+
+
 if __name__ == "__main__":
-    test_config()
+    # Test the environment detection
+    env_type, project_root = setup_pythonpath()
+    print(f"\n📊 Environment Summary:")
+    print(f"   Environment: {env_type}")
+    print(f"   Project Root: {project_root}")
+    print(f"   VAST_CONTAINERLABEL: {os.getenv('VAST_CONTAINERLABEL', 'Not set')}")
+
+    # Test config loading
+    config, _ = init_environment()
+    if config:
+        print(f"   Active DB: {config._config.base.active_db}")
+
+

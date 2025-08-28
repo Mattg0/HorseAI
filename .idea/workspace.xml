@@ -4,23 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="Well... Final Version!!">
-      <change afterPath="$PROJECT_DIR$/cache/historical_data/historical_data.parquet" afterDir="false" />
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="BROKEN BRANCH / DO NOT MERGE">
+      <change afterPath="$PROJECT_DIR$/get_horseai.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UI/UIApp.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIApp.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UI/UIhelper.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIhelper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cache/historical_data/historical_data.parquet" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_training/features/couple_embedding.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/features/couple_embedding.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/race_prediction/daily_predictor.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/daily_predictor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/ai_advisor.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/ai_advisor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/cache_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/cache_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/env_setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/env_setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,7 +34,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="main" />
+        <entry key="$PROJECT_DIR$" value="Prediction_storage" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -64,46 +61,46 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.UIApp.executor": "Run",
-    "Python.api_daily_sync.executor": "Run",
-    "Python.blend_testing.executor": "Run",
-    "Python.comprehensive_training.executor": "Run",
-    "Python.daily_predictor.executor": "Run",
-    "Python.debug_json_pipeline.executor": "Run",
-    "Python.embedding_feature.executor": "Run",
-    "Python.env_setup.executor": "Run",
-    "Python.envdebug.executor": "Run",
-    "Python.horse_embedding.executor": "Run",
-    "Python.musique_calculation.executor": "Debug",
-    "Python.mysql_connector.executor": "Run",
-    "Python.mysql_sqlite_sync.executor": "Run",
-    "Python.mysql_to_sqlite.executor": "Run",
-    "Python.predict_daily_races.executor": "Run",
-    "Python.predict_evaluator.executor": "Run",
-    "Python.predict_orchestrator_cli.executor": "Run",
-    "Python.prediction_orchestrator.executor": "Run",
-    "Python.race_predict.executor": "Run",
-    "Python.regression_enhancement.executor": "Run",
-    "Python.streamlit.executor": "Run",
-    "Python.tabnet_model.executor": "Run",
-    "Python.test.executor": "Debug",
-    "Python.three_model_race_predict.executor": "Run",
-    "Python.train_model.executor": "Debug",
-    "Python.train_race_model.executor": "Run",
-    "Python.train_tabnet.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "TabnetV1"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.UIApp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.api_daily_sync.executor&quot;: &quot;Run&quot;,
+    &quot;Python.blend_testing.executor&quot;: &quot;Run&quot;,
+    &quot;Python.comprehensive_training.executor&quot;: &quot;Run&quot;,
+    &quot;Python.daily_predictor.executor&quot;: &quot;Run&quot;,
+    &quot;Python.debug_json_pipeline.executor&quot;: &quot;Run&quot;,
+    &quot;Python.embedding_feature.executor&quot;: &quot;Run&quot;,
+    &quot;Python.env_setup.executor&quot;: &quot;Run&quot;,
+    &quot;Python.envdebug.executor&quot;: &quot;Run&quot;,
+    &quot;Python.horse_embedding.executor&quot;: &quot;Run&quot;,
+    &quot;Python.musique_calculation.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.mysql_connector.executor&quot;: &quot;Run&quot;,
+    &quot;Python.mysql_sqlite_sync.executor&quot;: &quot;Run&quot;,
+    &quot;Python.mysql_to_sqlite.executor&quot;: &quot;Run&quot;,
+    &quot;Python.predict_daily_races.executor&quot;: &quot;Run&quot;,
+    &quot;Python.predict_evaluator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.predict_orchestrator_cli.executor&quot;: &quot;Run&quot;,
+    &quot;Python.prediction_orchestrator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.race_predict.executor&quot;: &quot;Run&quot;,
+    &quot;Python.regression_enhancement.executor&quot;: &quot;Run&quot;,
+    &quot;Python.streamlit.executor&quot;: &quot;Run&quot;,
+    &quot;Python.tabnet_model.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.three_model_race_predict.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_model.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.train_race_model.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_tabnet.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;fastforward-neural-net&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/core/connectors" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.regression_enhancement">
+  <component name="RunManager" selected="Python.train_race_model">
     <configuration name="comprehensive_training" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
@@ -148,7 +145,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="predict_daily_races" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="env_setup" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -157,11 +154,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/race_prediction" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/utils" />
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/race_prediction/predict_daily_races.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/utils/env_setup.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -214,7 +211,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="train_tabnet" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="train_race_model" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="HorseAIv2" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -227,7 +224,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/model_training/tabnet/train_tabnet.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/model_training/historical/train_race_model.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -238,19 +235,19 @@
     </configuration>
     <list>
       <item itemvalue="Python.comprehensive_training" />
+      <item itemvalue="Python.env_setup" />
+      <item itemvalue="Python.train_race_model" />
       <item itemvalue="Python.regression_enhancement" />
       <item itemvalue="Python.race_predict" />
-      <item itemvalue="Python.train_tabnet" />
       <item itemvalue="Python.daily_predictor" />
-      <item itemvalue="Python.predict_daily_races" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.train_race_model" />
+        <item itemvalue="Python.env_setup" />
         <item itemvalue="Python.regression_enhancement" />
         <item itemvalue="Python.race_predict" />
         <item itemvalue="Python.daily_predictor" />
-        <item itemvalue="Python.train_tabnet" />
-        <item itemvalue="Python.predict_daily_races" />
       </list>
     </recent_temporary>
   </component>
@@ -523,101 +520,6 @@
           <option name="timeStamp" value="234" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>816</line>
-          <option name="timeStamp" value="336" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>657</line>
-          <option name="timeStamp" value="338" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>659</line>
-          <option name="timeStamp" value="339" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>682</line>
-          <option name="timeStamp" value="340" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>681</line>
-          <option name="timeStamp" value="341" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>747</line>
-          <option name="timeStamp" value="342" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>684</line>
-          <option name="timeStamp" value="343" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>688</line>
-          <option name="timeStamp" value="344" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>691</line>
-          <option name="timeStamp" value="345" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>694</line>
-          <option name="timeStamp" value="346" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>740</line>
-          <option name="timeStamp" value="347" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>735</line>
-          <option name="timeStamp" value="349" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>731</line>
-          <option name="timeStamp" value="350" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>727</line>
-          <option name="timeStamp" value="351" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>719</line>
-          <option name="timeStamp" value="353" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>712</line>
-          <option name="timeStamp" value="354" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>715</line>
-          <option name="timeStamp" value="355" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>716</line>
-          <option name="timeStamp" value="356" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>705</line>
-          <option name="timeStamp" value="357" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
           <line>719</line>
           <option name="timeStamp" value="359" />
@@ -631,20 +533,6 @@
           <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
           <line>720</line>
           <option name="timeStamp" value="361" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py</url>
-          <line>107</line>
-          <option name="timeStamp" value="362" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/race_prediction/daily_predictor.py</url>
-          <option name="timeStamp" value="364" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/model_training/regressions/regression_enhancement.py</url>
-          <line>120</line>
-          <option name="timeStamp" value="377" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/utils/ai_advisor.py</url>
