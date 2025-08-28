@@ -4,20 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="BROKEN BRANCH / DO NOT MERGE">
-      <change afterPath="$PROJECT_DIR$/get_horseai.sh" afterDir="false" />
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="deploy script + trining output">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/UIApp.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIApp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UI/UIhelper.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIhelper.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cache/historical_data/historical_data.parquet" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/env_setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/env_setup.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -459,7 +447,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744702346043</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="deploy script + trining output">
+      <option name="closed" value="true" />
+      <created>1756367358249</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1756367358249</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -479,7 +475,8 @@
     <MESSAGE value="ModelManager" />
     <MESSAGE value="Final Version!!" />
     <MESSAGE value="Well... Final Version!!" />
-    <option name="LAST_COMMIT_MESSAGE" value="Well... Final Version!!" />
+    <MESSAGE value="deploy script + trining output" />
+    <option name="LAST_COMMIT_MESSAGE" value="deploy script + trining output" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
