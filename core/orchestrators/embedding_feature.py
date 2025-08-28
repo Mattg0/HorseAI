@@ -2059,9 +2059,13 @@ class FeatureEmbeddingOrchestrator:
                 expanded_batch = self._expand_participants(batch_df)
                 monitor.log_memory(f"BATCH_{batch_num}_EXPANDED", f"Expanded batch {batch_num}")
                 
+                # Fix mixed-type columns for parquet compatibility
+                fixed_batch = self._fix_mixed_type_columns(expanded_batch)
+                monitor.log_memory(f"BATCH_{batch_num}_FIXED", f"Fixed mixed-type columns for batch {batch_num}")
+                
                 # Save batch to temporary file
                 batch_file = temp_dir / f"batch_{batch_num:04d}.parquet"
-                expanded_batch.to_parquet(batch_file, index=False)
+                fixed_batch.to_parquet(batch_file, index=False)
                 batch_files.append(batch_file)
                 
                 self.log_info(f"Saved batch {batch_num} to {batch_file.name}")
@@ -2243,6 +2247,59 @@ class FeatureEmbeddingOrchestrator:
             # Always cleanup temporary files
             self.cleanup_temp_batch_dir()
             
+    def _fix_mixed_type_columns(self, df):
+        """
+        Fix mixed-type columns that cause parquet conversion issues.
+        
+        This commonly happens with columns like 'reunion' that contain both
+        numeric values (1, 2, 3) and string values ('Martinique (Carrère)').
+        
+        Args:
+            df: DataFrame to fix
+            
+        Returns:
+            DataFrame with mixed-type columns converted to strings
+        """
+        if df.empty:
+            return df
+        
+        # Make a copy to avoid modifying the original
+        fixed_df = df.copy()
+        
+        # List of columns that are known to have mixed types
+        mixed_type_columns = ['reunion', 'course']
+        
+        for col in mixed_type_columns:
+            if col in fixed_df.columns:
+                # Convert the entire column to string to ensure consistency
+                fixed_df[col] = fixed_df[col].astype(str)
+                if self.verbose:
+                    self.log_info(f"[BATCH-FIX] Converted column '{col}' to string type for parquet compatibility")
+        
+        # Check for any remaining object columns that might cause issues
+        for col in fixed_df.columns:
+            if fixed_df[col].dtype == 'object':
+                # Check if this column has mixed types by trying to convert to numeric
+                try:
+                    # Try converting to numeric - if it works for all values, keep as numeric
+                    numeric_version = pd.to_numeric(fixed_df[col], errors='coerce')
+                    if numeric_version.isna().sum() == 0:  # All values converted successfully
+                        fixed_df[col] = numeric_version
+                        if self.verbose:
+                            self.log_info(f"[BATCH-FIX] Converted column '{col}' to numeric type")
+                    else:
+                        # Some values couldn't be converted - keep as string
+                        fixed_df[col] = fixed_df[col].astype(str)
+                        if self.verbose:
+                            self.log_info(f"[BATCH-FIX] Converted column '{col}' to string type (had mixed types)")
+                except:
+                    # If conversion fails entirely, convert to string
+                    fixed_df[col] = fixed_df[col].astype(str)
+                    if self.verbose:
+                        self.log_info(f"[BATCH-FIX] Converted column '{col}' to string type (conversion failed)")
+        
+        return fixed_df
+    
     def get_memory_summary(self) -> dict:
         """Get summary of memory usage throughout processing."""
         if self.memory_monitor:
