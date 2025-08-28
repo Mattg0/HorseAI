@@ -7,7 +7,11 @@ import numpy as np
 import os
 import hashlib
 import pickle
-from typing import Dict, List, Tuple, Optional, Union
+import gc
+import psutil
+import tempfile
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional, Union, Iterator
 from datetime import datetime
 from sklearn.preprocessing import StandardScaler
 from utils.env_setup import AppConfig
@@ -74,6 +78,13 @@ class FeatureEmbeddingOrchestrator:
 
         # Initialize caching manager
         self.cache_manager = CacheManager()
+        
+        # Initialize memory monitoring and batch processing settings
+        self.enable_batch_processing = True
+        self.batch_size = 15000  # Default batch size
+        self.batch_threshold = 50000  # Records threshold for batch processing
+        self.memory_monitor = None
+        self.temp_batch_dir = None
 
         # Initialize embedding models (will be fitted later)
         self.horse_embedder = HorseEmbedding(embedding_dim=self.embedding_dim)
@@ -1907,3 +1918,398 @@ class FeatureEmbeddingOrchestrator:
         tabnet_df[feature_cols] = tabnet_df[feature_cols].fillna(0)
 
         return tabnet_df
+        
+    # ===============================
+    # MEMORY MONITORING AND BATCH PROCESSING
+    # ===============================
+    
+    def _init_memory_monitor(self):
+        """Initialize memory monitoring."""
+        if self.memory_monitor is None:
+            self.memory_monitor = MemoryMonitor(self.verbose)
+        return self.memory_monitor
+        
+    def _log_memory(self, stage: str, details: str = ""):
+        """Log memory usage at a specific stage."""
+        if self.memory_monitor:
+            self.memory_monitor.log_memory(stage, details)
+    
+    def _force_cleanup(self, stage: str = ""):
+        """Force garbage collection and log memory."""
+        if self.memory_monitor:
+            self.memory_monitor.force_cleanup(stage)
+        else:
+            gc.collect()
+            
+    def get_total_record_count(self, race_filter=None, date_filter=None) -> int:
+        """Get total number of records that would be processed."""
+        try:
+            with sqlite3.connect(self.sqlite_path) as conn:
+                query = """
+                    SELECT COUNT(*) as total
+                    FROM historical_races hr
+                """
+                
+                where_clauses = []
+                if race_filter:
+                    where_clauses.append(f"hr.typec = '{race_filter}'")
+                if date_filter:
+                    where_clauses.append(date_filter)
+                
+                if where_clauses:
+                    query += " WHERE " + " AND ".join(where_clauses)
+                
+                result = pd.read_sql_query(query, conn)
+                return int(result['total'].iloc[0])
+                
+        except Exception as e:
+            self.log_info(f"Error counting records: {e}")
+            return 0
+            
+    def should_use_batch_processing(self, total_records: int) -> bool:
+        """Determine if batch processing should be used."""
+        return (self.enable_batch_processing and 
+                total_records > self.batch_threshold)
+    
+    def create_temp_batch_dir(self) -> Path:
+        """Create temporary directory for batch files."""
+        if self.temp_batch_dir is None:
+            self.temp_batch_dir = Path(tempfile.mkdtemp(prefix="horse_ai_batch_"))
+        return self.temp_batch_dir
+    
+    def cleanup_temp_batch_dir(self):
+        """Clean up temporary batch directory."""
+        if self.temp_batch_dir and self.temp_batch_dir.exists():
+            import shutil
+            shutil.rmtree(self.temp_batch_dir)
+            self.temp_batch_dir = None
+            self.log_info("Cleaned up temporary batch directory")
+    
+    def load_historical_races_batched(self, 
+                                    limit=None, 
+                                    race_filter=None, 
+                                    date_filter=None, 
+                                    include_results=True,
+                                    use_cache=True) -> pd.DataFrame:
+        """
+        Load historical race data using batch processing for large datasets.
+        
+        Args:
+            limit: Optional limit for number of races to load
+            race_filter: Optional filter for specific race types
+            date_filter: Optional date filter
+            include_results: Whether to join with race results
+            use_cache: Whether to use cached results if available
+            
+        Returns:
+            DataFrame with historical race data and expanded participants
+        """
+        # Initialize memory monitoring
+        monitor = self._init_memory_monitor()
+        monitor.log_memory("BATCH_LOAD_START", "Starting batched data loading")
+        
+        # Check if we should use batch processing
+        total_records = self.get_total_record_count(race_filter, date_filter)
+        if limit:
+            total_records = min(total_records, limit)
+            
+        self.log_info(f"Total records to process: {total_records:,}")
+        
+        if not self.should_use_batch_processing(total_records):
+            self.log_info("Using standard loading (below batch threshold)")
+            return self.load_historical_races(limit, race_filter, date_filter, include_results, use_cache)
+        
+        self.log_info(f"Using batch processing with batch_size={self.batch_size:,}")
+        
+        # Create temporary directory for batch files
+        temp_dir = self.create_temp_batch_dir()
+        
+        try:
+            # Process data in batches
+            batch_files = []
+            offset = 0
+            batch_num = 1
+            processed_records = 0
+            
+            while True:
+                monitor.log_memory(f"BATCH_{batch_num}_START", f"Starting batch {batch_num}")
+                
+                # Calculate batch size for this iteration
+                current_batch_size = self.batch_size
+                if limit:
+                    remaining = limit - processed_records
+                    if remaining <= 0:
+                        break
+                    current_batch_size = min(self.batch_size, remaining)
+                
+                # Load batch from database
+                batch_df = self._load_batch_from_db(
+                    offset, current_batch_size, race_filter, date_filter, include_results
+                )
+                
+                if batch_df.empty:
+                    self.log_info("No more data to process")
+                    break
+                
+                processed_records += len(batch_df)
+                self.log_info(f"Batch {batch_num}: loaded {len(batch_df):,} records "
+                             f"({processed_records:,}/{total_records:,} total)")
+                
+                # Expand participants for this batch
+                expanded_batch = self._expand_participants(batch_df)
+                monitor.log_memory(f"BATCH_{batch_num}_EXPANDED", f"Expanded batch {batch_num}")
+                
+                # Save batch to temporary file
+                batch_file = temp_dir / f"batch_{batch_num:04d}.parquet"
+                expanded_batch.to_parquet(batch_file, index=False)
+                batch_files.append(batch_file)
+                
+                self.log_info(f"Saved batch {batch_num} to {batch_file.name}")
+                
+                # Cleanup batch data from memory
+                del batch_df, expanded_batch
+                monitor.force_cleanup(f"BATCH_{batch_num}")
+                
+                offset += current_batch_size
+                batch_num += 1
+            
+            # Combine all batch files
+            monitor.log_memory("COMBINE_START", "Starting to combine batches")
+            self.log_info(f"Combining {len(batch_files)} batch files...")
+            
+            combined_dfs = []
+            for i, batch_file in enumerate(batch_files, 1):
+                self.log_info(f"Loading batch {i}/{len(batch_files)}: {batch_file.name}")
+                batch_df = pd.read_parquet(batch_file)
+                combined_dfs.append(batch_df)
+                monitor.log_memory(f"COMBINE_BATCH_{i}", f"Loaded batch {i} for combining")
+            
+            # Combine all DataFrames
+            self.log_info("Concatenating all batches...")
+            final_df = pd.concat(combined_dfs, ignore_index=True)
+            
+            # Cleanup
+            del combined_dfs
+            monitor.force_cleanup("COMBINE_COMPLETE")
+            
+            monitor.log_memory("BATCH_LOAD_COMPLETE", "Batch loading completed")
+            self.log_info(f"Batch loading complete: {len(final_df):,} total records")
+            
+            return final_df
+            
+        finally:
+            # Always cleanup temporary files
+            self.cleanup_temp_batch_dir()
+    
+    def _load_batch_from_db(self, offset: int, batch_size: int, race_filter=None, 
+                           date_filter=None, include_results=True) -> pd.DataFrame:
+        """Load a single batch of data from the database."""
+        try:
+            with sqlite3.connect(self.sqlite_path) as conn:
+                # Build query
+                if include_results:
+                    query = """
+                    SELECT hr.*, rr.ordre_arrivee
+                    FROM historical_races hr
+                    LEFT JOIN race_results rr ON hr.comp = rr.comp
+                    """
+                else:
+                    query = "SELECT * FROM historical_races hr"
+                
+                # Build WHERE clause
+                where_clauses = []
+                if race_filter:
+                    where_clauses.append(f"hr.typec = '{race_filter}'")
+                if date_filter:
+                    where_clauses.append(date_filter)
+                
+                if where_clauses:
+                    query += " WHERE " + " AND ".join(where_clauses)
+                
+                # Add ordering and pagination
+                query += f" ORDER BY hr.comp LIMIT {batch_size} OFFSET {offset}"
+                
+                # Execute query and return DataFrame
+                return pd.read_sql_query(query, conn)
+                
+        except Exception as e:
+            self.log_info(f"Error loading batch: {e}")
+            return pd.DataFrame()
+    
+    def prepare_complete_dataset_batched(self, df: pd.DataFrame, use_cache=True) -> pd.DataFrame:
+        """
+        Prepare complete dataset using batch processing for memory efficiency.
+        
+        Args:
+            df: DataFrame with race and participant data
+            use_cache: Whether to use cached results
+            
+        Returns:
+            DataFrame with all processed features
+        """
+        # Initialize memory monitoring
+        monitor = self._init_memory_monitor()
+        monitor.log_memory("PREP_START", "Starting dataset preparation")
+        
+        # Check if we should use batch processing
+        if not self.should_use_batch_processing(len(df)):
+            self.log_info("Using standard dataset preparation (below batch threshold)")
+            return self.prepare_complete_dataset(df, use_cache)
+        
+        self.log_info(f"Using batch processing for dataset preparation")
+        
+        # Create temporary directory for intermediate files
+        temp_dir = self.create_temp_batch_dir()
+        
+        try:
+            # Process data in batches
+            batch_files = []
+            num_batches = (len(df) - 1) // self.batch_size + 1
+            
+            # First, fit embeddings on a sample of the data if not already fitted
+            if not self.embeddings_fitted:
+                self.log_info("Fitting embeddings on sample data...")
+                sample_size = min(50000, len(df))
+                sample_df = df.sample(n=sample_size, random_state=42) if len(df) > sample_size else df
+                self.fit_embeddings(sample_df, use_cache=use_cache)
+                monitor.log_memory("EMBEDDINGS_FITTED", "Embeddings fitted")
+            
+            # Process each batch
+            for batch_num in range(num_batches):
+                start_idx = batch_num * self.batch_size
+                end_idx = min((batch_num + 1) * self.batch_size, len(df))
+                batch_df = df.iloc[start_idx:end_idx].copy()
+                
+                monitor.log_memory(f"BATCH_{batch_num + 1}_START", f"Processing batch {batch_num + 1}/{num_batches}")
+                self.log_info(f"Processing batch {batch_num + 1}/{num_batches}: "
+                             f"{len(batch_df):,} records")
+                
+                # Process features for this batch
+                processed_batch = self.prepare_features(batch_df, use_cache=False)  # Don't cache individual batches
+                monitor.log_memory(f"BATCH_{batch_num + 1}_FEATURES", f"Features prepared for batch {batch_num + 1}")
+                
+                # Apply embeddings
+                embedded_batch = self.apply_embeddings(processed_batch, use_cache=False)
+                monitor.log_memory(f"BATCH_{batch_num + 1}_EMBEDDINGS", f"Embeddings applied for batch {batch_num + 1}")
+                
+                # Save batch to temporary file
+                batch_file = temp_dir / f"processed_batch_{batch_num + 1:04d}.parquet"
+                embedded_batch.to_parquet(batch_file, index=False)
+                batch_files.append(batch_file)
+                
+                self.log_info(f"Saved processed batch {batch_num + 1} to {batch_file.name}")
+                
+                # Cleanup batch data from memory
+                del batch_df, processed_batch, embedded_batch
+                monitor.force_cleanup(f"BATCH_{batch_num + 1}")
+            
+            # Combine all processed batches
+            monitor.log_memory("COMBINE_START", "Starting to combine processed batches")
+            self.log_info(f"Combining {len(batch_files)} processed batch files...")
+            
+            combined_dfs = []
+            for i, batch_file in enumerate(batch_files, 1):
+                self.log_info(f"Loading processed batch {i}/{len(batch_files)}: {batch_file.name}")
+                batch_df = pd.read_parquet(batch_file)
+                combined_dfs.append(batch_df)
+                monitor.log_memory(f"COMBINE_BATCH_{i}", f"Loaded processed batch {i}")
+            
+            # Combine all DataFrames
+            self.log_info("Concatenating all processed batches...")
+            final_df = pd.concat(combined_dfs, ignore_index=True)
+            
+            # Cleanup intermediate data
+            del combined_dfs
+            monitor.force_cleanup("COMBINE_COMPLETE")
+            
+            monitor.log_memory("PREP_COMPLETE", "Dataset preparation completed")
+            self.log_info(f"Batch processing complete: {len(final_df):,} total records, "
+                         f"{len(final_df.columns)} features")
+            
+            # Cache the final result if requested
+            if use_cache:
+                try:
+                    cache_key = self._generate_cache_key('batched_complete_dataset', {
+                        'data_shape': df.shape,
+                        'batch_size': self.batch_size
+                    })
+                    self.cache_manager.save_dataframe(final_df, cache_key)
+                except Exception as e:
+                    self.log_info(f"Warning: Could not cache batched results: {e}")
+            
+            return final_df
+            
+        finally:
+            # Always cleanup temporary files
+            self.cleanup_temp_batch_dir()
+            
+    def get_memory_summary(self) -> dict:
+        """Get summary of memory usage throughout processing."""
+        if self.memory_monitor:
+            return self.memory_monitor.get_memory_summary()
+        return {}
+
+
+class MemoryMonitor:
+    """Monitor memory usage throughout batch processing."""
+    
+    def __init__(self, verbose=False):
+        self.verbose = verbose
+        try:
+            self.process = psutil.Process(os.getpid())
+            self.peak_memory = 0
+            self.memory_logs = []
+        except ImportError:
+            self.process = None
+            
+    def get_memory_usage(self) -> dict:
+        """Get current memory usage in MB."""
+        if not self.process:
+            return {'rss_mb': 0, 'vms_mb': 0, 'percent': 0}
+            
+        try:
+            memory_info = self.process.memory_info()
+            usage = {
+                'rss_mb': memory_info.rss / 1024 / 1024,
+                'vms_mb': memory_info.vms / 1024 / 1024,
+                'percent': self.process.memory_percent()
+            }
+            
+            if usage['rss_mb'] > self.peak_memory:
+                self.peak_memory = usage['rss_mb']
+                
+            return usage
+        except:
+            return {'rss_mb': 0, 'vms_mb': 0, 'percent': 0}
+    
+    def log_memory(self, stage: str, details: str = ""):
+        """Log memory usage at a specific stage."""
+        usage = self.get_memory_usage()
+        log_entry = {
+            'timestamp': datetime.now(),
+            'stage': stage,
+            'details': details,
+            'memory_mb': usage['rss_mb'],
+            'memory_percent': usage['percent']
+        }
+        self.memory_logs.append(log_entry)
+        
+        if self.verbose:
+            print(f"[MEMORY-{stage}] {usage['rss_mb']:.1f}MB ({usage['percent']:.1f}%) - {details}")
+    
+    def force_cleanup(self, stage: str = ""):
+        """Force garbage collection and log memory."""
+        self.log_memory(f"PRE_GC_{stage}")
+        gc.collect()
+        self.log_memory(f"POST_GC_{stage}")
+    
+    def get_memory_summary(self) -> dict:
+        """Get summary of memory usage."""
+        if not self.memory_logs:
+            return {}
+            
+        return {
+            'peak_memory_mb': self.peak_memory,
+            'final_memory_mb': self.memory_logs[-1]['memory_mb'] if self.memory_logs else 0,
+            'total_stages': len(self.memory_logs)
+        }
