@@ -83,24 +83,55 @@ class HorseRaceModel:
     def load_and_prepare_data(self, limit: Optional[int] = None,
                               race_filter: Optional[str] = None,
                               date_filter: Optional[str] = None) -> Dict[str, Any]:
-        """Load and prepare complete dataset once."""
+        """Load and prepare complete dataset once with memory-efficient batch processing."""
 
-        self.log_info("Loading historical race data...")
-
-        # Load historical data
-        df_historical = self.orchestrator.load_historical_races(
-            limit=limit,
-            race_filter=race_filter,
-            date_filter=date_filter,
-            use_cache=True
-        )
-
-        # Prepare complete dataset with ALL features
-        self.log_info("Preparing complete feature set...")
-        self.complete_df = self.orchestrator.prepare_complete_dataset(
-            df_historical,
-            use_cache=True
-        )
+        # Check total records and decide on processing strategy
+        total_records = self.orchestrator.get_total_record_count(race_filter, date_filter)
+        if limit:
+            total_records = min(total_records, limit)
+            
+        self.log_info(f"Processing strategy decision: {total_records:,} records")
+        
+        if self.orchestrator.should_use_batch_processing(total_records):
+            self.log_info(f"Using memory-efficient batch processing for {total_records:,} records")
+            
+            # Load historical data with batch processing
+            df_historical = self.orchestrator.load_historical_races_batched(
+                limit=limit,
+                race_filter=race_filter,
+                date_filter=date_filter,
+                use_cache=True
+            )
+            
+            # Prepare complete dataset with batch processing
+            self.log_info("Preparing complete feature set with batch processing...")
+            self.complete_df = self.orchestrator.prepare_complete_dataset_batched(
+                df_historical,
+                use_cache=True
+            )
+            
+        else:
+            self.log_info("Using standard processing for smaller dataset")
+            
+            # Load historical data (standard way)
+            df_historical = self.orchestrator.load_historical_races(
+                limit=limit,
+                race_filter=race_filter,
+                date_filter=date_filter,
+                use_cache=True
+            )
+            
+            # Prepare complete dataset (standard way)
+            self.log_info("Preparing complete feature set...")
+            self.complete_df = self.orchestrator.prepare_complete_dataset(
+                df_historical,
+                use_cache=True
+            )
+        
+        # Log memory usage summary if available
+        memory_summary = self.orchestrator.get_memory_summary()
+        if memory_summary:
+            self.log_info(f"Memory usage summary: Peak {memory_summary.get('peak_memory_mb', 0):.1f}MB")
 
         self.log_info(
             f"Complete dataset prepared: {len(self.complete_df)} records, {len(self.complete_df.columns)} features")
@@ -108,7 +139,8 @@ class HorseRaceModel:
         return {
             'status': 'success',
             'records': len(self.complete_df),
-            'features': len(self.complete_df.columns)
+            'features': len(self.complete_df.columns),
+            'memory_summary': memory_summary
 #            'races': self.complete_df['comp'].nunique()
         }
 
