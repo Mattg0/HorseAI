@@ -250,7 +250,7 @@ main() {
     if [ -d "$PROJECT_DIR" ]; then
         echo -e "${YELLOW}⚠️ Directory $PROJECT_DIR already exists. Updating...${NC}"
         cd "$PROJECT_DIR"
-        git pull origin main || echo -e "${YELLOW}⚠️ Git pull failed, continuing...${NC}"
+        git pull origin fastforward-neural-net || echo -e "${YELLOW}⚠️ Git pull failed, continuing...${NC}"
         cd ..
     else
         git clone "$REPO_URL" "$PROJECT_DIR"
