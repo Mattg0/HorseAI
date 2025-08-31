@@ -190,9 +190,11 @@ class HorseRaceModel:
         alternative_results = {}
         if ALTERNATIVE_MODELS_AVAILABLE and self.alt_models_enabled:
             self.log_info("Training alternative models...")
+            print(f"[DEBUG-ALT] Starting alternative models training with models: {self.alt_models_enabled}")
             alternative_results = self._train_alternative_models(
                 X_sequences, X_static, y_lstm, test_size, random_state
             )
+            print(f"[DEBUG-ALT] Alternative models training completed")
 
         # Step 7: Compile complete results
         training_time = (datetime.now() - start_time).total_seconds()
