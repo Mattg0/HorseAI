@@ -166,15 +166,15 @@ run_training() {
 
     # Check if training script exists
     if [ ! -f "training_race_model.py" ]; then
-        echo -e "${RED}❌ training_race_model.py not found${NC}"
+        echo -e "${RED}❌ train_race_model.py not found${NC}"
         return 1
     fi
 
     # Run training with output capture
-    echo -e "${BLUE}🚀 Executing: python training_race_model.py${NC}"
+    echo -e "${BLUE}🚀 Executing: python train_race_model.py${NC}"
 
     # Run training and capture output
-    if python3 training_race_model.py; then
+    if python3 train_race_model.py; then
         echo -e "${GREEN}✅ Training completed successfully${NC}"
         return 0
     else
