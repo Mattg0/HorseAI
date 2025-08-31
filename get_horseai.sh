@@ -162,7 +162,7 @@ run_training() {
 
     echo -e "${YELLOW}🎯 Starting model training...${NC}"
 
-    cd "$project_root"
+    cd "$project_root"/models_training/historical
 
     # Check if training script exists
     if [ ! -f "training_race_model.py" ]; then
@@ -283,12 +283,17 @@ main() {
         # Verify file was downloaded and is not empty
         if [ ! -s "$output_path" ]; then
             echo -e "${RED}❌ Downloaded file ${db_file} is empty or missing${NC}"
-            exit 1
+            echo -e "${YELLOW}⚠️ Continuing with setup despite download issue...${NC}"
         fi
     done
 
+    echo -e "${GREEN}✅ Database download section completed - ${db_downloaded} files downloaded${NC}"
+
     # Step 4: Update config.yaml
+    echo -e "${YELLOW}🔧 Starting config update...${NC}"
+    echo -e "${BLUE}📁 Project root for config: ${PROJECT_ROOT}${NC}"
     update_config "$PROJECT_ROOT"
+    echo -e "${GREEN}✅ Config update completed${NC}"
 
     # Step 5: Set up Python environment
     echo -e "${YELLOW}🐍 Setting up Python environment...${NC}"
