@@ -162,7 +162,7 @@ run_training() {
 
     echo -e "${YELLOW}🎯 Starting model training...${NC}"
 
-    cd "$project_root"/models_training/historical
+    cd "$project_root"/model_training/historical
 
     # Check if training script exists
     if [ ! -f "training_race_model.py" ]; then
