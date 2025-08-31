@@ -15,7 +15,7 @@ REPO_URL="https://github.com/Mattg0/HorseAI.git"
 PROJECT_DIR="HorseAI"
 
 # MinIO S3 Configuration
-S3_ENDPOINT="https://buckets.mattgautier.fr"
+S3_ENDPOINT="https://bucket.mattgautier.fr"
 S3_ACCESS_KEY="72nPfRGm6KSYKzNt9HvC"
 S3_SECRET_KEY="erUfnRCp4qT1v87ffk8VI2NsnrpOrstEBWqCl1wL"
 S3_DB_BUCKET="databases"
