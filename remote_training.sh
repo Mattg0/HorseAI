@@ -4,10 +4,10 @@
 set -e
 
 # Configuration
-FILTER='reliability > 0.98 gpu_ram >= 10 dph < 0.3 cuda_vers >= 12.0 gpu_name != RTX_5070 gpu_name != RTX_5080 gpu_name != RTX_5090'
-DOCKER_IMAGE="pytorch/pytorch"
+FILTER='reliability > 0.98 gpu_ram >= 10 dph < 0.3 cuda_vers >= 12.0 gpu_name != RTX_5070 gpu_name != RTX_5080 gpu_name != RTX_5090 geolocation != China'
+DOCKER_IMAGE="pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel"
 DISK_SIZE="32"
-SETUP_SCRIPT_URL="https://raw.githubusercontent.com/Mattg0/HorseAI/main/setup_horseai.sh"
+SETUP_SCRIPT_URL="https://raw.githubusercontent.com/Mattg0/HorseAI/refs/heads/fastforward-neural-net/get_horseai.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -129,9 +129,9 @@ execute_remote_command() {
     local host=$(echo $ssh_url | sed 's|ssh://root@||' | sed 's|:.*||')
     local port=$(echo $ssh_url | sed 's|.*:||')
 
-    echo -e "${BLUE}Executing on $host:$port${NC}"
+    echo -e "${BLUE}Executing on $host:$port: $command${NC}"
 
-    # Execute the command
+    # Execute the command with proper quoting
     ssh -i ~/.ssh/vastai_key -o BatchMode=yes -o StrictHostKeyChecking=no -T -p $port root@$host "$command"
     return $?
 }
@@ -142,36 +142,20 @@ max_setup_attempts=10
 setup_attempt=0
 setup_success=false
 
-while [ $setup_attempt -lt $max_setup_attempts ] && [ "$setup_success" = false ]; do
-    echo -e "${BLUE}Setup attempt $((setup_attempt + 1))/$max_setup_attempts...${NC}"
+echo -e "${YELLOW}📥 Downloading and executing setup script...${NC}"
 
-    # Execute setup script remotely
-    setup_output=$(execute_remote_command "$ssh_url" "curl -sSL $SETUP_SCRIPT_URL | bash" 2>&1)
-    ssh_exit_code=$?
+execute_remote_command "$ssh_url" "
+wget -O /tmp/setup.sh $SETUP_SCRIPT_URL &&
+chmod +x /tmp/setup.sh &&
+/tmp/setup.sh
+"
 
-    # Check for authentication/permission issues
-    if echo "$setup_output" | grep -q "Permission denied\|authentication fail\|Connection refused"; then
-        echo -e "${YELLOW}⚠️  Connection failed, retrying in 15 seconds...${NC}"
-        setup_attempt=$((setup_attempt + 1))
-        sleep 15
-        continue
-    elif [ $ssh_exit_code -eq 0 ]; then
-        echo -e "${GREEN}✅ Setup script executed successfully!${NC}"
-        setup_success=true
-        break
-    else
-        echo -e "${RED}❌ Setup script failed with exit code $ssh_exit_code${NC}"
-        echo "Output: $setup_output"
-        setup_attempt=$((setup_attempt + 1))
-        sleep 10
-    fi
-done
-
-if [ "$setup_success" = false ]; then
-    echo -e "${RED}❌ Setup script failed after $max_setup_attempts attempts${NC}"
-    echo "Last output: $setup_output"
-    exit 1
+if [ $? -ne 0 ]; then
+   echo -e "${RED}❌ Setup script failed${NC}"
+   exit 1
 fi
+
+echo -e "${GREEN}✅ Setup script executed successfully!${NC}"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}🎉 Deployment completed successfully!${NC}"
