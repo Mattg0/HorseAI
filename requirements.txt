@@ -2,7 +2,6 @@ fastparquet==2024.11.0
 joblib==1.4.2
 matplotlib==3.10.5
 mysql_connector_repackaged==0.3.1
-numpy==2.3.2
 pandas==2.3.2
 plotly==6.2.0
 pydantic==2.11.7
