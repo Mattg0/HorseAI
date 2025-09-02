@@ -149,7 +149,9 @@ execute_remote_command() {
     ssh -i ~/.ssh/vastai_key -o BatchMode=yes -o StrictHostKeyChecking=no -T -p $port root@$host "$command"
     return $?
 }
-
+execute_remote_command "$ssh_url" "
+pip install tensorflow[and-cuda]==2.13.0
+"
 # Step 6: Execute setup script with retry logic
 echo -e "${YELLOW}📥 Downloading and executing setup script...${NC}"
 max_setup_attempts=10
