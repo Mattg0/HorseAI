@@ -9,6 +9,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from tensorflow.keras.callbacks import EarlyStopping
+import platform
+import os
+
+# Disable GPU on M1 processors to avoid hanging
+if platform.processor() == 'arm' or 'arm64' in platform.machine().lower():
+    print("[DEBUG-GPU] M1/ARM processor detected, disabling GPU for TensorFlow")
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'false'
+
 from utils.env_setup import AppConfig, get_sqlite_dbpath
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from model_training.regressions.isotonic_calibration import CalibratedRegressor

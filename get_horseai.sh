@@ -23,15 +23,17 @@ S3_MODELS_BUCKET="models"
 
 # Database files to download
 DB_FILES=(
-    "hippique2.db"
-    "test_lite.db"
+    "hippique2.db.gz"
 )
 
 echo -e "${BLUE}🚀 Starting HorseAI Setup with MinIO and Training...${NC}"
 
 # Function to detect environment
 detect_environment() {
-    if [ -n "$VAST_CONTAINERLABEL" ]; then
+    # Check for vast.ai indicators (more reliable than VAST_CONTAINERLABEL)
+    if [ -n "$NVIDIA_VISIBLE_DEVICES" ] && [ -n "$CUDA_VERSION" ] && [ "$NVIDIA_VISIBLE_DEVICES" = "all" ]; then
+        echo "vast.ai"
+    elif [ -n "$VAST_CONTAINERLABEL" ]; then
         echo "vast.ai"
     else
         echo "localhost"
@@ -103,7 +105,7 @@ download_from_minio() {
     echo -e "${YELLOW}📥 Downloading ${filename} from MinIO...${NC}"
 
     # Download with progress bar
-    mc cp "horseai/$bucket/$filename" "$output_path"
+    mc cp "horseai/$bucket/$filename" "$output_path" --zip
 
     if [ $? -eq 0 ] && [ -s "$output_path" ]; then
         local file_size=$(du -h "$output_path" | cut -f1)
