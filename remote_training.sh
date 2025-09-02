@@ -4,7 +4,7 @@
 set -e
 
 # Configuration
-FILTER='reliability > 0.98 gpu_ram >= 10 dph < 0.3 cuda_vers >= 12.0 gpu_name != RTX_5070 gpu_name != RTX_5080 gpu_name != RTX_5090 geolocation != China'
+FILTER='reliability > 0.98 gpu_ram >= 10 dph < 0.3 cuda_vers >= 12.0 gpu_name != RTX_5070 gpu_name != RTX_5080 gpu_name != RTX_5090 geolocation != China geolocation != India geolocation != Russia'
 DOCKER_IMAGE="pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel"
 DISK_SIZE="32"
 SETUP_SCRIPT_URL="https://raw.githubusercontent.com/Mattg0/HorseAI/refs/heads/fastforward-neural-net/get_horseai.sh"
@@ -18,22 +18,36 @@ NC='\033[0m'
 VASTAI="conda run -n vastai vastai"
 echo -e "${BLUE}🚀 Starting automated vast.ai deployment...${NC}"
 
-# Step 1: Search for offers using curl API and extract first offer ID
+# Step 1: Search for offers using vastai CLI with filter
 echo -e "${YELLOW}Searching for suitable offers...${NC}"
+echo -e "${BLUE}Using filter: $FILTER${NC}"
 
-offer_data=$(curl -s -X POST \
-   -d '{"verified": {"eq": true}, "external": {"eq": false}, "rentable": {"eq": true}, "rented": {"eq": false}, "reliability": {"gt": "0.98"}, "gpu_ram": {"gte": 10000.0}, "dph_total": {"lt": "0.3"}, "cpu_ram": {"gte": 24000.0}, "order": [["dph_total", "asc"]], "type": "on-demand", "allocated_storage": 5.0}' \
-   "https://console.vast.ai/api/v0/bundles/?api_key=$API_KEY")
+# Use vastai search and extract offer ID without jq
+search_output=$($VASTAI search offers "$FILTER" --raw)
 
-offer_id=$(echo "$offer_data" | grep -o '"id": [0-9]*' | head -1 | sed 's/"id": //')
+if [ -z "$search_output" ]; then
+    echo -e "${RED}No suitable offers found with filter${NC}"
+    exit 1
+fi
+
+# Extract first offer ID using grep and sed (more reliable than jq for malformed JSON)
+offer_id=$(echo "$search_output" | grep -o '"id": *[0-9][0-9]*' | head -1 | sed 's/"id": *//')
 
 if [ -z "$offer_id" ]; then
-    echo -e "${RED}No suitable offers found${NC}"
-    echo "API Response: $(echo "$offer_data" | head -200)"
+    echo -e "${RED}Could not extract offer ID from search result${NC}"
+    echo -e "${YELLOW}First 200 characters of response:${NC}"
+    echo "$search_output" | head -c 200
     exit 1
 fi
 
 echo -e "${GREEN}Found offer ID: $offer_id${NC}"
+
+# Extract additional details without jq
+gpu_name=$(echo "$search_output" | grep -o '"gpu_name": *"[^"]*"' | head -1 | sed 's/"gpu_name": *"//' | sed 's/"//')
+dph_total=$(echo "$search_output" | grep -o '"dph_total": *[0-9.]*' | head -1 | sed 's/"dph_total": *//')
+geolocation=$(echo "$search_output" | grep -o '"geolocation": *"[^"]*"' | head -1 | sed 's/"geolocation": *"//' | sed 's/"//')
+
+echo -e "${BLUE}Selected offer: GPU: $gpu_name, Price: \$$dph_total/hour, Location: $geolocation${NC}"
 
 # Step 2: Create instance
 echo -e "${YELLOW}🏗️ Creating instance...${NC}"

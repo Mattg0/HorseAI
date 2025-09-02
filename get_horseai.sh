@@ -241,55 +241,68 @@ main() {
     # Set project root based on environment
     if [ "$env_type" = "vast.ai" ]; then
         PROJECT_ROOT="/workspace/$PROJECT_DIR"
+        echo "PROJECT_ROOT: ${PROJECT_ROOT}${NC}"
     else
         PROJECT_ROOT="$(pwd)/$PROJECT_DIR"
+        echo "PROJECT_ROOT: ${PROJECT_ROOT}${NC}"
     fi
 
     echo -e "${BLUE}📁 Project will be set up at: ${PROJECT_ROOT}${NC}"
 
-    # Step 1: Clone repository
-    echo -e "${YELLOW}📥 Cloning repository...${NC}"
-    if [ -d "$PROJECT_DIR" ]; then
-        echo -e "${YELLOW}⚠️ Directory $PROJECT_DIR already exists. Updating...${NC}"
-        cd "$PROJECT_DIR"
-        git pull origin fastforward-neural-net || echo -e "${YELLOW}⚠️ Git pull failed, continuing...${NC}"
-        cd ..
-    else
-        git clone "$REPO_URL" "$PROJECT_DIR"
+DATA_DIR="$PROJECT_ROOT/data"      # This matches training script expectation
+CONFIG_FILE="$PROJECT_ROOT/config.yaml"
+
+# Step 1: Clone repository to expected location
+echo -e "${YELLOW}📥 Cloning repository...${NC}"
+cd /workspace
+
+if [ -d "$PROJECT_ROOT" ]; then
+    echo -e "${YELLOW}⚠️ Directory $PROJECT_ROOT already exists. Updating...${NC}"
+    cd "$PROJECT_ROOT"
+    git pull origin fastforward-neural-net || echo -e "${YELLOW}⚠️ Git pull failed, continuing...${NC}"
+else
+    git clone "$REPO_URL" "$PROJECT_ROOT"
+    cd "$PROJECT_ROOT"
+fi
+echo -e "${GREEN}✅ Repository ready at $PROJECT_ROOT${NC}"
+
+# Step 2: Create data directory exactly where training script expects it
+mkdir -p "$DATA_DIR"
+echo -e "${BLUE}📁 Data directory created: $DATA_DIR${NC}"
+
+# Step 3: Download databases to the expected location
+echo -e "${YELLOW}💾 Downloading databases from MinIO...${NC}"
+local db_downloaded=0
+for db_file in "${DB_FILES[@]}"; do
+    local output_path="$DATA_DIR/$db_file"  # This will be $PROJECT_ROOT/data/filename
+
+    # Skip if file already exists and is recent
+    if [ -f "$output_path" ]; then
+        local file_age=$(find "$output_path" -mtime -1 2>/dev/null | wc -l)
+        if [ "$file_age" -gt 0 ]; then
+            local file_size=$(du -h "$output_path" | cut -f1)
+            echo -e "${GREEN}✅ ${db_file} is recent (${file_size}), skipping download${NC}"
+            continue
+        fi
     fi
-    echo -e "${GREEN}✅ Repository ready${NC}"
 
-    # Step 2: Create data directory
-    mkdir -p "$PROJECT_ROOT/data"
+    echo -e "${BLUE}📥 Downloading ${db_file} to ${output_path}${NC}"
+    if download_from_minio "$db_file" "$output_path" "$S3_DB_BUCKET"; then
+        ((db_downloaded++))
+    fi
 
-    # Step 3: Download databases from MinIO
-    echo -e "${YELLOW}💾 Downloading databases from MinIO...${NC}"
-    local db_downloaded=0
-    for db_file in "${DB_FILES[@]}"; do
-        local output_path="$PROJECT_ROOT/data/$db_file"
+    # Verify file was downloaded and is not empty
+    if [ ! -s "$output_path" ]; then
+        echo -e "${RED}❌ Downloaded file ${db_file} is empty or missing at ${output_path}${NC}"
+        echo -e "${YELLOW}⚠️ Continuing with setup despite download issue...${NC}"
+    else
+        local file_size=$(du -h "$output_path" | cut -f1)
+        echo -e "${GREEN}✅ ${db_file} downloaded successfully (${file_size})${NC}"
+    fi
+done
 
-        # Skip if file already exists and is recent
-        if [ -f "$output_path" ]; then
-            local file_age=$(find "$output_path" -mtime -1 2>/dev/null | wc -l)
-            if [ "$file_age" -gt 0 ]; then
-                local file_size=$(du -h "$output_path" | cut -f1)
-                echo -e "${GREEN}✅ ${db_file} is recent (${file_size}), skipping download${NC}"
-                continue
-            fi
-        fi
+echo -e "${GREEN}✅ Database download completed - ${db_downloaded} files downloaded to $DATA_DIR${NC}"
 
-        if download_from_minio "$db_file" "$output_path" "$S3_DB_BUCKET"; then
-            ((db_downloaded++))
-        fi
-
-        # Verify file was downloaded and is not empty
-        if [ ! -s "$output_path" ]; then
-            echo -e "${RED}❌ Downloaded file ${db_file} is empty or missing${NC}"
-            echo -e "${YELLOW}⚠️ Continuing with setup despite download issue...${NC}"
-        fi
-    done
-
-    echo -e "${GREEN}✅ Database download section completed - ${db_downloaded} files downloaded${NC}"
 
     # Step 4: Update config.yaml
     echo -e "${YELLOW}🔧 Starting config update...${NC}"
