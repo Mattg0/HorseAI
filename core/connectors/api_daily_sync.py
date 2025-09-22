@@ -14,6 +14,9 @@ from core.transformers.daily_race_transformer import RaceDataConverter
 # Import AppConfig for environment configuration
 from utils.env_setup import AppConfig
 
+# Import enhanced API manager for multi-endpoint data collection
+from core.connectors.enhanced_api_manager import EnhancedAPIManager
+
 
 class RaceFetcher:
     """
@@ -24,8 +27,8 @@ class RaceFetcher:
 
     def __init__(self,
                  db_name: str = None,
-                 api_uid: str = "8cdfGeF4pHeSOPv05dPnVyGaghL2",
-                 api_base_url: str = "https://api.aspiturf.com/api",
+                 api_uid: str = "EhBCnKDamDfLkYJJjhWLf47xT7j1",
+                 api_base_url: str = "https://aspiturf.com/api/api",
                  #api_base_url: str = "https://horseai.free.beeceptor.com/api",
                  verbose: bool = False):
         """
@@ -61,6 +64,13 @@ class RaceFetcher:
 
         # Initialize the RaceDataConverter for preprocessing
         self.converter = RaceDataConverter(self.db_path)
+
+        # Initialize enhanced API manager for multi-endpoint collection
+        self.enhanced_api = EnhancedAPIManager(
+            api_uid=api_uid,
+            api_base_url=api_base_url,
+            verbose=verbose
+        )
 
         # Initialize database
         self._ensure_database()
@@ -105,7 +115,7 @@ class RaceFetcher:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        # Create daily_race table
+        # Create daily_race table with enhanced fields
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS daily_race (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,6 +138,16 @@ class RaceFetcher:
             forceVent REAL,                     -- Wind force
             directionVent VARCHAR(50),          -- Wind direction
             nebulosite VARCHAR(100),            -- Cloud cover
+
+            -- Enhanced race-level fields for competitive analysis
+            cheque REAL,                        -- Race purse amount
+            handi_raw VARCHAR(255),             -- Raw handicap classification
+            reclam VARCHAR(50),                 -- Claiming race indicator
+            sex VARCHAR(50),                    -- Sex restrictions
+            tempscourse VARCHAR(100),           -- Race time information
+            handicap_level_score REAL,          -- Derived handicap encoding
+
+            participants JSON,                  -- Enhanced participants data with new fields
             raw_data JSON,                      -- Raw API data for the race
             processed_data JSON,                -- Processed feature data from transformer
             prediction_results JSON,            -- Prediction results (to be filled later)
@@ -147,6 +167,27 @@ class RaceFetcher:
         CREATE INDEX IF NOT EXISTS idx_daily_race_jour ON daily_race(jour)
         ''')
 
+        # Add enhanced fields to existing table if they don't exist
+        cursor.execute("PRAGMA table_info(daily_race)")
+        existing_columns = [row[1] for row in cursor.fetchall()]
+
+        enhanced_fields = {
+            'cheque': 'REAL',
+            'handi_raw': 'VARCHAR(255)',
+            'reclam': 'VARCHAR(50)',
+            'sex': 'VARCHAR(50)',
+            'tempscourse': 'VARCHAR(100)',
+            'handicap_level_score': 'REAL'
+        }
+
+        for field_name, field_type in enhanced_fields.items():
+            if field_name not in existing_columns:
+                try:
+                    cursor.execute(f"ALTER TABLE daily_race ADD COLUMN {field_name} {field_type}")
+                    self.logger.info(f"Added enhanced field: {field_name}")
+                except Exception as e:
+                    self.logger.warning(f"Could not add field {field_name}: {str(e)}")
+
         conn.commit()
         conn.close()
         self.logger.info("Database structure ensured")
@@ -161,7 +202,7 @@ class RaceFetcher:
         Returns:
             Complete API URL
         """
-        return f"{self.api_base_url}?uid={self.api_uid}&jour[]={date}"
+        return f"{self.api_base_url}?jour={date}&uid={self.api_uid}"
         #return "https://e7aaf339-293a-45ba-a477-c03d02480312.mock.pstmn.io"
 
     def fetch_races(self, date: str = None) -> Dict:
@@ -226,6 +267,47 @@ class RaceFetcher:
 
         return races
 
+    def _calculate_handicap_encoding(self, handi_raw: str) -> float:
+        """
+        Calculate handicap level score from raw handicap classification.
+        Consistent with training pipeline handicap encoding.
+
+        Args:
+            handi_raw: Raw handicap string from API
+
+        Returns:
+            Float representing handicap level score
+        """
+        if not handi_raw or handi_raw.strip() == '':
+            return 0.0
+
+        # Import handicap encoder for consistency with training
+        try:
+            from core.transformers.handicap_encoder import HandicapEncoder
+            encoded_result = HandicapEncoder.parse_handicap_text(handi_raw)
+            return float(encoded_result['handicap_level_score'])
+        except ImportError:
+            # Fallback simple encoding if encoder not available
+            handi_str = str(handi_raw).upper().strip()
+
+            # Simple mapping for common handicap levels
+            simple_mapping = {
+                'LISTE': 5.0,
+                'GROUP': 4.5,
+                'GROUPE': 4.5,
+                'GRADED': 4.0,
+                'HANDICAP': 3.0,
+                'CLAIMING': 2.0,
+                'MAIDEN': 1.0,
+                'CONDITIONS': 3.5
+            }
+
+            for key, value in simple_mapping.items():
+                if key in handi_str:
+                    return value
+
+            return 2.5  # Default middle value
+
     def _extract_race_info(self, participants: List[Dict]) -> Dict:
         """
         Extract race information from participants.
@@ -250,7 +332,7 @@ class RaceFetcher:
             actual_results = "pending"
             self.logger.info(f"Race {numcourse.get('comp')} hasn't happened yet")
 
-        # Create race record for database
+        # Create race record for database with enhanced fields
         race_info = {
             'comp': numcourse.get('comp'),
             'jour': numcourse.get('jour'),
@@ -271,6 +353,15 @@ class RaceFetcher:
             'forceVent': numcourse.get('forceVent'),
             'directionVent': numcourse.get('directionVent'),
             'nebulosite': numcourse.get('nebulositeLibelleCourt'),
+
+            # Enhanced race-level fields for competitive analysis
+            'cheque': float(numcourse.get('cheque', 0)) if numcourse.get('cheque') else None,
+            'handi_raw': numcourse.get('handi'),  # Store raw handicap data
+            'reclam': numcourse.get('reclam'),    # Claiming race indicator
+            'sex': numcourse.get('sex'),          # Sex restrictions
+            'tempscourse': numcourse.get('tempscourse'),  # Race time information
+            'handicap_level_score': self._calculate_handicap_encoding(numcourse.get('handi')),
+
             'actual_results': actual_results
         }
 
@@ -306,14 +397,16 @@ class RaceFetcher:
         self.logger.info(f"Storing race {race_info['comp']} with {participants_json.count('{}')} participant records")
 
         if existing:
-            # Update existing record
+            # Update existing record with enhanced fields
             query = """
             UPDATE daily_race SET
                 jour = ?, hippo = ?, reun = ?, prix = ?, prixnom = ?,
                 typec = ?, partant = ?, dist = ?, handi = ?, groupe = ?,
                 quinte = ?, natpis = ?, meteo = ?, corde = ?,
                 temperature = ?, forceVent = ?, directionVent = ?,
-                nebulosite = ?, participants = ?, actual_results = ?, updated_at = ?
+                nebulosite = ?, cheque = ?, handi_raw = ?, reclam = ?,
+                sex = ?, tempscourse = ?, handicap_level_score = ?,
+                participants = ?, actual_results = ?, updated_at = ?
             WHERE comp = ?
             """
             cursor.execute(query, (
@@ -335,6 +428,12 @@ class RaceFetcher:
                 race_info['forceVent'],
                 race_info['directionVent'],
                 race_info['nebulosite'],
+                race_info['cheque'],
+                race_info['handi_raw'],
+                race_info['reclam'],
+                race_info['sex'],
+                race_info['tempscourse'],
+                race_info['handicap_level_score'],
                 participants_json,
                 actual_results,
                 datetime.datetime.now().isoformat(),
@@ -342,14 +441,15 @@ class RaceFetcher:
             ))
             race_id = existing[0]
         else:
-            # Insert new record with similar fields
+            # Insert new record with enhanced fields
             query = """
             INSERT INTO daily_race (
                 comp, jour, hippo, reun, prix, prixnom, typec, partant,
                 dist, handi, groupe, quinte, natpis, meteo, corde,
                 temperature, forceVent, directionVent, nebulosite,
+                cheque, handi_raw, reclam, sex, tempscourse, handicap_level_score,
                 participants, actual_results, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             cursor.execute(query, (
                 race_info['comp'],
@@ -371,6 +471,12 @@ class RaceFetcher:
                 race_info['forceVent'],
                 race_info['directionVent'],
                 race_info['nebulosite'],
+                race_info['cheque'],
+                race_info['handi_raw'],
+                race_info['reclam'],
+                race_info['sex'],
+                race_info['tempscourse'],
+                race_info['handicap_level_score'],
                 participants_json,
                 actual_results,
                 datetime.datetime.now().isoformat()
@@ -565,6 +671,234 @@ class RaceFetcher:
                          f"{successful} successful, {failed} failed, {skipped} skipped")
 
         return summary
+
+    def fetch_and_store_enhanced_daily_races(self, date: str = None) -> Dict:
+        """
+        Enhanced daily race collection using multi-endpoint API strategy.
+        Provides comprehensive data collection with intelligent API usage.
+
+        Args:
+            date: Date string in format YYYY-MM-DD (default: today)
+
+        Returns:
+            Dictionary with enhanced collection results
+        """
+        # Use today's date if none provided
+        if date is None:
+            date = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        try:
+            # Step 1: Enhanced multi-endpoint data collection
+            self.logger.info(f"Starting enhanced collection for {date}")
+            collection_result = self.enhanced_api.enhanced_race_collection(date)
+
+            if collection_result['status'] != 'success':
+                return collection_result
+
+            # Step 2: Process enhanced data for each race
+            enhanced_data = collection_result['enhanced_data']
+            results = []
+
+            for comp, race_data in enhanced_data.items():
+                try:
+                    # Extract participants with potential supplementary data integration
+                    participants = race_data['participants']
+                    supplementary_data = race_data.get('supplementary_data', {})
+
+                    # Merge supplementary data into participants
+                    enhanced_participants = self._merge_supplementary_data(
+                        participants, supplementary_data
+                    )
+
+                    # Process the enhanced race data
+                    processed_result = self.process_race(enhanced_participants)
+
+                    if processed_result['status'] == 'error':
+                        self.logger.warning(f"Failed to process enhanced race {comp}: {processed_result.get('error')}")
+                        results.append({
+                            'comp': comp,
+                            'status': 'error',
+                            'error': processed_result.get('error', 'Unknown processing error')
+                        })
+                        continue
+
+                    # Filter - Check if race is in France
+                    hippo = processed_result['race_info'].get('hippo', 'Unknown')
+                    if not self.is_race_in_france(hippo):
+                        self.logger.info(f"Enhanced race {comp} at {hippo} skipped as it is not in France")
+                        results.append({
+                            'comp': comp,
+                            'status': 'skipped',
+                            'reason': 'not_in_france',
+                            'hippo': hippo
+                        })
+                        continue
+
+                    # Store enhanced race data
+                    race_id = self.store_race(processed_result['race_info'])
+
+                    # Build result object with enhancement info
+                    result = {
+                        'race_id': race_id,
+                        'comp': comp,
+                        'hippo': hippo,
+                        'prix': processed_result['race_info'].get('prix', 'Unknown'),
+                        'partant': processed_result['race_info'].get('partant', 0),
+                        'status': 'success',
+                        'enhanced': True,
+                        'supplementary_data_count': len(supplementary_data)
+                    }
+
+                    # Add feature count if available
+                    if processed_result['processed_df'] is not None:
+                        result['feature_count'] = len(processed_result['processed_df'].columns)
+
+                    results.append(result)
+                    self.logger.info(f"Stored enhanced race {comp} with {result.get('feature_count', 0)} features "
+                                   f"and {len(supplementary_data)} supplementary data sources")
+
+                except Exception as e:
+                    self.logger.error(f"Error processing enhanced race {comp}: {str(e)}")
+                    results.append({
+                        'comp': comp,
+                        'status': 'error',
+                        'error': str(e)
+                    })
+
+            # Generate enhanced summary
+            successful = sum(1 for r in results if r['status'] == 'success')
+            failed = sum(1 for r in results if r['status'] == 'error')
+            skipped = sum(1 for r in results if r['status'] == 'skipped')
+
+            # Get collection statistics
+            collection_stats = self.enhanced_api.get_collection_statistics(collection_result)
+
+            summary = {
+                'date': date,
+                'total_races': len(results),
+                'successful': successful,
+                'failed': failed,
+                'skipped': skipped,
+                'enhanced_collection': True,
+                'api_calls_used': collection_result.get('api_calls', 0),
+                'collection_time': collection_result.get('collection_time_seconds', 0),
+                'collection_statistics': collection_stats,
+                'races': results
+            }
+
+            self.logger.info(f"Completed enhanced processing races for {date}: "
+                           f"{successful} successful, {failed} failed, {skipped} skipped "
+                           f"using {collection_result.get('api_calls', 0)} API calls")
+
+            return summary
+
+        except Exception as e:
+            self.logger.error(f"Error in enhanced daily race collection: {str(e)}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+
+            return {
+                'date': date,
+                'status': 'error',
+                'error': str(e),
+                'enhanced_collection': False,
+                'total_races': 0,
+                'successful': 0,
+                'failed': 0,
+                'skipped': 0,
+                'races': []
+            }
+
+    def _merge_supplementary_data(self, participants: List[Dict], supplementary_data: Dict) -> List[Dict]:
+        """
+        Merge supplementary API data into participant records for enhanced features.
+
+        Args:
+            participants: Original participant data
+            supplementary_data: Additional data from multiple API endpoints
+
+        Returns:
+            Enhanced participant list with merged supplementary data
+        """
+        enhanced_participants = []
+
+        for participant in participants:
+            enhanced_participant = participant.copy()
+            participant_id = participant.get('idche')
+            jockey_id = participant.get('idJockey')
+
+            # Merge horse career data if available
+            if participant_id and f'horse_{participant_id}' in supplementary_data:
+                horse_data = supplementary_data[f'horse_{participant_id}']
+                enhanced_participant = self._merge_horse_career_data(enhanced_participant, horse_data)
+
+            # Merge jockey context data if available
+            if jockey_id and f'jockey_{jockey_id}' in supplementary_data:
+                jockey_data = supplementary_data[f'jockey_{jockey_id}']
+                enhanced_participant = self._merge_jockey_context_data(enhanced_participant, jockey_data)
+
+            # Add race-level supplementary context
+            if 'course_details' in supplementary_data:
+                course_data = supplementary_data['course_details']
+                enhanced_participant = self._merge_race_context_data(enhanced_participant, course_data)
+
+            enhanced_participants.append(enhanced_participant)
+
+        return enhanced_participants
+
+    def _merge_horse_career_data(self, participant: Dict, horse_data: Dict) -> Dict:
+        """Merge detailed horse career data into participant record."""
+        enhanced = participant.copy()
+
+        # Map career data fields (if missing in original data)
+        career_mappings = {
+            'totalRaces': 'coursescheval',
+            'totalWins': 'victoirescheval',
+            'totalPlaces': 'placescheval',
+            'careerEarnings': 'gainsCarriere',
+            'recentForm': 'musiqueche',
+            'recordTime': 'recordG'
+        }
+
+        for api_field, std_field in career_mappings.items():
+            if api_field in horse_data and (not enhanced.get(std_field) or enhanced.get(std_field) == ''):
+                enhanced[std_field] = horse_data[api_field]
+
+        return enhanced
+
+    def _merge_jockey_context_data(self, participant: Dict, jockey_data: Dict) -> Dict:
+        """Merge jockey performance context into participant record."""
+        enhanced = participant.copy()
+
+        # Map jockey data fields
+        jockey_mappings = {
+            'recentForm': 'musiquejoc',
+            'winRate': 'pourcVictJockHippo',
+            'placeRate': 'pourcPlaceJockHippo'
+        }
+
+        for api_field, std_field in jockey_mappings.items():
+            if api_field in jockey_data and (not enhanced.get(std_field) or enhanced.get(std_field) == ''):
+                enhanced[std_field] = jockey_data[api_field]
+
+        return enhanced
+
+    def _merge_race_context_data(self, participant: Dict, course_data: Dict) -> Dict:
+        """Merge additional race context data into participant record."""
+        enhanced = participant.copy()
+
+        # Add race-level enhancements that might be missing
+        race_mappings = {
+            'trackRecord': 'trackRecord',
+            'raceTime': 'tempscourse',
+            'purseDetails': 'cheque'
+        }
+
+        for api_field, std_field in race_mappings.items():
+            if api_field in course_data:
+                enhanced[std_field] = course_data[api_field]
+
+        return enhanced
 
     def is_race_in_france(self, hippo: str) -> bool:
         conn = sqlite3.connect(self.db_path)

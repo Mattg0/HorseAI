@@ -4,24 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="fix batching type issue">
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="New Training - no LSTM/FeedForward">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UI/UIApp.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIApp.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UI/UIhelper.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIhelper.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/connectors/sqlite_historical_writer.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/sqlite_historical_writer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/storage/prediction_storage.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/storage/prediction_storage.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/transformers/historical_race_transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/transformers/historical_race_transformer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_training/models/feedforward_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/models/feedforward_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/transformers/daily_race_transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/transformers/daily_race_transformer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lstmdebug.py" beforeDir="false" afterPath="$PROJECT_DIR$/lstmdebug.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/env_setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/env_setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/data_visualizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/data_visualizer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/model_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/model_manager.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -594,7 +586,15 @@
       <option name="project" value="LOCAL" />
       <updated>1756808202879</updated>
     </task>
-    <option name="localTasksCounter" value="42" />
+    <task id="LOCAL-00042" summary="New Training - no LSTM/FeedForward">
+      <option name="closed" value="true" />
+      <created>1758539337651</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1758539337651</updated>
+    </task>
+    <option name="localTasksCounter" value="43" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -616,7 +616,8 @@
     <MESSAGE value="Well... Final Version!!" />
     <MESSAGE value="deploy script + trining output" />
     <MESSAGE value="fix batching type issue" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix batching type issue" />
+    <MESSAGE value="New Training - no LSTM/FeedForward" />
+    <option name="LAST_COMMIT_MESSAGE" value="New Training - no LSTM/FeedForward" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -658,17 +659,17 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
-          <line>719</line>
+          <line>1053</line>
           <option name="timeStamp" value="359" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
-          <line>722</line>
+          <line>1056</line>
           <option name="timeStamp" value="360" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
-          <line>720</line>
+          <line>1054</line>
           <option name="timeStamp" value="361" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">

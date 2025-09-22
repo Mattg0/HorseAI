@@ -103,9 +103,9 @@ class VisualizationUtility:
                 print("No version folders found, using model path directly")
 
         # Paths for model files
-        self.rf_model_path = version_path / "hybrid_rf_model.joblib"
+        self.rf_model_path = version_path / "rf_model.joblib"
         self.lstm_model_path = version_path / "hybrid_lstm_model"
-        self.feature_engineer_path = version_path / "hybrid_feature_engineer.joblib"
+        self.feature_engineer_path = version_path / "feature_engineer.joblib"
         self.config_path = version_path / "model_config.json"
 
         # Load model configuration

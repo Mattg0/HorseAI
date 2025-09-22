@@ -86,7 +86,7 @@ class RacePredictor:
             print(f"RacePredictor initialized")
             print(f"  Model: {self.model_path}")
             print(f"  Database: {self.db_path}")
-            print(f"  Legacy weights: RF={self.rf_weight:.1f}, LSTM={self.lstm_weight:.1f}, TabNet={self.tabnet_weight:.1f}")
+            print(f"  Legacy weights: RF={self.rf_weight:.1f}, TabNet={self.tabnet_weight:.1f}")
             print(f"  Legacy models loaded: RF={self.rf_model is not None}, LSTM={self.lstm_model is not None}, TabNet={self.tabnet_model is not None}")
             if hasattr(self, 'alternative_models') and self.alternative_models:
                 alt_loaded = [name for name, model in self.alternative_models.items() if model is not None]
@@ -130,26 +130,27 @@ class RacePredictor:
                 self.model_config = json.load(f)
                 # Get blend weights from model config or use default
                 training_results = self.model_config.get('training_results', {})
-                # Check if we have three-model weights
+                # Check if we have RF and TabNet weights
                 if 'rf_weight' in training_results:
-                    self.rf_weight = training_results.get('rf_weight', 0.8)
-                    self.lstm_weight = training_results.get('lstm_weight', 0.1)
-                    self.tabnet_weight = training_results.get('tabnet_weight', 0.1)
+                    self.rf_weight = training_results.get('rf_weight', 0.7)
+                    self.tabnet_weight = training_results.get('tabnet_weight', 0.3)
+                    # LSTM weight ignored (no longer used)
+                    self.lstm_weight = 0.0
                 else:
-                    # Legacy: convert old blend_weight to RF/LSTM split
-                    old_blend_weight = training_results.get('blend_weight', 0.9)
+                    # Legacy: use RF for old blend_weight
+                    old_blend_weight = training_results.get('blend_weight', 0.7)
                     self.rf_weight = old_blend_weight
-                    self.lstm_weight = 1.0 - old_blend_weight
-                    self.tabnet_weight = 0.0
+                    self.tabnet_weight = 1.0 - old_blend_weight
+                    self.lstm_weight = 0.0
         else:
             self.model_config = {}
-            # Use default blend weights if not in config
-            self.rf_weight = 0.8
-            self.lstm_weight = 0.1
-            self.tabnet_weight = 0.1
+            # Use default blend weights if not in config (RF + TabNet only)
+            self.rf_weight = 0.7
+            self.tabnet_weight = 0.3
+            self.lstm_weight = 0.0
 
-        # Load feature engineering state to match training
-        feature_config_path = self.model_path / "hybrid_feature_engineer.joblib"
+        # Load feature engineering state to match training (no hybrid prefix)
+        feature_config_path = self.model_path / "feature_engineer.joblib"
         if feature_config_path.exists():
             feature_config = joblib.load(feature_config_path)
 
@@ -162,8 +163,8 @@ class RacePredictor:
                 if 'embedding_dim' in feature_config:
                     self.orchestrator.embedding_dim = feature_config['embedding_dim']
 
-        # Load RF model (REQUIRED)
-        rf_model_path = self.model_path / "hybrid_rf_model.joblib"
+        # Load RF model (REQUIRED) - no hybrid prefix
+        rf_model_path = self.model_path / "rf_model.joblib"
         if rf_model_path.exists():
             self.rf_model = joblib.load(rf_model_path)
             if self.verbose:
@@ -172,18 +173,8 @@ class RacePredictor:
             self.rf_model = None
             raise FileNotFoundError(f"RF model not found at {rf_model_path} - required for predictions")
 
-        # Load LSTM model (REQUIRED)
-        lstm_model_path = self.model_path / "hybrid_lstm_model.keras"
-        if lstm_model_path.exists():
-            try:
-                from tensorflow.keras.models import load_model
-                self.lstm_model = load_model(lstm_model_path)
-                if self.verbose:
-                    print(f"Loaded LSTM model")
-            except Exception as e:
-                raise RuntimeError(f"Failed to load LSTM model at {lstm_model_path}: {str(e)}")
-        else:
-            raise FileNotFoundError(f"LSTM model not found at {lstm_model_path} - required for predictions")
+        # LSTM model removed - using RF + TabNet only
+        self.lstm_model = None
                 
         # Load TabNet model
         self._load_tabnet_model()

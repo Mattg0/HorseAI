@@ -10,6 +10,9 @@ from typing import Dict, List, Union, Any, Optional
 from utils.env_setup import AppConfig
 from core.calculators.static_feature_calculator import FeatureCalculator
 
+# Import unified data pipeline for consistency
+from core.orchestrators.unified_data_pipeline import UnifiedDataPipeline
+
 
 
 class RaceDataConverter:
@@ -33,6 +36,9 @@ class RaceDataConverter:
 
         # Initialize calculators
         self.feature_calculator = FeatureCalculator()
+
+        # Initialize unified data pipeline for consistency
+        self.unified_pipeline = UnifiedDataPipeline(verbose=False)
 
         # Create necessary database structure
         self._ensure_database()
@@ -126,7 +132,16 @@ class RaceDataConverter:
             'idEntraineur', 'proprietaire', 'age', 'nbVictCouple', 'nbPlaceCouple',
             'victoirescheval', 'placescheval', 'TxVictCouple',
             'pourcVictChevalHippo', 'pourcPlaceChevalHippo',
-            'pourcVictJockHippo', 'pourcPlaceJockHippo', 'coursescheval'
+            'pourcVictJockHippo', 'pourcPlaceJockHippo', 'coursescheval',
+
+            # Enhanced participant-level fields for competitive analysis
+            'derniereplace', 'dernierecote', 'dernierealloc', 'txreclam',
+            'dernieredist', 'derniernbpartants', 'recordG', 'entraineur',
+            'dernierEnt', 'tempstot', 'ecar', 'gainsCarriere',
+
+            # Equipment and context fields
+            'oeil', 'dernierOeil', 'oeilFirstTime', 'defoeil', 'defoeilPrec', 'defFirstTime',
+            'vha', 'dernierTxreclam'
         }
 
         # Map of API field names to standardized names
@@ -138,6 +153,21 @@ class RaceDataConverter:
             'jockeid': 'idJockey',
             'entid': 'idEntraineur',
             'prop': 'proprietaire',
+
+            # Enhanced field mappings
+            'recordGains': 'recordG',
+            'lastPlace': 'derniereplace',
+            'lastOdds': 'dernierecote',
+            'lastPurse': 'dernierealloc',
+            'claimingTax': 'txreclam',
+            'lastDistance': 'dernieredist',
+            'lastFieldSize': 'derniernbpartants',
+            'personalBest': 'recordG',
+            'currentTrainer': 'entraineur',
+            'previousTrainer': 'dernierEnt',
+            'totalTime': 'tempstot',
+            'margin': 'ecar',
+            'careerEarnings': 'gainsCarriere'
         }
 
         # Copy only allowed fields from participant data
@@ -209,7 +239,12 @@ class RaceDataConverter:
             'pourcVictJockHippo', 'pourcPlaceJockHippo',
             'victoirescheval', 'placescheval', 'coursescheval',
             'nbVictCouple', 'nbPlaceCouple', 'TxVictCouple',
-            'handicapDistance', 'handicapPoids', 'recence'
+            'handicapDistance', 'handicapPoids', 'recence',
+
+            # Enhanced numeric fields
+            'derniereplace', 'dernierecote', 'dernierealloc', 'txreclam',
+            'dernieredist', 'derniernbpartants', 'tempstot', 'ecar',
+            'gainsCarriere', 'vha', 'dernierTxreclam'
         ]
 
         for field in numeric_fields:
@@ -256,7 +291,20 @@ class RaceDataConverter:
             'regularite_couple': 0,
             'progression_couple': 0,
             'perf_cheval_hippo': 0,
-            'perf_jockey_hippo': 0
+            'perf_jockey_hippo': 0,
+
+            # Enhanced field defaults
+            'derniereplace': 10,          # Last race position (default middle field)
+            'dernierecote': 10.0,         # Last race odds
+            'dernierealloc': 0,           # Previous race purse
+            'txreclam': 0,                # Claiming price
+            'dernieredist': 2000,         # Last race distance (default)
+            'derniernbpartants': 10,      # Last race field size
+            'tempstot': 0,                # Individual finish time
+            'ecar': 0,                    # Victory/defeat margin
+            'gainsCarriere': 0,           # Career earnings
+            'vha': 0,                     # VHA rating
+            'dernierTxreclam': 0          # Previous claiming price
         }
 
         # Fill missing values with defaults
@@ -271,16 +319,66 @@ class RaceDataConverter:
         if 'musiquejoc' in result_df.columns:
             result_df['musiquejoc'] = result_df['musiquejoc'].fillna('')
 
+        # Special handling for recordG time format conversion
+        if 'recordG' in result_df.columns:
+            result_df['recordG'] = result_df['recordG'].apply(self._parse_race_time)
+
         return result_df
 
-
-
-    def process_race_data(self, json_data: Union[str, List, Dict]) -> pd.DataFrame:
+    def _parse_race_time(self, time_str):
         """
-        Process race data using the same approach as historical data.
+        Parse race time from format "1'29"4" to milliseconds.
+
+        Args:
+            time_str: Time string in various formats
+
+        Returns:
+            Float representing time in milliseconds, or 0 if invalid
+        """
+        if pd.isna(time_str) or not time_str:
+            return 0.0
+
+        try:
+            time_str = str(time_str).strip()
+            if not time_str:
+                return 0.0
+
+            # Handle format like "1'29"4" (1 minute, 29.4 seconds)
+            if "'" in time_str and '"' in time_str:
+                # Split by apostrophe to get minutes and seconds part
+                parts = time_str.split("'")
+                if len(parts) == 2:
+                    minutes = int(parts[0])
+                    # Remove quotes and parse seconds
+                    seconds_part = parts[1].replace('"', '').replace('"', '')
+                    seconds = float(seconds_part)
+
+                    # Convert to milliseconds
+                    total_milliseconds = (minutes * 60 + seconds) * 1000
+                    return total_milliseconds
+
+            # Handle format like "89.2" (just seconds)
+            elif '.' in time_str:
+                seconds = float(time_str)
+                return seconds * 1000
+
+            # Handle format like "89" (just seconds as integer)
+            else:
+                seconds = float(time_str)
+                return seconds * 1000
+
+        except (ValueError, IndexError):
+            return 0.0
+
+
+
+    def process_race_data(self, json_data: Union[str, List, Dict], race_context: Optional[Dict] = None) -> pd.DataFrame:
+        """
+        Process race data using the unified pipeline for training-prediction consistency.
 
         Args:
             json_data: JSON data from API
+            race_context: Additional race-level context information
 
         Returns:
             DataFrame with standard features, matching historical data format
@@ -288,13 +386,32 @@ class RaceDataConverter:
         # First convert to basic DataFrame with standardized field names
         df = self.convert_api_response(json_data)
 
-        # Apply the feature calculator - this matches the historical processing approach
+        # Extract race context from the data if not provided
+        if race_context is None and len(df) > 0:
+            # Try to extract race context from the first participant
+            first_participant = df.iloc[0].to_dict()
+            race_context = {
+                'cheque': first_participant.get('cheque', 0),
+                'partant': first_participant.get('partant', 0),
+                'dist': first_participant.get('dist', 0),
+                'handi': first_participant.get('handi', ''),
+                'typec': first_participant.get('typec', 'Plat'),
+                'groupe': first_participant.get('groupe', ''),
+                'quinte': first_participant.get('quinte', False)
+            }
+
+        # Apply the unified data pipeline for consistency
         try:
-            processed_df = self.feature_calculator.calculate_all_features(df)
-            print(f"Processed {len(processed_df)} participants with {len(processed_df.columns)} features")
+            processed_df = self.unified_pipeline.process_race_data(
+                df,
+                race_context=race_context,
+                source="daily_sync"
+            )
+            print(f"Processed {len(processed_df)} participants with {len(processed_df.columns)} features via unified pipeline")
         except Exception as e:
-            print(f"Error applying feature calculations: {str(e)}")
-            processed_df = df
+            print(f"Error applying unified pipeline: {str(e)}")
+            # Fallback to basic feature calculation
+            processed_df = self.feature_calculator.calculate_all_features(df)
 
         return processed_df
 

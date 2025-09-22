@@ -663,25 +663,25 @@ def main():
                                     key="embedding_dim_input"
                                 )
 
-                        # LSTM Configuration
-                        st.markdown("**LSTM Settings**")
-                        col1_lstm, col2_lstm = st.columns(2)
-                        with col1_lstm:
-                            if config_sections['lstm']:
-                                new_seq_length = st.number_input(
-                                    "Sequence Length:",
-                                    min_value=1, max_value=20,
-                                    value=config_sections['lstm'].get('sequence_length', 5),
-                                    key="seq_length_input"
+                        # TabNet Configuration
+                        st.markdown("**TabNet Settings**")
+                        col1_tabnet, col2_tabnet = st.columns(2)
+                        with col1_tabnet:
+                            if config_sections.get('tabnet'):
+                                new_n_d = st.number_input(
+                                    "Decision Width (n_d):",
+                                    min_value=8, max_value=64,
+                                    value=config_sections['tabnet'].get('n_d', 32),
+                                    key="tabnet_n_d_input"
                                 )
 
-                        with col2_lstm:
-                            if config_sections['lstm']:
-                                new_step_size = st.number_input(
-                                    "Step Size:",
-                                    min_value=1, max_value=5,
-                                    value=config_sections['lstm'].get('step_size', 1),
-                                    key="step_size_input"
+                        with col2_tabnet:
+                            if config_sections.get('tabnet'):
+                                new_n_a = st.number_input(
+                                    "Attention Width (n_a):",
+                                    min_value=8, max_value=64,
+                                    value=config_sections['tabnet'].get('n_a', 32),
+                                    key="tabnet_n_a_input"
                                 )
 
                         # Dataset Configuration
@@ -723,8 +723,8 @@ def main():
                                     updates['base'] = {'active_db': new_active_db}
                                 if 'features' in config_sections:
                                     updates['features'] = {'embedding_dim': new_embedding_dim}
-                                if 'lstm' in config_sections:
-                                    updates['lstm'] = {'sequence_length': new_seq_length, 'step_size': new_step_size}
+                                if 'tabnet' in config_sections:
+                                    updates['tabnet'] = {'n_d': new_n_d, 'n_a': new_n_a}
                                 if 'dataset' in config_sections:
                                     updates['dataset'] = {'test_size': new_test_size, 'val_size': new_val_size}
                                 if 'cache' in config_sections:
@@ -1442,39 +1442,39 @@ def main():
                                             else:
                                                 st.info("ℹ️ RF improvement below threshold.")
 
-                                    # LSTM Model improvement metrics
-                                    if 'lstm_training' in training_results:
-                                        lstm_results = training_results['lstm_training']
+                                    # TabNet Model improvement metrics
+                                    if 'tabnet_training' in training_results:
+                                        tabnet_results = training_results['tabnet_training']
 
-                                        if lstm_results.get('status') == 'success':
-                                            lstm_improvement = lstm_results.get('improvement', {})
-                                            st.markdown("### 🧠 LSTM Model Improvement")
+                                        if tabnet_results.get('status') == 'success':
+                                            tabnet_improvement = tabnet_results.get('improvement', {})
+                                            st.markdown("### 🧠 TabNet Model Improvement")
 
                                             left, right = st.columns(2)
                                             with left:
-                                                lstm_mae_improvement = lstm_improvement.get('mae_improvement_pct', 0)
+                                                tabnet_mae_improvement = tabnet_improvement.get('mae_improvement_pct', 0)
                                                 st.metric(
-                                                    "LSTM MAE Improvement",
-                                                    f"{lstm_mae_improvement:.2f}%",
-                                                    delta=f"{lstm_mae_improvement:.2f}%"
+                                                    "TabNet MAE Improvement",
+                                                    f"{tabnet_mae_improvement:.2f}%",
+                                                    delta=f"{tabnet_mae_improvement:.2f}%"
                                                 )
                                             with right:
-                                                lstm_rmse_improvement = lstm_improvement.get('rmse_improvement_pct', 0)
+                                                tabnet_rmse_improvement = tabnet_improvement.get('rmse_improvement_pct', 0)
                                                 st.metric(
-                                                    "LSTM RMSE Improvement",
-                                                    f"{lstm_rmse_improvement:.2f}%",
-                                                    delta=f"{lstm_rmse_improvement:.2f}%"
+                                                    "TabNet RMSE Improvement",
+                                                    f"{tabnet_rmse_improvement:.2f}%",
+                                                    delta=f"{tabnet_rmse_improvement:.2f}%"
                                                 )
 
-                                            if lstm_improvement.get('significant', False):
-                                                st.success("🎉 LSTM model shows significant improvement!")
+                                            if tabnet_improvement.get('significant', False):
+                                                st.success("🎉 TabNet model shows significant improvement!")
                                             else:
-                                                st.info("ℹ️ LSTM improvement below threshold.")
+                                                st.info("ℹ️ TabNet improvement below threshold.")
 
-                                        elif lstm_results.get('status') == 'skipped':
-                                            st.warning("⚠️ LSTM training was skipped")
-                                            if lstm_results.get('message'):
-                                                st.info(f"Reason: {lstm_results['message']}")
+                                        elif tabnet_results.get('status') == 'skipped':
+                                            st.warning("⚠️ TabNet training was skipped")
+                                            if tabnet_results.get('message'):
+                                                st.info(f"Reason: {tabnet_results['message']}")
 
                                     # Model saving results
                                     if 'model_saved' in training_results:
@@ -1497,10 +1497,10 @@ def main():
                                                     st.info("📋 RF model: Copied from base")
 
                                             with right:
-                                                if models_updated.get('lstm', False):
-                                                    st.info("🔄 LSTM model: Retrained")
+                                                if models_updated.get('tabnet', False):
+                                                    st.info("🔄 TabNet model: Retrained")
                                                 else:
-                                                    st.info("📋 LSTM model: Copied from base")
+                                                    st.info("📋 TabNet model: Copied from base")
 
                                         else:
                                             st.warning("⚠️ Models were not saved")
@@ -1574,53 +1574,66 @@ def main():
                 st.error("Could not retrieve any model information")
                 return
         
-        # Display model information (works with both success and fallback data)
-        # Legacy Models Status
-        st.markdown("**Legacy Models:**")
-        legacy_models = prediction_info.get('legacy_models', {})
-        legacy_status = legacy_models.get('model_status', {})
-        
-        col_rf, col_lstm, col_tabnet = st.columns(3)
+        # Display model information - simplified view
+        st.markdown("**Models:**")
+
+        # Get model paths from config
+        model_paths = prediction_info.get('model_paths', {})
+
+        # Check if models exist and their status
+        col_rf, col_tabnet = st.columns(2)
+
         with col_rf:
-            rf_status = "✅ Loaded" if legacy_status.get('rf_loaded', False) else "❌ Not Found"
-            st.metric("Random Forest", rf_status)
-        with col_lstm:
-            lstm_status = "✅ Loaded" if legacy_status.get('lstm_loaded', False) else "❌ Not Found"
-            st.metric("LSTM", lstm_status)
+            rf_path = model_paths.get('rf', '')
+            if rf_path:
+                # Check if RF model files exist (no hybrid prefix)
+                rf_model_file = f"{rf_path}/rf_model.joblib"
+                import os
+                rf_exists = os.path.exists(rf_model_file)
+                rf_status = "✅ Ready" if rf_exists else "⚠️ Missing Files"
+
+                st.metric("Random Forest", rf_status)
+                if not rf_exists:
+                    st.caption(f"Expected: {rf_model_file}")
+            else:
+                st.metric("Random Forest", "❌ Not Configured")
+
         with col_tabnet:
-            tabnet_status = "✅ Loaded" if legacy_status.get('tabnet_loaded', False) else "❌ Not Found"
-            st.metric("TabNet", tabnet_status)
-        
-        # Alternative Models Status
-        alt_models = prediction_info.get('alternative_models', {})
-        if alt_models.get('enabled'):
-            st.markdown("**Alternative Models:**")
-            col_trans, col_ens = st.columns(2)
-            
-            with col_trans:
-                trans_info = alt_models.get('transformer', {})
-                trans_status = "✅ Loaded" if trans_info.get('loaded', False) else ("⚙️ Configured" if trans_info.get('configured', False) else "❌ Disabled")
-                st.metric("Transformer", trans_status)
-            
-            with col_ens:
-                ens_info = alt_models.get('ensemble', {})
-                ens_status = "✅ Loaded" if ens_info.get('loaded', False) else ("⚙️ Configured" if ens_info.get('configured', False) else "❌ Disabled")
-                st.metric("Ensemble", ens_status)
-            
-            # System Status Summary
-            system_status = prediction_info.get('system_status', 'unknown')
-            status_emoji_map = {
-                'full_operational': '🟢 Full Operational',
-                'legacy_operational': '🟡 Legacy Only',
-                'alternative_operational': '🔵 Alternative Only',
-                'no_models_loaded': '🔴 No Models',
-                'configuration_error': '⚠️ Config Error'
-            }
-            
-            st.markdown(f"**Overall Status:** {status_emoji_map.get(system_status, '⚪ Unknown')}")
+            tabnet_path = model_paths.get('tabnet', '')
+            if tabnet_path:
+                # Check if TabNet model files exist (zip format)
+                tabnet_model_file = f"{tabnet_path}/tabnet_model.zip"
+                import os
+                tabnet_exists = os.path.exists(tabnet_model_file)
+                tabnet_status = "✅ Ready" if tabnet_exists else "⚠️ Missing Files"
+
+                st.metric("TabNet", tabnet_status)
+                if not tabnet_exists:
+                    st.caption(f"Expected: {tabnet_model_file}")
+            else:
+                st.metric("TabNet", "❌ Not Configured")
+
+        # Show blend weights
+        legacy_models = prediction_info.get('legacy_models', {})
+        blend_weights = legacy_models.get('blend_weights', {})
+        if blend_weights:
+            st.markdown("**Blend Configuration:**")
+            col_w1, col_w2 = st.columns(2)
+            with col_w1:
+                st.metric("RF Weight", f"{blend_weights.get('rf_weight', 0):.1f}")
+            with col_w2:
+                st.metric("TabNet Weight", f"{blend_weights.get('tabnet_weight', 0):.1f}")
+
+        # Overall status
+        rf_ready = rf_path and os.path.exists(f"{rf_path}/rf_model.joblib") if rf_path else False
+        tabnet_ready = tabnet_path and os.path.exists(f"{tabnet_path}/tabnet_model.zip") if tabnet_path else False
+
+        if rf_ready and tabnet_ready:
+            st.success("🟢 All models ready for predictions")
+        elif rf_ready or tabnet_ready:
+            st.warning("🟡 Some models ready - partial functionality available")
         else:
-            alt_message = alt_models.get('message', "Alternative models not configured. Enable in config.yaml to see status.")
-            st.info(alt_message)
+            st.error("🔴 No models available - training required")
 
         st.markdown('</div>', unsafe_allow_html=True)
 

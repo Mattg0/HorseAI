@@ -83,30 +83,69 @@ class PipelineHelper:
             return 'Unknown', 'Unknown'
 
         models = self._config_data['models']
-        latest_model = (models.get('latest_model'))
+        latest_models = models.get('latest_models', {})
 
-        if latest_model:
-            # Extract date from model name like "5years_hybrid_v20250606_182331"
-            date_match = re.search(r'(\d{4}-\d{2}-\d{2})', latest_model)
-            if date_match:
-                date_str = date_match.group(1)
-                try:
-                    training_date = datetime.strptime(date_str, '%Y-%m-%d')
-                    days_ago = (datetime.now() - training_date).days
+        if latest_models:
+            # Get the most recent model (try RF first, then TabNet)
+            model_path = latest_models.get('rf') or latest_models.get('tabnet')
 
-                    if days_ago == 0:
-                        last_training = "Today"
-                    elif days_ago == 1:
-                        last_training = "Yesterday"
-                    else:
-                        last_training = f"{days_ago} days ago"
+            if model_path:
+                # Extract date from model path like "2025-09-22/2years_084846"
+                date_match = re.search(r'(\d{4}-\d{2}-\d{2})', model_path)
+                if date_match:
+                    date_str = date_match.group(1)
+                    try:
+                        training_date = datetime.strptime(date_str, '%Y-%m-%d')
+                        days_ago = (datetime.now() - training_date).days
 
-                    version = latest_model.split('_')[-2] + '_' + latest_model.split('_')[-1]
-                    return last_training, version
-                except:
-                    pass
+                        if days_ago == 0:
+                            last_training = "Today"
+                        elif days_ago == 1:
+                            last_training = "Yesterday"
+                        else:
+                            last_training = f"{days_ago} days ago"
+
+                        # Extract version from path (everything after the date)
+                        version_part = model_path.split('/')[-1] if '/' in model_path else model_path
+                        return last_training, version_part
+                    except:
+                        pass
 
         return 'Unknown', 'Unknown'
+
+    def get_model_paths(self) -> Dict[str, str]:
+        """Get the current RF and TabNet model paths from config"""
+        if not self._config_data or 'models' not in self._config_data:
+            return {}
+
+        models = self._config_data['models']
+        latest_models = models.get('latest_models', {})
+        model_dir = models.get('model_dir', './models')
+
+        # Build full paths
+        model_paths = {}
+        if 'rf' in latest_models:
+            model_paths['rf'] = f"{model_dir}/{latest_models['rf']}"
+        if 'tabnet' in latest_models:
+            model_paths['tabnet'] = f"{model_dir}/{latest_models['tabnet']}"
+
+        return model_paths
+
+    def get_model_file_paths(self) -> Dict[str, str]:
+        """Get specific model file paths for RF and TabNet models"""
+        model_paths = self.get_model_paths()
+
+        model_files = {}
+
+        # RF model file (joblib format) - no hybrid prefix
+        if 'rf' in model_paths:
+            model_files['rf'] = f"{model_paths['rf']}/rf_model.joblib"
+
+        # TabNet model file (zip format) - no hybrid prefix
+        if 'tabnet' in model_paths:
+            model_files['tabnet'] = f"{model_paths['tabnet']}/tabnet_model.zip"
+
+        return model_files
 
     def get_system_status(self) -> Dict[str, str]:
         """Get complete system status"""
@@ -129,7 +168,7 @@ class PipelineHelper:
         return {
             'base': self._config_data.get('base', {}),
             'features': self._config_data.get('features', {}),
-            'lstm': self._config_data.get('lstm', {}),
+            'tabnet': self._config_data.get('tabnet', {}),
             'dataset': self._config_data.get('dataset', {}),
             'cache': self._config_data.get('cache', {}),
             'databases': self._config_data.get('databases', []),
@@ -285,7 +324,7 @@ class PipelineHelper:
             models_loaded = model_info.get('models_loaded', {})
             
             # Debug output showing which models are loaded
-            debug_message = f"Models loaded: RF={models_loaded.get('rf', False)}, LSTM={models_loaded.get('lstm', False)}, TabNet={models_loaded.get('tabnet', False)}"
+            debug_message = f"Models loaded: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}"
             print(f"[DEBUG] {debug_message}")
             
             if progress_callback:
@@ -549,7 +588,7 @@ class PipelineHelper:
                 "training_results": {
                     "performance_analysis": results.get("performance_analysis", {}),
                     "rf_training": results.get("rf_training", {}),
-                    "lstm_training": results.get("lstm_training", {}),
+                    "tabnet_training": results.get("tabnet_training", {}),
                     "model_saved": results.get("model_saved", {}),
                     "races_archived": results.get("races_archived", {}),
                     "execution_time": results.get("execution_time", 0),
@@ -585,14 +624,14 @@ class PipelineHelper:
             mae_improvement = rf_improvement.get("mae_improvement_pct", 0)
             message_parts.append(f"RF model improved by {mae_improvement:.1f}%")
 
-        # LSTM training results
-        lstm_results = results.get("lstm_training", {})
-        if lstm_results.get("status") == "success":
-            lstm_improvement = lstm_results.get("improvement", {})
-            mae_improvement = lstm_improvement.get("mae_improvement_pct", 0)
-            message_parts.append(f"LSTM model improved by {mae_improvement:.1f}%")
-        elif lstm_results.get("status") == "skipped":
-            message_parts.append("LSTM training skipped")
+        # TabNet training results
+        tabnet_results = results.get("tabnet_training", {})
+        if tabnet_results.get("status") == "success":
+            tabnet_improvement = tabnet_results.get("improvement", {})
+            mae_improvement = tabnet_improvement.get("mae_improvement_pct", 0)
+            message_parts.append(f"TabNet model improved by {mae_improvement:.1f}%")
+        elif tabnet_results.get("status") == "skipped":
+            message_parts.append("TabNet training skipped")
 
         # Model saving results
         model_saved = results.get("model_saved", {})
@@ -753,139 +792,79 @@ class PipelineHelper:
     def get_prediction_model_info(self) -> Dict[str, Any]:
         """Get comprehensive information about all prediction models"""
         try:
-            # Initialize prediction orchestrator to get model info
-            predictor = PredictionOrchestrator()
-            model_info = predictor.get_model_info()
-            
+            # Get model paths directly from config without requiring PredictionOrchestrator
+            model_paths = self.get_model_paths()
+
             # Get blend configuration from config (with fallbacks)
             blend_config = {}
             if self._config_data:
                 blend_config = self._config_data.get('blend', {
-                    'rf_weight': 0.8,
-                    'lstm_weight': 0.1, 
-                    'tabnet_weight': 0.1,
+                    'rf_weight': 0.5,
+                    'tabnet_weight': 0.5,
                     'optimal_mae': 11.78
                 })
-            
-            # Get alternative models configuration (with fallbacks)
-            alt_models_config = {}
-            if self._config_data:
-                alt_models_config = self._config_data.get('alternative_models', {
-                    'model_selection': ['transformer', 'ensemble']
-                })
-            
-            # Check for alternative model files
-            alternative_model_status = self._check_alternative_models()
-            
-            # Format comprehensive model information
+
+            # Check if model files actually exist
+            import os
+            rf_ready = False
+            tabnet_ready = False
+
+            if 'rf' in model_paths:
+                rf_model_file = f"{model_paths['rf']}/rf_model.joblib"
+                rf_ready = os.path.exists(rf_model_file)
+
+            if 'tabnet' in model_paths:
+                tabnet_model_file = f"{model_paths['tabnet']}/tabnet_model.zip"
+                tabnet_ready = os.path.exists(tabnet_model_file)
+
+            # Format simplified model information
             prediction_info = {
-                'ensemble_type': 'Multi-Model Ensemble (RF + LSTM + TabNet + Alternative Models)',
+                'ensemble_type': 'RF + TabNet Ensemble',
                 'legacy_models': {
                     'blend_weights': {
-                        'rf_weight': blend_config.get('rf_weight', 0.8),
-                        'lstm_weight': blend_config.get('lstm_weight', 0.1),
-                        'tabnet_weight': blend_config.get('tabnet_weight', 0.1)
+                        'rf_weight': blend_config.get('rf_weight', 0.5),
+                        'tabnet_weight': blend_config.get('tabnet_weight', 0.5)
                     },
                     'optimal_mae': blend_config.get('optimal_mae', 11.78),
                     'model_status': {
-                        'rf_loaded': model_info.get('has_rf', False),
-                        'lstm_loaded': model_info.get('has_lstm', False),
-                        'tabnet_loaded': model_info.get('has_tabnet', False)
+                        'rf_loaded': rf_ready,
+                        'tabnet_loaded': tabnet_ready
                     }
                 },
-                'alternative_models': {
-                    'enabled': alt_models_config.get('model_selection', []),
-                    'status': alternative_model_status,
-                    'transformer': {
-                        'configured': 'transformer' in alt_models_config.get('model_selection', []),
-                        'loaded': alternative_model_status.get('transformer_loaded', False),
-                        'config': alt_models_config.get('transformer', {})
-                    },
-                    'ensemble': {
-                        'configured': 'ensemble' in alt_models_config.get('model_selection', []),
-                        'loaded': alternative_model_status.get('ensemble_loaded', False),
-                        'config': alt_models_config.get('ensemble', {})
-                    }
-                },
-                'model_path': model_info.get('model_path', 'Unknown'),
-                'tabnet_info': {
-                    'available': model_info.get('tabnet_available', False),
-                    'expected_features': model_info.get('expected_tabnet_features', 0)
-                },
-                'system_status': self._get_overall_system_status(model_info, alternative_model_status)
+                'model_paths': model_paths,
+                'system_status': 'ready' if (rf_ready and tabnet_ready) else 'partial' if (rf_ready or tabnet_ready) else 'no_models'
             }
-            
+
             return {
                 "success": True,
                 "message": "Model information retrieved successfully",
                 "prediction_info": prediction_info
             }
-            
+
         except Exception as e:
             # Enhanced error handling with fallback information
             error_msg = str(e)
-            
-            # If it's a config/blending related error, provide more context
-            if 'model_blending' in error_msg or 'Configuration must contain' in error_msg:
-                error_msg = "Legacy blending configuration error - system has been updated to use enhanced prediction pipeline"
-            
+
             return {
                 "success": False,
                 "error": error_msg,
-                "message": f"Failed to get model information: {error_msg}",
-                "fallback_info": {
-                    "system_status": "configuration_error",
+                "message": f"Could not retrieve model information: {error_msg}",
+                "prediction_info": {
+                    "ensemble_type": "RF + TabNet Ensemble",
                     "legacy_models": {
+                        "blend_weights": {
+                            "rf_weight": 0.5,
+                            "tabnet_weight": 0.5
+                        },
                         "model_status": {
                             "rf_loaded": False,
-                            "lstm_loaded": False,
                             "tabnet_loaded": False
                         }
                     },
-                    "alternative_models": {
-                        "enabled": [],
-                        "status": {},
-                        "message": "Could not load alternative models due to configuration error"
-                    }
+                    "model_paths": self.get_model_paths(),
+                    "system_status": "error"
                 }
             }
-    
-    def _check_alternative_models(self) -> Dict[str, bool]:
-        """Check if alternative model files exist"""
-        model_status = {
-            'transformer_loaded': False,
-            'ensemble_loaded': False
-        }
-        
-        try:
-            models_dir = Path("models")
-            if models_dir.exists():
-                # Check for transformer model files
-                transformer_files = list(models_dir.glob("*transformer*.h5")) + list(models_dir.glob("*transformer*.keras"))
-                model_status['transformer_loaded'] = len(transformer_files) > 0
-                
-                # Check for ensemble model files (pickle files)
-                ensemble_files = list(models_dir.glob("*ensemble*.pkl")) + list(models_dir.glob("*ensemble*.joblib"))
-                model_status['ensemble_loaded'] = len(ensemble_files) > 0
-                
-        except Exception as e:
-            print(f"Warning: Could not check alternative model status: {e}")
-            
-        return model_status
-    
-    def _get_overall_system_status(self, legacy_model_info: Dict, alt_model_status: Dict) -> str:
-        """Determine overall system status"""
-        legacy_loaded = any(legacy_model_info.get(k, False) for k in ['has_rf', 'has_lstm', 'has_tabnet'])
-        alt_loaded = any(alt_model_status.values())
-        
-        if legacy_loaded and alt_loaded:
-            return 'full_operational'
-        elif legacy_loaded:
-            return 'legacy_operational'
-        elif alt_loaded:
-            return 'alternative_operational'
-        else:
-            return 'no_models_loaded'
 
     def get_ai_quinte_advice(self, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
         """Get AI betting advice specifically focused on quinte races with 3 refined recommendations"""

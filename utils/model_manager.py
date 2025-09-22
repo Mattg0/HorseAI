@@ -17,46 +17,46 @@ class ModelManager:
         self.model_dir = Path(self.config._config.models.model_dir)
 
     def get_model_path(self):
-        """Get the path of the latest legacy model from config."""
-        return self.get_model_path_by_type('legacy')
+        """Get the path of the latest RF model from config."""
+        return self.get_model_path_by_type('rf')
         
-    def get_model_path_by_type(self, model_type='legacy'):
-        """Get the path of the latest model by type (legacy, tabnet, feedforward)."""
+    def get_model_path_by_type(self, model_type='rf'):
+        """Get the path of the latest model by type (rf, tabnet, feedforward)."""
         try:
             with open("config.yaml", 'r') as f:
                 config_data = yaml.safe_load(f)
 
-            # Check new format first
+            # Check new format first (latest_models with rf, tabnet entries)
             if 'models' in config_data and 'latest_models' in config_data['models']:
                 latest_models = config_data['models']['latest_models']
                 if model_type in latest_models and latest_models[model_type]:
                     model_path = self.model_dir / latest_models[model_type]
                     if model_path.exists():
                         return model_path
-                        
-            # Fallback to old format for legacy models
-            if model_type == 'legacy' and 'models' in config_data and 'latest_model' in config_data['models']:
+
+            # Fallback to old format for legacy models (backward compatibility)
+            if model_type in ['legacy', 'rf'] and 'models' in config_data and 'latest_model' in config_data['models']:
                 latest_model = config_data['models']['latest_model']
                 model_path = self.model_dir / latest_model
                 if model_path.exists():
                     return model_path
-        except:
-            pass
+        except Exception as e:
+            print(f"Error reading config for model type {model_type}: {e}")
 
-        # Fallback: find the most recent model directory
-        if model_type == 'legacy':
+        # Fallback: find the most recent model directory (for RF/legacy models)
+        if model_type in ['legacy', 'rf']:
             latest_dir = self._find_latest_model_dir()
             if latest_dir is None:
                 print("No existing models found. New models will be created during training.")
                 return None
             return latest_dir
-            
+
         return None
         
     def get_all_model_paths(self):
         """Get paths for all available model types."""
         paths = {}
-        for model_type in ['legacy', 'tabnet', 'feedforward']:
+        for model_type in ['rf', 'tabnet']:
             path = self.get_model_path_by_type(model_type)
             if path:
                 paths[model_type] = path
@@ -104,21 +104,21 @@ class ModelManager:
 
         saved_files = {}
 
-        # Save RF model
+        # Save RF model (no hybrid prefix)
         if rf_model is not None:
-            rf_path = save_path / "hybrid_rf_model.joblib"
+            rf_path = save_path / "rf_model.joblib"
             joblib.dump(rf_model, rf_path)
             saved_files['rf_model'] = rf_path
 
-        # Save LSTM model
-        if lstm_model is not None:
-            lstm_path = save_path / "hybrid_lstm_model.keras"
-            lstm_model.save(lstm_path)
-            saved_files['lstm_model'] = lstm_path
+        # Save TabNet model (no hybrid prefix)
+        if lstm_model is not None:  # Note: parameter name lstm_model but used for TabNet
+            tabnet_path = save_path / "tabnet_model.keras"
+            lstm_model.save(tabnet_path)
+            saved_files['tabnet_model'] = tabnet_path
 
-        # Save feature engineering state if provided
+        # Save feature engineering state if provided (no hybrid prefix)
         if feature_state is not None:
-            feature_path = save_path / "hybrid_feature_engineer.joblib"
+            feature_path = save_path / "feature_engineer.joblib"
             joblib.dump(feature_state, feature_path)
             saved_files['feature_engineer'] = feature_path
 
@@ -156,18 +156,18 @@ class ModelManager:
 
         models = {}
 
-        # Load RF model
-        rf_path = model_path / "hybrid_rf_model.joblib"
+        # Load RF model (no hybrid prefix)
+        rf_path = model_path / "rf_model.joblib"
         if rf_path.exists():
             models['rf_model'] = joblib.load(rf_path)
 
-        # Load LSTM model
-        lstm_path = model_path / "hybrid_lstm_model.keras"
-        if lstm_path.exists():
-            models['lstm_model'] = load_model(lstm_path)
+        # Load TabNet model (no hybrid prefix)
+        tabnet_path = model_path / "tabnet_model.keras"
+        if tabnet_path.exists():
+            models['tabnet_model'] = load_model(tabnet_path)
 
-        # Load feature engineering state
-        feature_path = model_path / "hybrid_feature_engineer.joblib"
+        # Load feature engineering state (no hybrid prefix)
+        feature_path = model_path / "feature_engineer.joblib"
         if feature_path.exists():
             models['feature_state'] = joblib.load(feature_path)
 
