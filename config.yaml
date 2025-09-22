@@ -2,11 +2,10 @@ base:
   active_db: 2years
   rootdir: /Users/mattg0/Docs/HorseAIv2/
 blend:
-  description: Optimal blend weights for position prediction accuracy
-  lstm_weight: 0.1
+  description: Optimal blend weights for 2-model system (RF, TabNet)
   optimal_mae: 11.78
-  rf_weight: 0.8
-  tabnet_weight: 0.1
+  rf_weight: 0.5
+  tabnet_weight: 0.5
 cache:
   base_path: cache
   types:
@@ -45,43 +44,37 @@ dataset:
   test_size: 0.2
   val_size: 0.1
 features:
-  clean_after_embedding: true
+  clean_after_embedding: false
   default_task_type: regression
   embedding_dim: 8
   features_dir: ./data/feature_store
   keep_identifiers: false
+legacy_alternative_models:
+  performance_thresholds:
+    improvement_threshold: 0.05
+    mae_threshold: 2.0
+    top3_accuracy_threshold: 0.6
+  tabnet:
+    batch_size: 1024
+    epochs: 50
+    learning_rate: 0.02
+    patience: 10
+    verbose: 1
+  transformer:
+    batch_size: 32
+    dropout_rate: 0.2
+    early_stopping_patience: 20
+    epochs: 100
+    hidden_dim: 128
+    learning_rate: 0.001
+    max_sequence_length: 10
+    num_attention_heads: 4
+    num_layers: 2
 llm_url:
   local: http://localhost:1234
-lstm:
-  sequence_length: 5
-  sequential_features:
-  - final_position
-  - cotedirect
-  - dist
-  - horse_emb_0
-  - horse_emb_1
-  - horse_emb_2
-  - jockey_emb_0
-  - jockey_emb_1
-  - jockey_emb_2
-  - che_global_avg_pos
-  - che_global_recent_perf
-  - che_global_consistency
-  - che_global_pct_top3
-  static_features:
-  - age
-  - temperature
-  - natpis
-  - typec
-  - meteo
-  - corde
-  - couple_emb_0
-  - couple_emb_1
-  - couple_emb_2
-  - course_emb_0
-  - course_emb_1
-  - course_emb_2
-  step_size: 1
 models:
-  latest_model: 2025-07-25/2years_165819
+  latest_model: 2025-09-22/2years_084846
+  latest_models:
+    legacy: 2025-09-22/2years_084846
+    tabnet: 2025-09-22/2years_084855
   model_dir: ./models

@@ -2,6 +2,7 @@
 import sqlite3
 import json
 from datetime import datetime
+from core.transformers.handicap_encoder import HandicapEncoder
 
 
 def write_races_to_sqlite(sqlite_db, course_data, participants_data):
@@ -16,13 +17,15 @@ def write_races_to_sqlite(sqlite_db, course_data, participants_data):
     conn = sqlite3.connect(sqlite_db)
     cursor = conn.cursor()
 
-    # Prepare the insert statement
+    # Prepare the insert statement with handicap and Phase 2 columns
     insert_query = '''
     INSERT OR REPLACE INTO historical_races 
     (comp, jour, reunion, prix, quinte, hippo, meteo, dist, corde, natpis, 
      pistegp, typec, partant, temperature, forceVent, directionVent, 
-     nebulosite, participants, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     nebulosite, participants, created_at, handi_raw, is_handicap, 
+     is_category_handicap, handicap_division, handicap_level_score,
+     cheque, reclam, groupe, sex, tempscourse)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     '''
 
     # Group participants by race ID
@@ -46,6 +49,10 @@ def write_races_to_sqlite(sqlite_db, course_data, participants_data):
         else:
             participants_json = json.dumps([])
 
+        # Encode handicap information
+        handicap_text = course_row.get('handi', '')
+        handicap_encoded = HandicapEncoder.parse_handicap_text(handicap_text)
+        
         # Get values with defaults
         cursor.execute(insert_query, (
             comp,
@@ -66,7 +73,19 @@ def write_races_to_sqlite(sqlite_db, course_data, participants_data):
             course_row.get('directionVent', 'N/A'),
             course_row.get('nebulositeLibelleCourt', 'N/A'),
             participants_json,
-            datetime.now()
+            datetime.now(),
+            # Handicap columns
+            handicap_encoded['handi_raw'],
+            int(handicap_encoded['is_handicap']),
+            int(handicap_encoded['is_category_handicap']),
+            handicap_encoded['handicap_division'],
+            handicap_encoded['handicap_level_score'],
+            # Phase 2 race-level columns
+            course_row.get('cheque', 'N/A'),
+            course_row.get('reclam', 'N/A'),
+            course_row.get('groupe', 'N/A'),
+            course_row.get('sex', 'N/A'),
+            course_row.get('tempscourse', 'N/A')
         ))
 
     conn.commit()

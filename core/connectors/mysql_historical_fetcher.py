@@ -24,7 +24,10 @@ def fetch_race_data(conn=None, close_conn=False):
            caractrap.quinte, caractrap.hippo, caractrap.meteo, caractrap.dist,
            caractrap.corde, caractrap.natpis, caractrap.pistegp, caractrap.typec,
            caractrap.temperature, caractrap.forceVent, caractrap.directionVent,
-           caractrap.nebulositeLibelleCourt, cachedate.idche, cachedate.cheval, cachedate.cl, 
+           caractrap.nebulositeLibelleCourt, caractrap.handi,
+           -- Phase 2: Additional race-level fields
+           caractrap.cheque, caractrap.reclam, caractrap.groupe, caractrap.sex, caractrap.tempscourse,
+           cachedate.idche, cachedate.cheval, cachedate.cl, 
            cachedate.cotedirect, cachedate.coteprob, cachedate.numero, cachedate.handicapDistance,
            cachedate.handicapPoids, 
            cachedate.poidmont, cachedate.recence, cachedate.gainsAnneeEnCours, 
@@ -32,7 +35,13 @@ def fetch_race_data(conn=None, close_conn=False):
            cachedate.age, cachedate.nbVictCouple, cachedate.nbPlaceCouple, 
            cachedate.victoirescheval, cachedate.placescheval, cachedate.TxVictCouple,
            cachedate.pourcVictChevalHippo, cachedate.pourcPlaceChevalHippo, 
-           cachedate.pourcVictJockHippo, cachedate.pourcPlaceJockHippo, cachedate.coursescheval
+           cachedate.pourcVictJockHippo, cachedate.pourcPlaceJockHippo, cachedate.coursescheval,
+           cachedate.oeil, cachedate.dernierOeil, cachedate.oeilFirstTime,
+           cachedate.defoeil, cachedate.defoeilPrec, cachedate.defFirstTime,
+           -- Phase 2: Additional participant-level fields
+           cachedate.derniereplace, cachedate.dernierecote, cachedate.tempstot, cachedate.dernierealloc,
+           cachedate.txreclam, cachedate.dernieredist, cachedate.derniernbpartants, cachedate.recordG,
+           cachedate.entraineur, cachedate.dernierEnt, cachedate.ecar
     FROM caractrap
     INNER JOIN cachedate ON caractrap.id = cachedate.comp 
     """

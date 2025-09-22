@@ -11,6 +11,15 @@ from pathlib import Path
 from utils.env_setup import AppConfig
 from core.connectors.api_daily_sync import RaceFetcher
 from race_prediction.race_predict import RacePredictor
+from core.storage.prediction_storage import PredictionStorage, PredictionRecord
+
+# Import alternative models (TabNet only)
+try:
+    from model_training.models import TransformerModel, EnsembleModel
+    ALTERNATIVE_MODELS_AVAILABLE = True
+except ImportError as e:
+    print(f"Alternative models not available: {e}")
+    ALTERNATIVE_MODELS_AVAILABLE = False
 
 
 class PredictionOrchestrator:
@@ -25,19 +34,18 @@ class PredictionOrchestrator:
 
     # In PredictionOrchestrator.__init__:
 
-    def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False):
+    def __init__(self, config: AppConfig = None, db_name: str = None, verbose: bool = False):
         """
         Initialize the prediction orchestrator.
 
         Args:
-            model_path: Path to the model or model name
+            config: AppConfig instance (creates new one if None)
             db_name: Database name from config (default: active_db from config)
-            model_type: Type of model ('hybrid_model' or 'incremental_models')
             verbose: Whether to output verbose logs
         """
         # Initialize config
         self.verbose = verbose
-        self.config = AppConfig()
+        self.config = config if config is not None else AppConfig()
 
         if db_name is None:
             db_name = self.config._config.base.active_db
@@ -46,16 +54,26 @@ class PredictionOrchestrator:
         # Initialize components
         self.race_fetcher = RaceFetcher(db_name=self.db_name, verbose=self.verbose)
         self.race_predictor = RacePredictor(
-            model_path=model_path,  # Can be None
+            model_path=None,  # Let RacePredictor find the model
             db_name=db_name,
             verbose=verbose
         )
 
         self._setup_logging()
+        
+        # Initialize prediction storage
+        self.prediction_storage = PredictionStorage(self.config)
+        
+        # Initialize alternative models if available
+        self.alternative_models = {}
+        if ALTERNATIVE_MODELS_AVAILABLE:
+            self._load_alternative_models()
 
         # Only show initialization message if verbose
         if self.verbose:
             self.logger.info(f"Prediction Orchestrator initialized with model: {self.race_predictor.model_path}")
+            if hasattr(self, 'alternative_models') and self.alternative_models:
+                self.logger.info(f"Alternative models loaded: {list(self.alternative_models.keys())}")
     def log_info(self, message):
         """Simple logging method."""
         if self.verbose:
@@ -161,6 +179,9 @@ class PredictionOrchestrator:
         prediction_results = final_result.to_dict(orient='records')
 
         predicted_arriv = result_df['predicted_arriv'].iloc[0] if 'predicted_arriv' in result_df.columns else None
+
+        # Generate alternative model predictions and store in prediction storage
+        self._run_and_store_alternative_predictions(race_df, result_df, comp, race_data)
 
             # Add to metadata
         metadata = {
@@ -286,14 +307,168 @@ class PredictionOrchestrator:
         # Use the race predictor to generate predictions
         return self.race_predictor.predict_race(race_df)
 
+    def _load_alternative_models(self):
+        """Load alternative models using ModelManager"""
+        try:
+            from utils.model_manager import ModelManager
+            
+            # Use ModelManager to load all models
+            manager = ModelManager()
+            all_models = manager.load_all_models()
+            
+            if self.verbose:
+                self.logger.info(f"ModelManager found model types: {list(all_models.keys())}")
+            
+            # Load TabNet model  
+            if 'tabnet' in all_models:
+                try:
+                    tabnet_data = all_models['tabnet']
+                    if 'tabnet_model' in tabnet_data and 'tabnet_scaler' in tabnet_data:
+                        # Create a wrapper for TabNet
+                        class TabNetWrapper:
+                            def __init__(self, model, scaler, feature_columns):
+                                self.model = model
+                                self.scaler = scaler  
+                                self.feature_columns = feature_columns
+                                
+                            def predict(self, X_sequences, X_static):
+                                # TabNet expects flattened features
+                                # Combine sequences and static features
+                                batch_size = X_sequences.shape[0]
+                                X_seq_flat = X_sequences.reshape(batch_size, -1)
+                                X_combined = np.concatenate([X_seq_flat, X_static], axis=1)
+                                
+                                # Scale the features
+                                X_scaled = self.scaler.transform(X_combined)
+                                
+                                # Make prediction
+                                predictions = self.model.predict(X_scaled)
+                                return predictions.flatten()
+                        
+                        tabnet_wrapper = TabNetWrapper(
+                            tabnet_data['tabnet_model'],
+                            tabnet_data['tabnet_scaler'],
+                            tabnet_data.get('tabnet_config', {}).get('feature_columns', [])
+                        )
+                        
+                        self.alternative_models['tabnet'] = tabnet_wrapper
+                        self.logger.info("✅ Loaded TabNet model from ModelManager")
+                except Exception as e:
+                    self.logger.error(f"Failed to load TabNet model: {e}")
+            
+            # Log successful loading
+            if self.verbose and self.alternative_models:
+                self.logger.info(f"Successfully loaded {len(self.alternative_models)} alternative models: {list(self.alternative_models.keys())}")
+            else:
+                self.logger.info("No alternative models loaded")
+                        
+        except Exception as e:
+            self.logger.error(f"Error loading alternative models: {e}")
+    
+    def _run_and_store_alternative_predictions(self, race_df: pd.DataFrame, main_result_df: pd.DataFrame, comp: str, race_data: dict):
+        """Run alternative model predictions and store all predictions in prediction storage"""
+        try:
+            if not hasattr(self, 'alternative_models') or not self.alternative_models:
+                if self.verbose:
+                    self.logger.info("No alternative models available for prediction storage")
+                return
+            
+            # Prepare real features for alternative models
+            n_samples = len(race_df)
+            
+            # Use the feature transformer to create proper features
+            from core.transformers.feature_transformer import FeatureTransformer
+            feature_transformer = FeatureTransformer(verbose=self.verbose)
+            
+            # Transform the data using the same feature engineering pipeline
+            X_sequences, X_static = feature_transformer.transform_for_prediction(race_df)
+            
+            if self.verbose:
+                self.logger.info(f"Prepared features for {n_samples} horses: sequences={X_sequences.shape}, static={X_static.shape}")
+            
+            prediction_timestamp = datetime.now()
+            model_versions = {}
+            
+            # Run predictions for each alternative model
+            alt_predictions = {}
+            for model_name, model in self.alternative_models.items():
+                try:
+                    predictions = model.predict(X_sequences, X_static)
+                    alt_predictions[f"{model_name}_prediction"] = predictions
+                    model_versions[model_name] = "1.0.0"  # Version tracking
+                    if self.verbose:
+                        self.logger.info(f"Generated {model_name} predictions: {predictions[:3]}")
+                except Exception as e:
+                    self.logger.error(f"Failed to generate {model_name} predictions: {e}")
+                    alt_predictions[f"{model_name}_prediction"] = [None] * n_samples
+            
+            # Store predictions for each horse
+            for i, row in race_df.iterrows():
+                try:
+                    # Get main model predictions for this horse
+                    main_pred_row = main_result_df[main_result_df['numero'] == row.get('numero')]
+                    main_prediction = main_pred_row['predicted_position'].iloc[0] if not main_pred_row.empty else None
+                    
+                    # Get blend weights from config (2-model system)
+                    blend_config = self.config._config_data.get('blend', {}) if hasattr(self.config, '_config_data') else {}
+                    rf_weight = blend_config.get('rf_weight', 0.5)
+                    tabnet_weight = blend_config.get('tabnet_weight', 0.5)
+                    
+                    # Create prediction record for 2-model system
+                    record = PredictionRecord(
+                        race_id=comp,
+                        timestamp=prediction_timestamp,
+                        horse_id=str(row.get('numero', i)),
+                        rf_prediction=None,  # TODO: Extract from main_result_df when RF predictions are available
+                        tabnet_prediction=alt_predictions.get('tabnet_prediction', [None] * n_samples)[i],
+                        ensemble_prediction=main_prediction or 10.0,  # Fallback value
+                        rf_weight=rf_weight,
+                        tabnet_weight=tabnet_weight,
+                        ensemble_confidence_score=None,
+                        actual_position=None,  # Will be updated when results are available
+                        distance=race_data.get('dist'),
+                        track_condition=race_data.get('natpis'),
+                        weather=race_data.get('meteo'),
+                        field_size=len(race_df),
+                        race_type=race_data.get('typec'),
+                        model_versions=model_versions,
+                        prediction_metadata={
+                            'hippo': race_data.get('hippo'),
+                            'prix': race_data.get('prix'),
+                            'horse_name': row.get('cheval', 'Unknown'),
+                            'model_system': '2-model (RF + TabNet)'
+                        }
+                    )
+                    
+                    # Store the record
+                    self.prediction_storage.store_prediction(record)
+                    
+                except Exception as e:
+                    self.logger.error(f"Failed to store prediction for horse {i}: {e}")
+                    
+            if self.verbose:
+                self.logger.info(f"Stored alternative model predictions for race {comp}")
+                
+        except Exception as e:
+            self.logger.error(f"Error in alternative prediction storage: {e}")
+    
     def get_model_info(self) -> Dict:
         """
-        Get information about the loaded model.
+        Get information about all loaded models.
 
         Returns:
             Dictionary with model information
         """
-        return self.race_predictor.get_model_info()
+        info = self.race_predictor.get_model_info()
+        
+        # Add alternative model information
+        if hasattr(self, 'alternative_models') and self.alternative_models:
+            info['alternative_models'] = {
+                'available': list(self.alternative_models.keys()),
+                'count': len(self.alternative_models)
+            }
+        
+        return info
     def fetch_and_predict_races(self, date: str = None, blend_weight: float = 0.7) -> Dict:
         """
         Fetch races from API, store them, and generate predictions.
