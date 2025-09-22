@@ -17,28 +17,50 @@ class ModelManager:
         self.model_dir = Path(self.config._config.models.model_dir)
 
     def get_model_path(self):
-        """Get the path of the latest model from config."""
-        # Read latest model from config
+        """Get the path of the latest legacy model from config."""
+        return self.get_model_path_by_type('legacy')
+        
+    def get_model_path_by_type(self, model_type='legacy'):
+        """Get the path of the latest model by type (legacy, tabnet, feedforward)."""
         try:
             with open("config.yaml", 'r') as f:
                 config_data = yaml.safe_load(f)
 
-            if 'models' in config_data and 'latest_model' in config_data['models']:
+            # Check new format first
+            if 'models' in config_data and 'latest_models' in config_data['models']:
+                latest_models = config_data['models']['latest_models']
+                if model_type in latest_models and latest_models[model_type]:
+                    model_path = self.model_dir / latest_models[model_type]
+                    if model_path.exists():
+                        return model_path
+                        
+            # Fallback to old format for legacy models
+            if model_type == 'legacy' and 'models' in config_data and 'latest_model' in config_data['models']:
                 latest_model = config_data['models']['latest_model']
                 model_path = self.model_dir / latest_model
-
                 if model_path.exists():
                     return model_path
         except:
             pass
 
         # Fallback: find the most recent model directory
-        latest_dir = self._find_latest_model_dir()
-        if latest_dir is None:
-            print("No existing models found. New models will be created during training.")
-            return None
-
-        return latest_dir
+        if model_type == 'legacy':
+            latest_dir = self._find_latest_model_dir()
+            if latest_dir is None:
+                print("No existing models found. New models will be created during training.")
+                return None
+            return latest_dir
+            
+        return None
+        
+    def get_all_model_paths(self):
+        """Get paths for all available model types."""
+        paths = {}
+        for model_type in ['legacy', 'tabnet', 'feedforward']:
+            path = self.get_model_path_by_type(model_type)
+            if path:
+                paths[model_type] = path
+        return paths
 
     def _find_latest_model_dir(self):
         """Find the most recent model directory by scanning the filesystem."""
@@ -156,9 +178,99 @@ class ModelManager:
                 models['model_config'] = json.load(f)
 
         return models
+        
+    def load_all_models(self):
+        """Load all available model types (legacy, tabnet, feedforward)."""
+        all_models = {}
+        model_paths = self.get_all_model_paths()
+        
+        for model_type, model_path in model_paths.items():
+            print(f"Loading {model_type} models from: {model_path}")
+            
+            if model_type == 'legacy':
+                # Load legacy RF/LSTM models using existing method
+                try:
+                    legacy_models = self.load_models(model_path)
+                    all_models['legacy'] = legacy_models
+                    print(f"  ✅ Loaded legacy models: {list(legacy_models.keys())}")
+                except Exception as e:
+                    print(f"  ❌ Failed to load legacy models: {e}")
+                    
+            elif model_type == 'tabnet':
+                # Load TabNet model
+                try:
+                    tabnet_models = self._load_tabnet_models(model_path)
+                    all_models['tabnet'] = tabnet_models
+                    print(f"  ✅ Loaded TabNet models: {list(tabnet_models.keys())}")
+                except Exception as e:
+                    print(f"  ❌ Failed to load TabNet models: {e}")
+                    
+            elif model_type == 'feedforward':
+                # Load Feedforward model
+                try:
+                    ff_models = self._load_feedforward_models(model_path)
+                    all_models['feedforward'] = ff_models
+                    print(f"  ✅ Loaded Feedforward models: {list(ff_models.keys())}")
+                except Exception as e:
+                    print(f"  ❌ Failed to load Feedforward models: {e}")
+        
+        return all_models
+    
+    def _load_tabnet_models(self, model_path):
+        """Load TabNet model components."""
+        models = {}
+        
+        # Load TabNet model
+        tabnet_model_path = model_path / "tabnet_model.zip"
+        if tabnet_model_path.exists():
+            from pytorch_tabnet.tab_model import TabNetRegressor
+            tabnet_model = TabNetRegressor()
+            tabnet_model.load_model(str(tabnet_model_path))
+            models['tabnet_model'] = tabnet_model
+            
+        # Load TabNet scaler
+        tabnet_scaler_path = model_path / "tabnet_scaler.joblib"
+        if tabnet_scaler_path.exists():
+            models['tabnet_scaler'] = joblib.load(tabnet_scaler_path)
+            
+        # Load TabNet config
+        tabnet_config_path = model_path / "tabnet_config.json"
+        if tabnet_config_path.exists():
+            with open(tabnet_config_path, 'r') as f:
+                models['tabnet_config'] = json.load(f)
+                
+        return models
+    
+    def _load_feedforward_models(self, model_path):
+        """Load Feedforward model components."""
+        models = {}
+        
+        # Look for Feedforward model files (could be .h5, .keras, .pkl)
+        for suffix in ['.h5', '.keras', '.pkl']:
+            ff_model_path = model_path / f"feedforward_model{suffix}"
+            if ff_model_path.exists():
+                if suffix in ['.h5', '.keras']:
+                    # TensorFlow/Keras model
+                    try:
+                        from tensorflow.keras.models import load_model
+                        models['feedforward_model'] = load_model(str(ff_model_path))
+                    except ImportError:
+                        print("TensorFlow not available for loading Feedforward model")
+                elif suffix == '.pkl':
+                    # Pickled model
+                    models['feedforward_model'] = joblib.load(ff_model_path)
+                break
+                
+        # Look for feedforward config
+        ff_config_path = model_path / "feedforward_config.json"
+        if ff_config_path.exists():
+            with open(ff_config_path, 'r') as f:
+                models['feedforward_config'] = json.load(f)
+                
+        return models
 
     def _update_config(self, model_path):
-        """Update config.yaml with latest model."""
+        """Update config.yaml with latest legacy model."""
         try:
             with open("config.yaml", 'r') as f:
                 config_data = yaml.safe_load(f)
@@ -166,10 +278,16 @@ class ModelManager:
             if 'models' not in config_data:
                 config_data['models'] = {}
 
+            # Update old format for backward compatibility
             config_data['models']['latest_model'] = model_path
+            
+            # Update new format
+            if 'latest_models' not in config_data['models']:
+                config_data['models']['latest_models'] = {}
+            config_data['models']['latest_models']['legacy'] = model_path
 
             with open("config.yaml", 'w') as f:
-                yaml.dump(config_data, f, default_flow_style=False)
+                yaml.dump(config_data, f, default_flow_style=False, indent=2)
 
         except Exception as e:
             print(f"Warning: Could not update config: {e}")

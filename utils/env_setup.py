@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from typing import Dict, Optional, Any, List, Union
 from pydantic import BaseModel, Field
@@ -28,46 +29,11 @@ class CacheConfig(BaseModel):
     """Cache configuration"""
     base_path: str
     types: Dict[str, str]
+    use_cache: bool = True
 
 class Baseconfig(BaseModel):
     rootdir: str
     active_db: str
-class FeaturesConfig(BaseModel):
-    """Features configuration"""
-    features_dir: str
-    embedding_dim: int
-    default_task_type: str
-
-class ModelsConfig(BaseModel):
-    """Models configuration"""
-    model_dir: str
-
-class Config(BaseModel):
-    """Complete application configuration"""
-    cache: CacheConfig
-    features: FeaturesConfig
-    models: ModelsConfig
-    databases: List[Dict[str, Any]]
-    base: Baseconfig
-
-    # Allow additional fields for custom config values
-    class Config:
-        extra = "allow"
-
-
-class MySQLConfig(BaseModel):
-    """MySQL connection configuration"""
-    host: str
-    user: str
-    password: str
-    dbname: str
-
-class LSTMConfig(BaseModel):
-    """LSTM configuration"""
-    sequence_length: int = 5
-    step_size: int = 1
-    sequential_features: List[str] = []
-    static_features: List[str] = []
 
 class FeaturesConfig(BaseModel):
     """Features configuration"""
@@ -77,17 +43,23 @@ class FeaturesConfig(BaseModel):
     clean_after_embedding: bool = True
     keep_identifiers: bool = False
 
+class ModelsConfig(BaseModel):
+    """Models configuration"""
+    model_dir: str
+
+
 class DatasetConfig(BaseModel):
     """Dataset splitting configuration"""
     test_size: float = 0.2
     val_size: float = 0.1
     random_state: int = 42
 
-class CacheConfig(BaseModel):
-    """Cache configuration"""
-    base_path: str
-    types: Dict[str, str]
-    use_cache: bool = True
+class MySQLConfig(BaseModel):
+    """MySQL connection configuration"""
+    host: str
+    user: str
+    password: str
+    dbname: str
 
 class Config(BaseModel):
     """Complete application configuration"""
@@ -96,7 +68,6 @@ class Config(BaseModel):
     models: ModelsConfig
     databases: List[Dict[str, Any]]
     base: Baseconfig
-    lstm: Optional[LSTMConfig]
     dataset: Optional[DatasetConfig]
 
     # Allow additional fields for custom config values
@@ -115,7 +86,6 @@ class AppConfig:
         """
         self.config_path = config_path or CONFIG_PATH
         self._config = self._load_config()
-
 
     def _load_config(self) -> Config:
         """
@@ -184,17 +154,17 @@ class AppConfig:
             password=mysql_db["password"],
             dbname=db_name if db_name is not None else mysql_db["dbname"]
         )
+
     def get_active_db_path(self) -> str:
         """
         Retrieve the path of the base.active_db database from the configuration.
         """
-        config = self._load_config()
-        active_db = config.base.active_db
+        active_db = self._config.base.active_db
         if not active_db:
             raise KeyError("'base.active_db' not found in configuration.")
 
         # Find the database configuration with the matching name
-        databases = config.databases
+        databases = self._config.databases
         db_config = next((db for db in databases if db['name'] == active_db), None)
         if not db_config:
             raise KeyError(f"Database configuration for '{active_db}' not found in the configuration.")
@@ -217,106 +187,11 @@ class AppConfig:
 
         return cache_dir
 
-    def get_cache_file_path(self, cache_type: str, ensure_dir_exists: bool = True) -> Path:
-        """
-        Get the file path for a specific cache type based on config.
-
-        Args:
-            cache_type: Type of cache
-            ensure_dir_exists: Create directory if it doesn't exist
-
-        Returns:
-            Path object for the cache file
-        """
-        cache_dir = self.get_cache_path(cache_type, ensure_dir_exists)
-
-        # Get filename from config if available
-        try:
-            # Try to get the filename from config.cache.types mapping
-            filename = self.config._config.cache.types.get(cache_type)
-            if not filename:
-                # If not found in the config, use cache_type as the filename
-                filename = f"{cache_type}.parquet"
-        except (AttributeError, KeyError):
-            # Fallback if there's an issue with the config
-            filename = f"{cache_type}.parquet"
-
-        return cache_dir / filename
-
     def get_feature_store_dir(self) -> str:
         """
         Get feature store directory path
         """
         return self._config.features.features_dir
-
-    def get_model_paths(config, model_name: str = 'hybrid_model', model_type: str = None) -> Dict[str, Any]:
-        """
-        Get model paths based on model name and active database.
-
-        Args:
-            config: Configuration
-            model_name: Name of the model (defaults to 'hybrid_model')
-            model_type: Type of model folder ('hybrid_model' or 'incremental_models')
-
-        Returns:
-            Dictionary of model paths
-        """
-        # Get model dir based on config structure
-        model_dir = None
-
-        # Try different ways to access model_dir based on config structure
-        if isinstance(config, dict):
-            if 'models' in config and 'model_dir' in config['models']:
-                model_dir = config['models']['model_dir']
-        elif hasattr(config, 'models'):
-            if hasattr(config.models, 'model_dir'):
-                model_dir = config.models.model_dir
-
-        # If model_dir not found, use default
-        if not model_dir:
-            model_dir = './models'
-
-        # Get active database to determine subdirectory
-        active_db = None
-        if isinstance(config, dict):
-            if 'base' in config and 'active_db' in config['base']:
-                active_db = config['base']['active_db']
-        elif hasattr(config, 'base'):
-            if hasattr(config.base, 'active_db'):
-                active_db = config.base.active_db
-
-        # Default to "2years" if not found
-        if not active_db or active_db == "full":
-            active_db = "2years"
-
-        # Determine model type if not specified
-        if model_type is None:
-            if model_name == 'hybrid_model':
-                model_type = 'hybrid_model'
-            else:
-                model_type = 'incremental_models'
-
-        # Build complete path with active_db and model type
-        complete_model_dir = os.path.join(model_dir, active_db, model_type)
-
-        # Define paths
-        model_paths = {
-            'model_path': complete_model_dir,
-            'logs': os.path.join(complete_model_dir, 'logs'),
-            'artifacts': {
-                'rf_model': f"hybrid_rf_model.joblib",  # Standardized names regardless of folder
-                'lstm_model': f"hybrid_lstm_model",
-                'feature_engineer': f"hybrid_feature_engineer.joblib"
-            },
-            'active_db': active_db,
-            'model_type': model_type
-        }
-
-        # Ensure directories exist
-        for path in [model_paths['model_path'], model_paths['logs']]:
-            os.makedirs(path, exist_ok=True)
-
-        return model_paths
 
     def get_default_embedding_dim(self) -> int:
         """
@@ -408,36 +283,78 @@ class AppConfig:
             return self._config.cache.use_cache
         return True
 
-    def get_lstm_config(self) -> Dict[str, Any]:
+
+    @staticmethod
+    def get_model_paths(config, model_name: str = 'hybrid_model', model_type: str = None) -> Dict[str, Any]:
         """
-        Get LSTM configuration parameters
+        Get model paths based on model name and active database.
+
+        Args:
+            config: Configuration
+            model_name: Name of the model (defaults to 'hybrid_model')
+            model_type: Type of model folder ('hybrid_model' or 'incremental_models')
 
         Returns:
-            Dictionary with LSTM parameters
+            Dictionary of model paths
         """
-        lstm_config = {}
+        # Get model dir based on config structure
+        model_dir = None
 
-        # Get LSTM parameters from config if available
-        if hasattr(self._config, 'lstm'):
-            lstm_config = {
-                'sequence_length': self._config.lstm.sequence_length,
-                'step_size': self._config.lstm.step_size
-            }
+        # Try different ways to access model_dir based on config structure
+        if isinstance(config, dict):
+            if 'models' in config and 'model_dir' in config['models']:
+                model_dir = config['models']['model_dir']
+        elif hasattr(config, 'models'):
+            if hasattr(config.models, 'model_dir'):
+                model_dir = config.models.model_dir
 
-            # Add feature lists if defined
-            if hasattr(self._config.lstm, 'sequential_features') and self._config.lstm.sequential_features:
-                lstm_config['sequential_features'] = self._config.lstm.sequential_features
+        # If model_dir not found, use default
+        if not model_dir:
+            model_dir = './models'
 
-            if hasattr(self._config.lstm, 'static_features') and self._config.lstm.static_features:
-                lstm_config['static_features'] = self._config.lstm.static_features
-        else:
-            # Default values
-            lstm_config = {
-                'sequence_length': 5,
-                'step_size': 1
-            }
+        # Get active database to determine subdirectory
+        active_db = None
+        if isinstance(config, dict):
+            if 'base' in config and 'active_db' in config['base']:
+                active_db = config['base']['active_db']
+        elif hasattr(config, 'base'):
+            if hasattr(config.base, 'active_db'):
+                active_db = config.base.active_db
 
-        return lstm_config
+        # Default to "2years" if not found
+        if not active_db or active_db == "full":
+            active_db = "2years"
+
+        # Determine model type if not specified
+        if model_type is None:
+            if model_name == 'hybrid_model':
+                model_type = 'hybrid_model'
+            else:
+                model_type = 'incremental_models'
+
+        # Build complete path with active_db and model type
+        complete_model_dir = os.path.join(model_dir, active_db, model_type)
+
+        # Define paths
+        model_paths = {
+            'model_path': complete_model_dir,
+            'logs': os.path.join(complete_model_dir, 'logs'),
+            'artifacts': {
+                'rf_model': f"hybrid_rf_model.joblib",
+                'feedforward_model': f"hybrid_feedforward_model",
+                'feature_engineer': f"hybrid_feature_engineer.joblib"
+            },
+            'active_db': active_db,
+            'model_type': model_type
+        }
+
+        # Ensure directories exist
+        for path in [model_paths['model_path'], model_paths['logs']]:
+            os.makedirs(path, exist_ok=True)
+
+        return model_paths
+
+
 # Convenience functions for backward compatibility
 def get_sqlite_dbpath(db_name: str = "full") -> str:
     """Get SQLite database path from config"""
@@ -449,7 +366,82 @@ def get_mysql_config(db_name: str = None) -> MySQLConfig:
     return AppConfig().get_mysql_config(db_name)
 
 
+# Environment detection functions
+def detect_environment():
+    """
+    Detect if we're running on vast.ai or localhost.
 
+    Returns:
+        str: 'vast.ai' or 'localhost'
+    """
+    return 'vast.ai' if os.getenv('VAST_CONTAINERLABEL') else 'localhost'
+
+
+def setup_pythonpath():
+    """
+    Automatically set PYTHONPATH based on detected environment.
+    """
+    env_type = detect_environment()
+    print(f"🔍 Detected environment: {env_type}")
+
+    if env_type == 'vast.ai':
+        # Vast.ai setup - assume workspace is mounted at /workspace
+        project_root = Path('/workspace')
+    else:
+        # Localhost setup - use config or current directory
+        try:
+            app_config = AppConfig()
+            project_root = Path(app_config._config.base.rootdir)
+        except Exception as e:
+            print(f"⚠️ Could not load config ({e}), using current directory")
+            project_root = Path.cwd()
+
+    # Define paths to add
+    paths_to_add = [
+        str(project_root),
+        str(project_root / 'core'),
+        str(project_root / 'utils'),
+        str(project_root / 'model_training'),
+    ]
+
+    # Add paths to sys.path if not already present
+    added_paths = []
+    for path in paths_to_add:
+        if os.path.exists(path) and path not in sys.path:
+            sys.path.insert(0, path)
+            added_paths.append(path)
+
+    # Also set PYTHONPATH environment variable
+    current_pythonpath = os.environ.get('PYTHONPATH', '')
+    new_paths = [p for p in paths_to_add if p not in current_pythonpath.split(os.pathsep)]
+
+    if new_paths:
+        if current_pythonpath:
+            os.environ['PYTHONPATH'] = os.pathsep.join(new_paths + [current_pythonpath])
+        else:
+            os.environ['PYTHONPATH'] = os.pathsep.join(new_paths)
+
+    print(f"✅ Added {len(added_paths)} paths to sys.path")
+    for path in added_paths:
+        print(f"   📁 {path}")
+
+    return env_type, project_root
+
+
+def init_environment():
+    """
+    Initialize environment and return config.
+    Call this at the top of your scripts.
+    """
+    env_type, project_root = setup_pythonpath()
+
+    try:
+        app_config = AppConfig()
+        print(f"✅ Configuration loaded successfully")
+        return app_config, env_type
+    except Exception as e:
+        print(f"❌ Failed to load configuration: {e}")
+        return None, env_type
 
 
 # Direct testing function
@@ -488,4 +480,17 @@ def test_config():
 
 
 if __name__ == "__main__":
+    # Test environment detection and config loading
+    env_type, project_root = setup_pythonpath()
+    print(f"\n📊 Environment Summary:")
+    print(f"   Environment: {env_type}")
+    print(f"   Project Root: {project_root}")
+    print(f"   VAST_CONTAINERLABEL: {os.getenv('VAST_CONTAINERLABEL', 'Not set')}")
+
+    # Test config loading
+    app_config, _ = init_environment()
+    if app_config:
+        print(f"   Active DB: {app_config._config.base.active_db}")
+    
+    # Run the original test
     test_config()

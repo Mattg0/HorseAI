@@ -1558,6 +1558,69 @@ def main():
             st.metric("Last Training", last_training)
         with col_status2:
             st.metric("Model Version", model_version)
+        
+        # Alternative Models Status
+        st.markdown("### 🤖 Model Status")
+        model_info_result = st.session_state.helper.get_prediction_model_info()
+        
+        if model_info_result.get('success'):
+            prediction_info = model_info_result['prediction_info']
+        else:
+            # Use fallback information if available
+            st.warning(f"Model info error: {model_info_result.get('error', 'Unknown error')}")
+            prediction_info = model_info_result.get('fallback_info', {})
+            
+            if not prediction_info:
+                st.error("Could not retrieve any model information")
+                return
+        
+        # Display model information (works with both success and fallback data)
+        # Legacy Models Status
+        st.markdown("**Legacy Models:**")
+        legacy_models = prediction_info.get('legacy_models', {})
+        legacy_status = legacy_models.get('model_status', {})
+        
+        col_rf, col_lstm, col_tabnet = st.columns(3)
+        with col_rf:
+            rf_status = "✅ Loaded" if legacy_status.get('rf_loaded', False) else "❌ Not Found"
+            st.metric("Random Forest", rf_status)
+        with col_lstm:
+            lstm_status = "✅ Loaded" if legacy_status.get('lstm_loaded', False) else "❌ Not Found"
+            st.metric("LSTM", lstm_status)
+        with col_tabnet:
+            tabnet_status = "✅ Loaded" if legacy_status.get('tabnet_loaded', False) else "❌ Not Found"
+            st.metric("TabNet", tabnet_status)
+        
+        # Alternative Models Status
+        alt_models = prediction_info.get('alternative_models', {})
+        if alt_models.get('enabled'):
+            st.markdown("**Alternative Models:**")
+            col_trans, col_ens = st.columns(2)
+            
+            with col_trans:
+                trans_info = alt_models.get('transformer', {})
+                trans_status = "✅ Loaded" if trans_info.get('loaded', False) else ("⚙️ Configured" if trans_info.get('configured', False) else "❌ Disabled")
+                st.metric("Transformer", trans_status)
+            
+            with col_ens:
+                ens_info = alt_models.get('ensemble', {})
+                ens_status = "✅ Loaded" if ens_info.get('loaded', False) else ("⚙️ Configured" if ens_info.get('configured', False) else "❌ Disabled")
+                st.metric("Ensemble", ens_status)
+            
+            # System Status Summary
+            system_status = prediction_info.get('system_status', 'unknown')
+            status_emoji_map = {
+                'full_operational': '🟢 Full Operational',
+                'legacy_operational': '🟡 Legacy Only',
+                'alternative_operational': '🔵 Alternative Only',
+                'no_models_loaded': '🔴 No Models',
+                'configuration_error': '⚠️ Config Error'
+            }
+            
+            st.markdown(f"**Overall Status:** {status_emoji_map.get(system_status, '⚪ Unknown')}")
+        else:
+            alt_message = alt_models.get('message', "Alternative models not configured. Enable in config.yaml to see status.")
+            st.info(alt_message)
 
         st.markdown('</div>', unsafe_allow_html=True)
 

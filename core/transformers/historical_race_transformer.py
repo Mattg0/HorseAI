@@ -21,7 +21,9 @@ def transform_race_data(df):
     course_infos_columns = [
         'jour', 'quinte', 'hippo', 'reun', 'prix', 'partant', 'meteo',
         'dist', 'corde', 'natpis', 'pistegp', 'typec', 'temperature',
-        'forceVent', 'directionVent', 'nebulositeLibelleCourt'
+        'forceVent', 'directionVent', 'nebulositeLibelleCourt', 'handi',
+        # Phase 2: Additional race-level fields
+        'cheque', 'reclam', 'groupe', 'sex', 'tempscourse'
     ]
 
     # Create course info DataFrame
