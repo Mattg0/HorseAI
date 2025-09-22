@@ -25,7 +25,7 @@ except ImportError:
 
 # Alternative models imports
 try:
-    from model_training.models import FeedforwardModel, TransformerModel, EnsembleModel
+    from model_training.models import TransformerModel, EnsembleModel
     ALTERNATIVE_MODELS_AVAILABLE = True
 except ImportError:
     ALTERNATIVE_MODELS_AVAILABLE = False
@@ -33,8 +33,7 @@ except ImportError:
 
 class RacePredictor:
     """
-    Enhanced race predictor that supports both legacy models (RF, LSTM, TabNet) and 
-    alternative models (Feedforward, Transformer, Ensemble) with intelligent blending.
+    Enhanced race predictor that supports RF and TabNet models with intelligent blending.
     Uses the same data preparation pipeline as training for consistency.
     """
 
@@ -386,7 +385,7 @@ class RacePredictor:
             self.tabnet_feature_columns = None
     
     def _load_alternative_models(self):
-        """Load alternative models (Feedforward, Transformer, Ensemble)."""
+        """Load alternative models (TabNet only for 2-model system)."""
         self.alternative_models = {}
         
         if not ALTERNATIVE_MODELS_AVAILABLE:
@@ -404,24 +403,6 @@ class RacePredictor:
                 if self.verbose:
                     print("Models directory not found - alternative models not loaded")
                 return
-            
-            # Load Feedforward model
-            if 'feedforward' in enabled_models:
-                feedforward_files = list(models_dir.glob("*feedforward*.h5")) + list(models_dir.glob("*feedforward*.keras"))
-                if feedforward_files:
-                    try:
-                        config = alt_config.get('feedforward', {})
-                        model = FeedforwardModel(config, verbose=False)
-                        model.model = model.load_model(str(feedforward_files[0]))
-                        self.alternative_models['feedforward'] = model
-                        if self.verbose:
-                            print(f"Loaded feedforward model from {feedforward_files[0]}")
-                    except Exception as e:
-                        if self.verbose:
-                            print(f"Failed to load feedforward model: {e}")
-                        self.alternative_models['feedforward'] = None
-                else:
-                    self.alternative_models['feedforward'] = None
             
             # Load Transformer model
             if 'transformer' in enabled_models:
@@ -464,54 +445,73 @@ class RacePredictor:
                 print(f"Error loading alternative models: {e}")
             self.alternative_models = {}
 
-    def prepare_tabnet_features(self, race_df: pd.DataFrame) -> pd.DataFrame:
-        """Prepare features specifically for TabNet prediction."""
+    def prepare_tabnet_features(self, race_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Prepare features specifically for TabNet prediction using domain features.
+        NEW: Uses ModelFeatureSelector for consistency with training.
+        """
         if self.verbose:
-            print("Preparing features for TabNet prediction...")
+            print("Preparing domain features for TabNet prediction...")
             
         # Apply feature calculator for musique preprocessing
         df_with_features = FeatureCalculator.calculate_all_features(race_df)
         
-        # Prepare TabNet-specific features using the orchestrator
-        tabnet_df = self.orchestrator.prepare_tabnet_features(df_with_features, use_cache=False)
+        # Apply embeddings to get complete feature set
+        complete_df = self.orchestrator.apply_embeddings(df_with_features)
         
-        return tabnet_df
+        # Extract TabNet features using the same pipeline as training
+        X_tabnet, _ = self.orchestrator.extract_tabnet_features(complete_df)
+        
+        if self.verbose:
+            print(f"TabNet prediction features: {X_tabnet.shape[1]} domain features")
+        
+        return X_tabnet, complete_df
     
     def predict_with_tabnet(self, race_df: pd.DataFrame) -> np.ndarray:
-        """Generate predictions using TabNet model."""
+        """
+        Generate predictions using TabNet model with domain features.
+        NEW: Uses same domain feature extraction as training.
+        """
         if self.tabnet_model is None:
             return None
             
         try:
-            # Prepare TabNet-specific features
-            tabnet_df = self.prepare_tabnet_features(race_df)
+            # Prepare TabNet-specific features using new pipeline
+            X_tabnet, complete_df = self.prepare_tabnet_features(race_df)
             
-            # Select features that match training
+            if X_tabnet is None or X_tabnet.empty:
+                if self.verbose:
+                    print("Warning: No TabNet features prepared")
+                return None
+            
+            # Validate feature consistency with training
             if self.tabnet_feature_columns:
-                available_features = [col for col in self.tabnet_feature_columns if col in tabnet_df.columns]
-                missing_features = [col for col in self.tabnet_feature_columns if col not in tabnet_df.columns]
+                available_features = [col for col in self.tabnet_feature_columns if col in X_tabnet.columns]
+                missing_features = [col for col in self.tabnet_feature_columns if col not in X_tabnet.columns]
                 
                 if missing_features and self.verbose:
-                    print(f"Warning: Missing TabNet features: {len(missing_features)}")
+                    print(f"Warning: Missing TabNet features: {missing_features}")
                     
                 if not available_features:
                     if self.verbose:
                         print("Warning: No matching TabNet features found")
                     return None
                     
-                # Extract feature matrix
-                X = tabnet_df[available_features].values
+                # Use training feature order
+                X = X_tabnet[available_features].values
             else:
-                # Use all available features if no specific columns defined
-                feature_cols = [col for col in tabnet_df.columns 
-                               if col not in ['final_position', 'comp', 'idche', 'idJockey', 'numero']]
-                X = tabnet_df[feature_cols].values
+                # Use all available features
+                X = X_tabnet.values
                 
-            # Scale features if scaler available
+            # Scale features using training scaler
             if self.tabnet_scaler is not None:
                 X_scaled = self.tabnet_scaler.transform(X)
+                if self.verbose:
+                    print(f"TabNet features scaled using training scaler")
             else:
                 X_scaled = X
+                if self.verbose:
+                    print("Warning: No TabNet scaler available")
                 
             # Generate predictions
             tabnet_preds = self.tabnet_model.predict(X_scaled)

@@ -17,12 +17,10 @@ class PredictionRecord:
     timestamp: datetime
     horse_id: str
     rf_prediction: Optional[float]
-    lstm_prediction: Optional[float]
     tabnet_prediction: Optional[float]
-    feedforward_prediction: Optional[float]
-    transformer_prediction: Optional[float]
-    ensemble_alt_prediction: Optional[float]
     ensemble_prediction: float
+    rf_weight: Optional[float]
+    tabnet_weight: Optional[float]
     ensemble_confidence_score: Optional[float]
     actual_position: Optional[int]
     distance: Optional[int]
@@ -59,12 +57,10 @@ class PredictionStorage:
                     timestamp DATETIME NOT NULL,
                     horse_id TEXT NOT NULL,
                     rf_prediction REAL,
-                    lstm_prediction REAL,
                     tabnet_prediction REAL,
-                    feedforward_prediction REAL,
-                    transformer_prediction REAL,
-                    ensemble_alt_prediction REAL,
                     ensemble_prediction REAL NOT NULL,
+                    rf_weight REAL,
+                    tabnet_weight REAL,
                     ensemble_confidence_score REAL,
                     actual_position INTEGER,
                     distance INTEGER,
@@ -81,9 +77,8 @@ class PredictionStorage:
             
             # Add new columns to existing tables (for backward compatibility)
             try:
-                conn.execute('ALTER TABLE prediction_storage ADD COLUMN feedforward_prediction REAL')
-                conn.execute('ALTER TABLE prediction_storage ADD COLUMN transformer_prediction REAL')
-                conn.execute('ALTER TABLE prediction_storage ADD COLUMN ensemble_alt_prediction REAL')
+                conn.execute('ALTER TABLE prediction_storage ADD COLUMN rf_weight REAL')
+                conn.execute('ALTER TABLE prediction_storage ADD COLUMN tabnet_weight REAL')
             except sqlite3.OperationalError:
                 # Columns already exist
                 pass
@@ -103,23 +98,20 @@ class PredictionStorage:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute('''
                 INSERT INTO prediction_storage (
-                    race_id, timestamp, horse_id, rf_prediction, lstm_prediction,
-                    tabnet_prediction, feedforward_prediction, transformer_prediction,
-                    ensemble_alt_prediction, ensemble_prediction, ensemble_confidence_score,
+                    race_id, timestamp, horse_id, rf_prediction, tabnet_prediction,
+                    ensemble_prediction, rf_weight, tabnet_weight, ensemble_confidence_score,
                     actual_position, distance, track_condition, weather, field_size,
                     race_type, model_versions, prediction_metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 record.race_id,
                 record.timestamp,
                 record.horse_id,
                 record.rf_prediction,
-                record.lstm_prediction,
                 record.tabnet_prediction,
-                record.feedforward_prediction,
-                record.transformer_prediction,
-                record.ensemble_alt_prediction,
                 record.ensemble_prediction,
+                record.rf_weight,
+                record.tabnet_weight,
                 record.ensemble_confidence_score,
                 record.actual_position,
                 record.distance,
@@ -145,23 +137,20 @@ class PredictionStorage:
             for record in records:
                 cursor = conn.execute('''
                     INSERT INTO prediction_storage (
-                        race_id, timestamp, horse_id, rf_prediction, lstm_prediction,
-                        tabnet_prediction, feedforward_prediction, transformer_prediction,
-                        ensemble_alt_prediction, ensemble_prediction, ensemble_confidence_score,
+                        race_id, timestamp, horse_id, rf_prediction, tabnet_prediction,
+                        ensemble_prediction, rf_weight, tabnet_weight, ensemble_confidence_score,
                         actual_position, distance, track_condition, weather, field_size,
                         race_type, model_versions, prediction_metadata
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     record.race_id,
                     record.timestamp,
                     record.horse_id,
                     record.rf_prediction,
-                    record.lstm_prediction,
                     record.tabnet_prediction,
-                    record.feedforward_prediction,
-                    record.transformer_prediction,
-                    record.ensemble_alt_prediction,
                     record.ensemble_prediction,
+                    record.rf_weight,
+                    record.tabnet_weight,
                     record.ensemble_confidence_score,
                     record.actual_position,
                     record.distance,
@@ -217,8 +206,8 @@ class PredictionStorage:
             }
         }
         
-        # MAE for each model type
-        for model in ['rf_prediction', 'lstm_prediction', 'tabnet_prediction', 'feedforward_prediction', 'transformer_prediction', 'ensemble_alt_prediction', 'ensemble_prediction']:
+        # MAE for each model type (2-model system)
+        for model in ['rf_prediction', 'tabnet_prediction', 'ensemble_prediction']:
             if model in df.columns:
                 valid_predictions = df[df[model].notna()]
                 if not valid_predictions.empty:
@@ -226,12 +215,19 @@ class PredictionStorage:
                     metrics[f"{model}_mae"] = mae
         
         # Accuracy metrics (top 3 predictions)
-        for model in ['rf_prediction', 'lstm_prediction', 'tabnet_prediction', 'feedforward_prediction', 'transformer_prediction', 'ensemble_alt_prediction', 'ensemble_prediction']:
+        for model in ['rf_prediction', 'tabnet_prediction', 'ensemble_prediction']:
             if model in df.columns:
                 valid_predictions = df[df[model].notna()]
                 if not valid_predictions.empty:
                     top3_accuracy = np.mean(valid_predictions[model] <= 3)
                     metrics[f"{model}_top3_accuracy"] = top3_accuracy
+                    
+        # Add blend weight analysis
+        if 'rf_weight' in df.columns and 'tabnet_weight' in df.columns:
+            valid_weights = df[(df['rf_weight'].notna()) & (df['tabnet_weight'].notna())]
+            if not valid_weights.empty:
+                metrics['avg_rf_weight'] = valid_weights['rf_weight'].mean()
+                metrics['avg_tabnet_weight'] = valid_weights['tabnet_weight'].mean()
         
         return metrics
     
@@ -452,17 +448,15 @@ class PredictionStorage:
         }
     
     def suggest_blend_weights(self, days: int = 30) -> Dict[str, float]:
-        """Analyze recent performance to suggest optimal blend weights"""
+        """Analyze recent performance to suggest optimal blend weights for 2-model system"""
         cutoff_date = datetime.now() - timedelta(days=days)
         
         with sqlite3.connect(self.db_path) as conn:
             df = pd.read_sql_query('''
-                SELECT rf_prediction, lstm_prediction, tabnet_prediction, 
-                       ensemble_prediction, actual_position
+                SELECT rf_prediction, tabnet_prediction, ensemble_prediction, actual_position
                 FROM prediction_storage 
                 WHERE timestamp >= ? AND actual_position IS NOT NULL
                 AND rf_prediction IS NOT NULL 
-                AND lstm_prediction IS NOT NULL 
                 AND tabnet_prediction IS NOT NULL
             ''', conn, params=[cutoff_date])
         
@@ -471,22 +465,19 @@ class PredictionStorage:
         
         # Calculate MAE for each individual model
         rf_mae = np.mean(np.abs(df['rf_prediction'] - df['actual_position']))
-        lstm_mae = np.mean(np.abs(df['lstm_prediction'] - df['actual_position']))
         tabnet_mae = np.mean(np.abs(df['tabnet_prediction'] - df['actual_position']))
         
         # Calculate inverse weights (better models get higher weights)
-        total_inverse_mae = (1/rf_mae) + (1/lstm_mae) + (1/tabnet_mae)
+        total_inverse_mae = (1/rf_mae) + (1/tabnet_mae)
         
         suggested_weights = {
             'rf_weight': round((1/rf_mae) / total_inverse_mae, 3),
-            'lstm_weight': round((1/lstm_mae) / total_inverse_mae, 3),
             'tabnet_weight': round((1/tabnet_mae) / total_inverse_mae, 3)
         }
         
         # Add performance metrics for context
         suggested_weights['performance_metrics'] = {
             'rf_mae': round(rf_mae, 3),
-            'lstm_mae': round(lstm_mae, 3),
             'tabnet_mae': round(tabnet_mae, 3),
             'current_ensemble_mae': round(np.mean(np.abs(df['ensemble_prediction'] - df['actual_position'])), 3)
         }

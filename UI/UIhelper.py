@@ -771,7 +771,7 @@ class PipelineHelper:
             alt_models_config = {}
             if self._config_data:
                 alt_models_config = self._config_data.get('alternative_models', {
-                    'model_selection': ['feedforward', 'transformer', 'ensemble']
+                    'model_selection': ['transformer', 'ensemble']
                 })
             
             # Check for alternative model files
@@ -796,11 +796,6 @@ class PipelineHelper:
                 'alternative_models': {
                     'enabled': alt_models_config.get('model_selection', []),
                     'status': alternative_model_status,
-                    'feedforward': {
-                        'configured': 'feedforward' in alt_models_config.get('model_selection', []),
-                        'loaded': alternative_model_status.get('feedforward_loaded', False),
-                        'config': alt_models_config.get('feedforward', {})
-                    },
                     'transformer': {
                         'configured': 'transformer' in alt_models_config.get('model_selection', []),
                         'loaded': alternative_model_status.get('transformer_loaded', False),
@@ -858,7 +853,6 @@ class PipelineHelper:
     def _check_alternative_models(self) -> Dict[str, bool]:
         """Check if alternative model files exist"""
         model_status = {
-            'feedforward_loaded': False,
             'transformer_loaded': False,
             'ensemble_loaded': False
         }
@@ -866,10 +860,6 @@ class PipelineHelper:
         try:
             models_dir = Path("models")
             if models_dir.exists():
-                # Check for feedforward model files
-                feedforward_files = list(models_dir.glob("*feedforward*.h5")) + list(models_dir.glob("*feedforward*.keras"))
-                model_status['feedforward_loaded'] = len(feedforward_files) > 0
-                
                 # Check for transformer model files
                 transformer_files = list(models_dir.glob("*transformer*.h5")) + list(models_dir.glob("*transformer*.keras"))
                 model_status['transformer_loaded'] = len(transformer_files) > 0

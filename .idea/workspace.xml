@@ -4,9 +4,25 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="deploy script + trining output">
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="fix batching type issue">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UI/UIApp.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIApp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UI/UIhelper.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIhelper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/connectors/sqlite_historical_writer.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/sqlite_historical_writer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/storage/prediction_storage.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/storage/prediction_storage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/transformers/historical_race_transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/transformers/historical_race_transformer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/models/feedforward_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/models/feedforward_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/env_setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/env_setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/model_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/model_manager.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -81,6 +97,7 @@
     &quot;Python.train_tabnet.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;Shell Script.remote_training.sh.executor&quot;: &quot;Run&quot;,
     &quot;git-widget-placeholder&quot;: &quot;fastforward-neural-net&quot;
   }
 }</component>
@@ -104,28 +121,6 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/model_training/comprehensive_training.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <configuration name="daily_predictor" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="HorseAIv2" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/race_prediction/daily_predictor.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -222,21 +217,36 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="remote_training.sh" type="ShConfigurationType" temporary="true">
+      <option name="SCRIPT_TEXT" value="" />
+      <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+      <option name="SCRIPT_PATH" value="$PROJECT_DIR$/remote_training.sh" />
+      <option name="SCRIPT_OPTIONS" value="" />
+      <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+      <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+      <option name="INTERPRETER_PATH" value="/bin/bash" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="EXECUTE_IN_TERMINAL" value="true" />
+      <option name="EXECUTE_SCRIPT_FILE" value="true" />
+      <envs />
+      <method v="2" />
+    </configuration>
     <list>
       <item itemvalue="Python.comprehensive_training" />
       <item itemvalue="Python.env_setup" />
       <item itemvalue="Python.train_race_model" />
       <item itemvalue="Python.regression_enhancement" />
       <item itemvalue="Python.race_predict" />
-      <item itemvalue="Python.daily_predictor" />
+      <item itemvalue="Shell Script.remote_training.sh" />
     </list>
     <recent_temporary>
       <list>
         <item itemvalue="Python.train_race_model" />
+        <item itemvalue="Shell Script.remote_training.sh" />
         <item itemvalue="Python.env_setup" />
         <item itemvalue="Python.regression_enhancement" />
         <item itemvalue="Python.race_predict" />
-        <item itemvalue="Python.daily_predictor" />
       </list>
     </recent_temporary>
   </component>
@@ -480,7 +490,111 @@
       <option name="project" value="LOCAL" />
       <updated>1756387272840</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756397499121</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1756397499121</updated>
+    </task>
+    <task id="LOCAL-00030" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756641593023</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1756641593023</updated>
+    </task>
+    <task id="LOCAL-00031" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756641956305</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1756641956305</updated>
+    </task>
+    <task id="LOCAL-00032" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756644593174</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1756644593174</updated>
+    </task>
+    <task id="LOCAL-00033" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756644636352</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1756644636352</updated>
+    </task>
+    <task id="LOCAL-00034" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756644708556</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1756644708556</updated>
+    </task>
+    <task id="LOCAL-00035" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756644799315</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1756644799315</updated>
+    </task>
+    <task id="LOCAL-00036" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756647058573</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1756647058573</updated>
+    </task>
+    <task id="LOCAL-00037" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756734926679</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1756734926679</updated>
+    </task>
+    <task id="LOCAL-00038" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756735470742</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1756735470742</updated>
+    </task>
+    <task id="LOCAL-00039" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756796578500</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1756796578500</updated>
+    </task>
+    <task id="LOCAL-00040" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756799231502</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1756799231502</updated>
+    </task>
+    <task id="LOCAL-00041" summary="fix batching type issue">
+      <option name="closed" value="true" />
+      <created>1756808202879</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1756808202879</updated>
+    </task>
+    <option name="localTasksCounter" value="42" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -501,19 +615,20 @@
     <MESSAGE value="Final Version!!" />
     <MESSAGE value="Well... Final Version!!" />
     <MESSAGE value="deploy script + trining output" />
-    <option name="LAST_COMMIT_MESSAGE" value="deploy script + trining output" />
+    <MESSAGE value="fix batching type issue" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix batching type issue" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
-          <line>171</line>
+          <line>534</line>
           <option name="timeStamp" value="30" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/transformers/historical_race_transformer.py</url>
-          <line>84</line>
+          <line>86</line>
           <option name="timeStamp" value="55" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -523,12 +638,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
-          <line>93</line>
+          <line>409</line>
           <option name="timeStamp" value="139" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
-          <line>157</line>
+          <line>519</line>
           <option name="timeStamp" value="140" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">

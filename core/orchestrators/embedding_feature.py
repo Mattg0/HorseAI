@@ -20,6 +20,7 @@ from model_training.features.horse_embedding import HorseEmbedding
 from model_training.features.jockey_embedding import JockeyEmbedding
 from model_training.features.course_embedding import CourseEmbedding
 from model_training.features.couple_embedding import CoupleEmbedding
+from core.orchestrators.feature_selector import ModelFeatureSelector
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, LSTM, Dropout, concatenate, Lambda
 from tensorflow.keras.optimizers import Adam
@@ -57,12 +58,12 @@ class FeatureEmbeddingOrchestrator:
         self.clean_after_embedding = feature_config.get('clean_after_embedding', True)
         self.keep_identifiers = feature_config.get('keep_identifiers', False)
 
-        # Get LSTM configuration
-        lstm_config = self.config.get_lstm_config()
-        self.sequence_length = lstm_config['sequence_length']
-        self.step_size = lstm_config['step_size']
-        self.sequential_features = lstm_config.get('sequential_features', [])
-        self.static_features = lstm_config.get('static_features', [])
+        # 3-model system configuration (no LSTM sequences needed)
+        # Default values for legacy compatibility
+        self.sequence_length = 5  # Legacy parameter, not used in 3-model system
+        self.step_size = 1        # Legacy parameter, not used in 3-model system
+        self.sequential_features = []  # Not used - models use flat features
+        self.static_features = []      # Not used - models use flat features
 
         # Get dataset configuration
         dataset_config = self.config.get_dataset_config()
@@ -78,6 +79,9 @@ class FeatureEmbeddingOrchestrator:
 
         # Initialize caching manager
         self.cache_manager = CacheManager()
+        
+        # Initialize feature selector for dual pipeline system
+        self.feature_selector = ModelFeatureSelector(config=self.config)
         
         # Initialize memory monitoring and batch processing settings
         self.enable_batch_processing = True
@@ -393,7 +397,12 @@ class FeatureEmbeddingOrchestrator:
         # Make a copy to avoid modifying the original
         processed_df = df.copy()
 
-        # Handle missing numerical values
+        # Apply comprehensive data cleaning for racing domain
+        from core.data_cleaning.tabnet_cleaner import TabNetDataCleaner
+        cleaner = TabNetDataCleaner()
+        processed_df = cleaner.comprehensive_data_cleaning(processed_df, verbose=False)
+
+        # Handle missing numerical values (additional safety net)
         numeric_cols = processed_df.select_dtypes(include=['float64', 'int64']).columns
         processed_df[numeric_cols] = processed_df[numeric_cols].fillna(0)
 
@@ -644,66 +653,68 @@ class FeatureEmbeddingOrchestrator:
         has_course_embeddings = any(col.startswith('course_emb_') for col in clean_df.columns)
 
         # 2. Create lists of raw features to drop for each embedding type
+        # Only drop raw features if clean_after_embedding is True
         columns_to_drop = []
 
-        # Horse-related raw features
-        if has_horse_embeddings:
-            horse_raw_features = [
-                # Performance statistics
-                'victoirescheval', 'placescheval', 'coursescheval', 'gainsCarriere',
-                'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'gainsAnneeEnCours',
-                # Derived ratios
-                'ratio_victoires', 'ratio_places', 'gains_par_course', 'perf_cheval_hippo',
-                # Musique-derived features
-                'musiqueche', 'age'  # age is typically included in horse embeddings
-            ]
+        if self.clean_after_embedding:
+            # Horse-related raw features
+            if has_horse_embeddings:
+                horse_raw_features = [
+                    # Performance statistics
+                    'victoirescheval', 'placescheval', 'coursescheval', 'gainsCarriere',
+                    'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'gainsAnneeEnCours',
+                    # Derived ratios
+                    'ratio_victoires', 'ratio_places', 'gains_par_course', 'perf_cheval_hippo',
+                    # Musique-derived features
+                    'musiqueche', 'age'  # age is typically included in horse embeddings
+                ]
 
-            # Add all che_* columns (global, weighted, bytype)
-            che_columns = [col for col in clean_df.columns if
-                           col.startswith(('che_global_', 'che_weighted_', 'che_bytype_'))]
-            horse_raw_features.extend(che_columns)
+                # Add all che_* columns (global, weighted, bytype)
+                che_columns = [col for col in clean_df.columns if
+                               col.startswith(('che_global_', 'che_weighted_', 'che_bytype_'))]
+                horse_raw_features.extend(che_columns)
 
-            # Keep track of what's being dropped
-            existing = [col for col in horse_raw_features if col in clean_df.columns]
-            columns_to_drop.extend(existing)
-            modifications['dropped_embedded'].extend(existing)
+                # Keep track of what's being dropped
+                existing = [col for col in horse_raw_features if col in clean_df.columns]
+                columns_to_drop.extend(existing)
+                modifications['dropped_embedded'].extend(existing)
 
-        # Jockey-related raw features
-        if has_jockey_embeddings:
-            jockey_raw_features = [
-                'pourcVictJockHippo', 'pourcPlaceJockHippo', 'perf_jockey_hippo',
-                'musiquejoc'
-            ]
+            # Jockey-related raw features
+            if has_jockey_embeddings:
+                jockey_raw_features = [
+                    'pourcVictJockHippo', 'pourcPlaceJockHippo', 'perf_jockey_hippo',
+                    'musiquejoc'
+                ]
 
-            # Add all joc_* columns
-            joc_columns = [col for col in clean_df.columns if
-                           col.startswith(('joc_global_', 'joc_weighted_', 'joc_bytype_'))]
-            jockey_raw_features.extend(joc_columns)
+                # Add all joc_* columns
+                joc_columns = [col for col in clean_df.columns if
+                               col.startswith(('joc_global_', 'joc_weighted_', 'joc_bytype_'))]
+                jockey_raw_features.extend(joc_columns)
 
-            existing = [col for col in jockey_raw_features if col in clean_df.columns]
-            columns_to_drop.extend(existing)
-            modifications['dropped_embedded'].extend(existing)
+                existing = [col for col in jockey_raw_features if col in clean_df.columns]
+                columns_to_drop.extend(existing)
+                modifications['dropped_embedded'].extend(existing)
 
-        # Couple-related raw features
-        if has_couple_embeddings:
-            couple_raw_features = [
-                'nbVictCouple', 'nbPlaceCouple', 'nbCourseCouple', 'TxVictCouple',
-                'efficacite_couple', 'regularite_couple', 'progression_couple'
-            ]
-            existing = [col for col in couple_raw_features if col in clean_df.columns]
-            columns_to_drop.extend(existing)
-            modifications['dropped_embedded'].extend(existing)
+            # Couple-related raw features
+            if has_couple_embeddings:
+                couple_raw_features = [
+                    'nbVictCouple', 'nbPlaceCouple', 'nbCourseCouple', 'TxVictCouple',
+                    'efficacite_couple', 'regularite_couple', 'progression_couple'
+                ]
+                existing = [col for col in couple_raw_features if col in clean_df.columns]
+                columns_to_drop.extend(existing)
+                modifications['dropped_embedded'].extend(existing)
 
-        # Course-related raw features
-        if has_course_embeddings:
-            # These features are likely captured in course embeddings
-            course_raw_features = [
-                'hippo', 'dist', 'typec', 'meteo', 'temperature',
-                'forceVent', 'directionVent', 'natpis', 'pistegp'
-            ]
-            existing = [col for col in course_raw_features if col in clean_df.columns]
-            columns_to_drop.extend(existing)
-            modifications['dropped_embedded'].extend(existing)
+            # Course-related raw features
+            if has_course_embeddings:
+                # These features are likely captured in course embeddings
+                course_raw_features = [
+                    'hippo', 'dist', 'typec', 'meteo', 'temperature',
+                    'forceVent', 'directionVent', 'natpis', 'pistegp'
+                ]
+                existing = [col for col in course_raw_features if col in clean_df.columns]
+                columns_to_drop.extend(existing)
+                modifications['dropped_embedded'].extend(existing)
 
         # 3. Handle identifiers
         identifiers = ['idche', 'idJockey', 'idEntraineur', 'proprietaire', 'comp', 'couple_id']
@@ -1153,6 +1164,11 @@ class FeatureEmbeddingOrchestrator:
         if jour_backup is not None and 'jour' not in embedded_df.columns:
             embedded_df['jour'] = jour_backup
 
+        # Apply data cleaning after embeddings to ensure no NaN values remain
+        from core.data_cleaning.tabnet_cleaner import TabNetDataCleaner
+        cleaner = TabNetDataCleaner()
+        embedded_df = cleaner.comprehensive_data_cleaning(embedded_df, verbose=False)
+
         # Cache the transformed DataFrame
         if use_cache:
             try:
@@ -1181,8 +1197,8 @@ class FeatureEmbeddingOrchestrator:
 
     def extract_rf_features(self, complete_df):
         """
-        Extract features suitable for Random Forest training.
-        FIXED: Preserves target column specifically for RF (not LSTM).
+        Extract features suitable for Random Forest training using Phase 1 tabular architecture.
+        NEW: Uses Phase 1 domain features with improved tabular preparation.
 
         Args:
             complete_df: Complete dataset with all features
@@ -1190,13 +1206,12 @@ class FeatureEmbeddingOrchestrator:
         Returns:
             Tuple of (X, y) for RF training
         """
-        rf_df = complete_df.copy()
-
-        # Drop sequence-specific columns that RF doesn't need
-        sequence_cols = [col for col in rf_df.columns if 'jour' in col.lower()]
-        rf_df = rf_df.drop(columns=sequence_cols, errors='ignore')
-
-        # PRESERVE target column before cleaning
+        self.log_info("Extracting RF features using Phase 1 tabular architecture")
+        
+        # Use the new tabular preparation method
+        rf_df = self.prepare_tabular_features(complete_df, model_type='rf')
+        
+        # PRESERVE target column
         target_column = 'final_position'
         target_backup = None
 
@@ -1204,38 +1219,247 @@ class FeatureEmbeddingOrchestrator:
             target_backup = rf_df[target_column].copy()
             self.log_info(f"Backing up target column '{target_column}' with {target_backup.count()} valid values")
 
-        # Apply standard RF cleaning (this will drop final_position as metadata)
-        rf_df = self.drop_embedded_raw_features(rf_df, keep_identifiers=False)
-
-        # RESTORE target column after cleaning
+        # RESTORE target column after preparation
         if target_backup is not None:
             rf_df[target_column] = target_backup
-            self.log_info(f"Restored target column '{target_column}' after cleaning")
+            self.log_info(f"Restored target column '{target_column}' after preparation")
 
-        # Prepare training dataset
+        # Get the actual features RF will use
+        rf_features = self.feature_selector.get_model_features('rf', rf_df)
+        available_features = [f for f in rf_features if f in rf_df.columns]
+        
+        self.log_info(f"RF will use {len(available_features)} Phase 1 domain features")
+        
+        # Prepare final training dataset
         X, y = self.prepare_training_dataset(rf_df, target_column=target_column)
 
         return X, y
 
-    def extract_lstm_features(self, complete_df, sequence_length=None):
+
+    def prepare_tabular_features(self, df, model_type='rf'):
         """
-        Extract features suitable for LSTM training.
+        Prepare tabular features for RF/TabNet models with Phase 1 enhancements.
+        All features are flattened to single-row-per-race format.
+        
+        Args:
+            df: DataFrame with race data
+            model_type: Type of tabular model ('rf', 'tabnet', 'feedforward', etc.)
+            
+        Returns:
+            DataFrame with flattened features ready for tabular training
+        """
+        self.log_info(f"Preparing tabular features for {model_type} model")
+        
+        tabular_df = df.copy()
+        
+        # Apply model-specific feature filtering
+        tabular_df = self.feature_selector.apply_model_specific_filtering(
+            tabular_df, model_type, keep_metadata=True
+        )
+        
+        # Get feature list for this model type
+        model_features = self.feature_selector.get_model_features(model_type, tabular_df)
+        available_features = [f for f in model_features if f in tabular_df.columns]
+        
+        self.log_info(f"Available {model_type} features: {len(available_features)}")
+        
+        # For tabular models, each row represents a single race
+        # All historical context is already flattened into feature columns
+        # (e.g., 'derniereplace', 'career_strike_rate', etc.)
+        
+        # Phase 1: Ensure all new calculated features are present
+        tabular_df = self.ensure_phase1_features(tabular_df)
+        
+        return tabular_df
+    
+    def ensure_phase1_features(self, df):
+        """
+        Ensure Phase 1 calculated features are present in the DataFrame.
+        
+        Args:
+            df: DataFrame to validate/enhance
+            
+        Returns:
+            DataFrame with Phase 1 features calculated if missing
+        """
+        phase1_features = [
+            'career_strike_rate', 'earnings_per_race', 'earnings_trend',
+            'last_race_position_normalized', 'last_race_odds_normalized',
+            'last_race_field_size_factor', 'distance_consistency',
+            'vha_normalized', 'claiming_tax_trend', 'class_stability'
+        ]
+        
+        missing_features = [f for f in phase1_features if f not in df.columns]
+        
+        if missing_features:
+            self.log_info(f"Computing missing Phase 1 features: {len(missing_features)}")
+            
+            # Apply feature calculator if features are missing
+            from core.calculators.static_feature_calculator import FeatureCalculator
+            
+            # Calculate missing features row by row
+            for index, row in df.iterrows():
+                participant = row.to_dict()
+                
+                # Calculate Phase 1 career features if any are missing
+                career_feature_names = ['career_strike_rate', 'earnings_per_race', 'earnings_trend']
+                if any(feat in missing_features for feat in career_feature_names):
+                    career_features = FeatureCalculator.calculate_phase1_career_features(participant)
+                    for key, value in career_features.items():
+                        if key in missing_features:  # Only set missing features
+                            df.at[index, key] = value
+                
+                # Calculate Phase 1 last race features if any are missing  
+                last_race_feature_names = ['last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency']
+                if any(feat in missing_features for feat in last_race_feature_names):
+                    last_race_features = FeatureCalculator.calculate_phase1_last_race_features(participant)
+                    for key, value in last_race_features.items():
+                        if key in missing_features:  # Only set missing features
+                            df.at[index, key] = value
+                
+                # Calculate Phase 1 rating features if any are missing
+                rating_feature_names = ['vha_normalized', 'claiming_tax_trend', 'class_stability']
+                if any(feat in missing_features for feat in rating_feature_names):
+                    rating_features = FeatureCalculator.calculate_phase1_rating_features(participant)
+                    for key, value in rating_features.items():
+                        if key in missing_features:  # Only set missing features
+                            df.at[index, key] = value
+        
+        return df
+
+    def extract_tabnet_features(self, complete_df):
+        """
+        Extract features suitable for TabNet training using Phase 1 optimized features.
+        NEW: Uses Phase 1 tabular preparation with TabNet-specific selection.
 
         Args:
             complete_df: Complete dataset with all features
-            sequence_length: Length of sequences (uses instance default if None)
 
         Returns:
-            Tuple of (X_sequences, X_static, y) for LSTM training
+            Tuple of (X, y) for TabNet training
         """
-        lstm_df = complete_df.copy()
+        self.log_info("Extracting TabNet features using Phase 1 optimized pipeline")
+        
+        # Use the new tabular preparation method
+        tabnet_df = self.prepare_tabular_features(complete_df, model_type='tabnet')
 
-        # Use the existing LSTM sequence preparation
-        X_sequences, X_static, y = self.prepare_sequence_data(
-            lstm_df
-        )
+        # PRESERVE target column
+        target_column = 'final_position'
+        target_backup = None
 
-        return X_sequences, X_static, y
+        if target_column in tabnet_df.columns:
+            target_backup = tabnet_df[target_column].copy()
+            self.log_info(f"Backing up target column '{target_column}' with {target_backup.count()} valid values")
+
+        # RESTORE target column after preparation
+        if target_backup is not None:
+            tabnet_df[target_column] = target_backup
+            self.log_info(f"Restored target column '{target_column}' after preparation")
+
+        # Get the actual features TabNet will use
+        tabnet_features = self.feature_selector.get_model_features('tabnet', tabnet_df)
+        available_features = [f for f in tabnet_features if f in tabnet_df.columns]
+        
+        self.log_info(f"TabNet will use {len(available_features)} Phase 1 optimized features")
+        
+        # Prepare final training dataset
+        X, y = self.prepare_training_dataset(tabnet_df, target_column=target_column)
+
+        return X, y
+
+    def construct_lstm_sequences(self, df, sequence_length=5):
+        """
+        Construct sequential data for LSTM from race history.
+        Groups by horse and creates sequences of the last N races.
+        
+        Args:
+            df: DataFrame with race data including 'jour' (date) and 'idche' (horse_id)
+            sequence_length: Number of races to include in each sequence
+            
+        Returns:
+            Dict with sequential and static features ready for LSTM training
+        """
+        self.log_info(f"Constructing LSTM sequences with length {sequence_length}")
+        
+        # Get feature definitions from selector
+        lstm_features = self.feature_selector.get_model_features('lstm', df)
+        sequential_features = lstm_features['sequential']
+        static_features = lstm_features['static']
+        
+        # Available features that exist in the DataFrame
+        available_sequential = [f for f in sequential_features if f in df.columns]
+        available_static = [f for f in static_features if f in df.columns]
+        
+        self.log_info(f"Available sequential features: {len(available_sequential)}")
+        self.log_info(f"Available static features: {len(available_static)}")
+        
+        sequences = []
+        targets = []
+        static_data = []
+        
+        # Sort by horse and date to ensure chronological order
+        df_sorted = df.sort_values(['idche', 'jour'])
+        
+        # Group by horse ID
+        for horse_id, horse_df in df_sorted.groupby('idche'):
+            horse_races = horse_df.reset_index(drop=True)
+            
+            # Create sequences for each race (using previous races as context)
+            for i in range(sequence_length, len(horse_races)):
+                # Current race (target)
+                current_race = horse_races.iloc[i]
+                
+                if 'final_position' in current_race and pd.notna(current_race['final_position']):
+                    # Historical sequence (previous N races)
+                    historical_races = horse_races.iloc[i-sequence_length:i]
+                    
+                    # Extract sequential features from historical races
+                    sequence_data = []
+                    for _, race in historical_races.iterrows():
+                        race_features = [race.get(f, 0.0) for f in available_sequential]
+                        sequence_data.append(race_features)
+                    
+                    # Extract static features from current race (don't change across sequence)
+                    static_race_data = [current_race.get(f, 0.0) for f in available_static]
+                    
+                    sequences.append(sequence_data)
+                    static_data.append(static_race_data)
+                    targets.append(current_race['final_position'])
+        
+        result = {
+            'sequences': np.array(sequences),
+            'static': np.array(static_data),
+            'targets': np.array(targets),
+            'sequential_feature_names': available_sequential,
+            'static_feature_names': available_static
+        }
+        
+        self.log_info(f"Created {len(sequences)} LSTM sequences")
+        self.log_info(f"Sequential shape: {result['sequences'].shape}")
+        self.log_info(f"Static shape: {result['static'].shape}")
+        
+        return result
+
+    def extract_model_features(self, complete_df, model_type: str):
+        """
+        Generic method to extract features for any model type using the feature selector.
+        
+        Args:
+            complete_df: Complete dataset with all features
+            model_type: Type of model ('rf', 'tabnet')
+        
+        Returns:
+            Appropriate feature extraction for the model type
+        """
+        model_type = model_type.lower()
+        
+        if model_type in ['rf', 'random_forest']:
+            return self.extract_rf_features(complete_df)
+        elif model_type == 'tabnet':
+            return self.extract_tabnet_features(complete_df)
+        else:
+            raise ValueError(f"Unsupported model type: {model_type}. Only 'rf' and 'tabnet' are supported.")
+
 
     def prepare_training_dataset(self, df, target_column='final_position', task_type=None, race_group_split=False):
         """
@@ -1289,7 +1513,7 @@ class FeatureEmbeddingOrchestrator:
             y = pd.Series(index=training_df.index, dtype='float64')
 
         # Select feature columns (excluding target and identifier columns)
-        exclude_cols = [target_column, 'comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id']
+        exclude_cols = [target_column, 'comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id', 'jour', 'cl']
 
         # Create final feature set
         feature_cols = [col for col in training_df.columns if col not in exclude_cols]
@@ -1772,79 +1996,6 @@ class FeatureEmbeddingOrchestrator:
 
         return X_sequences, X_static, y
 
-    def create_hybrid_model(self, sequence_shape, static_shape, lstm_units=64, dropout_rate=0.2):
-        """
-        Create a hybrid model architecture with LSTM for sequential data and dense layers for static features.
-        Modified to ensure positive outputs for race positions.
-
-        Args:
-            sequence_shape: Shape of sequence input (seq_length, features)
-            static_shape: Number of static features
-            lstm_units: Number of LSTM units
-            dropout_rate: Dropout rate for regularization
-
-        Returns:
-            Dictionary with model components
-        """
-        # Debug output
-        print(f"[DEBUG-LSTM] Creating LSTM model with sequence_shape={sequence_shape}, static_shape={static_shape}")
-
-        try:
-            from tensorflow.keras.models import Model
-            from tensorflow.keras.layers import Input, Dense, LSTM, Dropout, concatenate, Lambda
-            from tensorflow.keras.optimizers import Adam
-            import tensorflow as tf
-
-            # LSTM branch
-            sequence_input = Input(shape=(sequence_shape[1], sequence_shape[2]), name='sequence_input')
-            lstm = LSTM(lstm_units, return_sequences=False)(sequence_input)
-            lstm = Dropout(dropout_rate)(lstm)
-
-            # Static features branch
-            static_input = Input(shape=(static_shape[1],), name='static_input')
-            static_dense = Dense(32, activation='relu')(static_input)
-            static_dense = Dropout(dropout_rate)(static_dense)
-
-            # Combine branches
-            combined = concatenate([lstm, static_dense])
-
-            # Output layers
-            dense = Dense(32, activation='relu')(combined)
-            dense = Dropout(dropout_rate)(dense)
-
-            # Option 1: Use ReLU activation directly (simplest approach)
-            output = Dense(1, activation='relu')(dense)
-
-            # Option 2: If you want to set a floor of 1.0 for race positions, use a custom activation
-            # This fixes the output_shape issue by using a custom activation instead of Lambda
-            # output = Dense(1, activation=lambda x: 1.0 + tf.nn.relu(x))(dense)
-
-            # Option 3: If you really need to use Lambda, specify the output_shape
-            # def one_plus_relu(x):
-            #     return 1.0 + tf.nn.relu(x)
-            # # The output shape will be the same as the input shape to this lambda
-            # output = Lambda(one_plus_relu, output_shape=(1,))(Dense(1)(dense))
-
-            # Create model
-            model = Model(inputs=[sequence_input, static_input], outputs=output)
-            model.compile(optimizer=Adam(learning_rate=0.001), loss='mse', metrics=['mae'])
-
-            # Debug output
-            print(
-                f"[DEBUG-LSTM] Model output layer: {model.layers[-1].name}, activation: {model.layers[-1].activation.__name__}")
-            print(f"[DEBUG-LSTM] Model compiled successfully. Total parameters: {model.count_params()}")
-
-            return {
-                'lstm': model,
-                'sequence_input': sequence_input,
-                'static_input': static_input
-            }
-
-        except Exception as e:
-            print(f"[DEBUG-LSTM] Error creating model: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            raise
 
     def prepare_tabnet_features(self, df, use_cache=True):
         """

@@ -1595,12 +1595,7 @@ def main():
         alt_models = prediction_info.get('alternative_models', {})
         if alt_models.get('enabled'):
             st.markdown("**Alternative Models:**")
-            col_ff, col_trans, col_ens = st.columns(3)
-            
-            with col_ff:
-                ff_info = alt_models.get('feedforward', {})
-                ff_status = "✅ Loaded" if ff_info.get('loaded', False) else ("⚙️ Configured" if ff_info.get('configured', False) else "❌ Disabled")
-                st.metric("Feedforward", ff_status)
+            col_trans, col_ens = st.columns(2)
             
             with col_trans:
                 trans_info = alt_models.get('transformer', {})

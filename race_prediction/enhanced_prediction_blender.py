@@ -1,8 +1,7 @@
 """
 Enhanced prediction blending module for horse race predictions.
 
-This module implements race-specific blending of legacy models (RF, LSTM, TabNet) 
-and alternative models (Feedforward, Transformer, Ensemble) based on race characteristics
+This module implements race-specific blending of RF and TabNet models based on race characteristics
 and model performance.
 """
 
@@ -33,7 +32,7 @@ class EnhancedPredictionBlender:
         
         # Model categories
         self.legacy_models = {'rf', 'lstm', 'tabnet'}
-        self.alternative_models = {'feedforward', 'transformer', 'ensemble'}
+        self.alternative_models = {'tabnet'}
         self.all_models = self.legacy_models | self.alternative_models
         
         # Load configuration
@@ -68,7 +67,6 @@ class EnhancedPredictionBlender:
         # Alternative model weights (initially 0, can be enabled dynamically)
         alt_config = self.config.get('alternative_models', {})
         self.default_weights.update({
-            'feedforward': alt_config.get('feedforward', {}).get('weight', 0.0),
             'transformer': alt_config.get('transformer', {}).get('weight', 0.0),
             'ensemble': alt_config.get('ensemble', {}).get('weight', 0.0)
         })
@@ -177,13 +175,10 @@ class EnhancedPredictionBlender:
         elif distance < 1200:  # Sprint races
             if 'rf' in weights:
                 weights['rf'] *= 1.2  # RF good for sprints
-            if 'feedforward' in weights:
-                weights['feedforward'] *= 1.1
         
         # Adjust for race type
         if race_type == 'P':  # Plat races
-            if 'feedforward' in weights:
-                weights['feedforward'] *= 1.1
+            pass  # No specific adjustments for Plat races
         elif race_type == 'T':  # Trot races
             if 'ensemble' in weights:
                 weights['ensemble'] *= 1.2

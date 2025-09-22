@@ -13,9 +13,9 @@ from core.connectors.api_daily_sync import RaceFetcher
 from race_prediction.race_predict import RacePredictor
 from core.storage.prediction_storage import PredictionStorage, PredictionRecord
 
-# Import alternative models
+# Import alternative models (TabNet only)
 try:
-    from model_training.models import FeedforwardModel, TransformerModel, EnsembleModel
+    from model_training.models import TransformerModel, EnsembleModel
     ALTERNATIVE_MODELS_AVAILABLE = True
 except ImportError as e:
     print(f"Alternative models not available: {e}")
@@ -34,19 +34,18 @@ class PredictionOrchestrator:
 
     # In PredictionOrchestrator.__init__:
 
-    def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False):
+    def __init__(self, config: AppConfig = None, db_name: str = None, verbose: bool = False):
         """
         Initialize the prediction orchestrator.
 
         Args:
-            model_path: Path to the model or model name
+            config: AppConfig instance (creates new one if None)
             db_name: Database name from config (default: active_db from config)
-            model_type: Type of model ('hybrid_model' or 'incremental_models')
             verbose: Whether to output verbose logs
         """
         # Initialize config
         self.verbose = verbose
-        self.config = AppConfig()
+        self.config = config if config is not None else AppConfig()
 
         if db_name is None:
             db_name = self.config._config.base.active_db
@@ -55,7 +54,7 @@ class PredictionOrchestrator:
         # Initialize components
         self.race_fetcher = RaceFetcher(db_name=self.db_name, verbose=self.verbose)
         self.race_predictor = RacePredictor(
-            model_path=model_path,  # Can be None
+            model_path=None,  # Let RacePredictor find the model
             db_name=db_name,
             verbose=verbose
         )
@@ -309,55 +308,59 @@ class PredictionOrchestrator:
         return self.race_predictor.predict_race(race_df)
 
     def _load_alternative_models(self):
-        """Load alternative models from saved files"""
+        """Load alternative models using ModelManager"""
         try:
-            alt_models_config = self.config._config.alternative_models
-            models_dir = Path("models")
+            from utils.model_manager import ModelManager
             
-            if not models_dir.exists():
-                self.logger.warning("Models directory not found - alternative models not loaded")
-                return
+            # Use ModelManager to load all models
+            manager = ModelManager()
+            all_models = manager.load_all_models()
             
-            enabled_models = alt_models_config.get('model_selection', [])
+            if self.verbose:
+                self.logger.info(f"ModelManager found model types: {list(all_models.keys())}")
             
-            # Load Feedforward model
-            if 'feedforward' in enabled_models:
-                feedforward_files = list(models_dir.glob("*feedforward*.h5")) + list(models_dir.glob("*feedforward*.keras"))
-                if feedforward_files:
-                    try:
-                        config = alt_models_config.get('feedforward', {})
-                        model = FeedforwardModel(config, verbose=self.verbose)
-                        model.model = model.load_model(str(feedforward_files[0]))
-                        self.alternative_models['feedforward'] = model
-                        self.logger.info(f"Loaded feedforward model from {feedforward_files[0]}")
-                    except Exception as e:
-                        self.logger.error(f"Failed to load feedforward model: {e}")
+            # Load TabNet model  
+            if 'tabnet' in all_models:
+                try:
+                    tabnet_data = all_models['tabnet']
+                    if 'tabnet_model' in tabnet_data and 'tabnet_scaler' in tabnet_data:
+                        # Create a wrapper for TabNet
+                        class TabNetWrapper:
+                            def __init__(self, model, scaler, feature_columns):
+                                self.model = model
+                                self.scaler = scaler  
+                                self.feature_columns = feature_columns
+                                
+                            def predict(self, X_sequences, X_static):
+                                # TabNet expects flattened features
+                                # Combine sequences and static features
+                                batch_size = X_sequences.shape[0]
+                                X_seq_flat = X_sequences.reshape(batch_size, -1)
+                                X_combined = np.concatenate([X_seq_flat, X_static], axis=1)
+                                
+                                # Scale the features
+                                X_scaled = self.scaler.transform(X_combined)
+                                
+                                # Make prediction
+                                predictions = self.model.predict(X_scaled)
+                                return predictions.flatten()
+                        
+                        tabnet_wrapper = TabNetWrapper(
+                            tabnet_data['tabnet_model'],
+                            tabnet_data['tabnet_scaler'],
+                            tabnet_data.get('tabnet_config', {}).get('feature_columns', [])
+                        )
+                        
+                        self.alternative_models['tabnet'] = tabnet_wrapper
+                        self.logger.info("✅ Loaded TabNet model from ModelManager")
+                except Exception as e:
+                    self.logger.error(f"Failed to load TabNet model: {e}")
             
-            # Load Transformer model
-            if 'transformer' in enabled_models:
-                transformer_files = list(models_dir.glob("*transformer*.h5")) + list(models_dir.glob("*transformer*.keras"))
-                if transformer_files:
-                    try:
-                        config = alt_models_config.get('transformer', {})
-                        model = TransformerModel(config, verbose=self.verbose)
-                        model.model = model.load_model(str(transformer_files[0]))
-                        self.alternative_models['transformer'] = model
-                        self.logger.info(f"Loaded transformer model from {transformer_files[0]}")
-                    except Exception as e:
-                        self.logger.error(f"Failed to load transformer model: {e}")
-            
-            # Load Ensemble model
-            if 'ensemble' in enabled_models:
-                ensemble_files = list(models_dir.glob("*ensemble*.pkl")) + list(models_dir.glob("*ensemble*.joblib"))
-                if ensemble_files:
-                    try:
-                        config = alt_models_config.get('ensemble', {})
-                        model = EnsembleModel(config, verbose=self.verbose)
-                        model.load_ensemble(str(ensemble_files[0]))
-                        self.alternative_models['ensemble'] = model
-                        self.logger.info(f"Loaded ensemble model from {ensemble_files[0]}")
-                    except Exception as e:
-                        self.logger.error(f"Failed to load ensemble model: {e}")
+            # Log successful loading
+            if self.verbose and self.alternative_models:
+                self.logger.info(f"Successfully loaded {len(self.alternative_models)} alternative models: {list(self.alternative_models.keys())}")
+            else:
+                self.logger.info("No alternative models loaded")
                         
         except Exception as e:
             self.logger.error(f"Error loading alternative models: {e}")
@@ -370,17 +373,18 @@ class PredictionOrchestrator:
                     self.logger.info("No alternative models available for prediction storage")
                 return
             
-            # Prepare data for alternative models (this would need to match their expected input format)
-            # For now, we'll use dummy data that matches the expected format from the test
+            # Prepare real features for alternative models
             n_samples = len(race_df)
-            n_features = 20  # This should match your actual feature count
-            n_static = 10
-            sequence_length = 5
             
-            # Generate placeholder features that match alternative model expectations
-            # In production, this should be replaced with proper feature engineering
-            X_sequences = np.random.randn(n_samples, sequence_length, n_features).astype(np.float32)
-            X_static = np.random.randn(n_samples, n_static).astype(np.float32)
+            # Use the feature transformer to create proper features
+            from core.transformers.feature_transformer import FeatureTransformer
+            feature_transformer = FeatureTransformer(verbose=self.verbose)
+            
+            # Transform the data using the same feature engineering pipeline
+            X_sequences, X_static = feature_transformer.transform_for_prediction(race_df)
+            
+            if self.verbose:
+                self.logger.info(f"Prepared features for {n_samples} horses: sequences={X_sequences.shape}, static={X_static.shape}")
             
             prediction_timestamp = datetime.now()
             model_versions = {}
@@ -405,18 +409,21 @@ class PredictionOrchestrator:
                     main_pred_row = main_result_df[main_result_df['numero'] == row.get('numero')]
                     main_prediction = main_pred_row['predicted_position'].iloc[0] if not main_pred_row.empty else None
                     
-                    # Create prediction record
+                    # Get blend weights from config (2-model system)
+                    blend_config = self.config._config_data.get('blend', {}) if hasattr(self.config, '_config_data') else {}
+                    rf_weight = blend_config.get('rf_weight', 0.5)
+                    tabnet_weight = blend_config.get('tabnet_weight', 0.5)
+                    
+                    # Create prediction record for 2-model system
                     record = PredictionRecord(
                         race_id=comp,
                         timestamp=prediction_timestamp,
                         horse_id=str(row.get('numero', i)),
-                        rf_prediction=None,  # Will be filled by main models
-                        lstm_prediction=None,  # Will be filled by main models
-                        tabnet_prediction=None,  # Will be filled by main models
-                        feedforward_prediction=alt_predictions.get('feedforward_prediction', [None] * n_samples)[i],
-                        transformer_prediction=alt_predictions.get('transformer_prediction', [None] * n_samples)[i],
-                        ensemble_alt_prediction=alt_predictions.get('ensemble_prediction', [None] * n_samples)[i],
+                        rf_prediction=None,  # TODO: Extract from main_result_df when RF predictions are available
+                        tabnet_prediction=alt_predictions.get('tabnet_prediction', [None] * n_samples)[i],
                         ensemble_prediction=main_prediction or 10.0,  # Fallback value
+                        rf_weight=rf_weight,
+                        tabnet_weight=tabnet_weight,
                         ensemble_confidence_score=None,
                         actual_position=None,  # Will be updated when results are available
                         distance=race_data.get('dist'),
@@ -428,7 +435,8 @@ class PredictionOrchestrator:
                         prediction_metadata={
                             'hippo': race_data.get('hippo'),
                             'prix': race_data.get('prix'),
-                            'horse_name': row.get('cheval', 'Unknown')
+                            'horse_name': row.get('cheval', 'Unknown'),
+                            'model_system': '2-model (RF + TabNet)'
                         }
                     )
                     

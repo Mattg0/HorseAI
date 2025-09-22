@@ -10,8 +10,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler
 from pytorch_tabnet.tab_model import TabNetRegressor
+import torch
 
 from utils.env_setup import AppConfig, get_sqlite_dbpath
+from core.data_cleaning.tabnet_cleaner import TabNetDataCleaner
 from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from utils.model_manager import ModelManager
 
@@ -100,9 +102,29 @@ class TabNetModel:
         if missing_features:
             self.log_info(f"Warning: Missing features: {missing_features}")
 
-        # Create final dataset
+        # Create final dataset with only numeric features
         final_columns = available_features + ['final_position']
-        self.complete_df = features_df[final_columns].dropna()
+        temp_df = features_df[final_columns].dropna()
+        
+        # Filter out non-numeric columns (strings, objects) 
+        numeric_columns = []
+        for col in available_features:
+            if col in temp_df.columns:
+                # Check if column is numeric
+                try:
+                    pd.to_numeric(temp_df[col], errors='raise')
+                    numeric_columns.append(col)
+                    self.log_info(f"✅ {col}: numeric")
+                except (ValueError, TypeError):
+                    self.log_info(f"❌ {col}: non-numeric, skipping")
+                    
+        # Update feature columns to only include numeric ones
+        self.feature_columns = numeric_columns
+        available_features = numeric_columns
+        
+        # Create final dataset with only numeric features
+        final_columns = available_features + ['final_position'] 
+        self.complete_df = temp_df[final_columns]
 
         self.log_info(
             f"Dataset prepared: {len(self.complete_df)} records, {len(available_features)} features"
@@ -175,10 +197,49 @@ class TabNetModel:
 
         self.log_info(f"Feature matrix shape: {X.shape}")
         self.log_info(f"Target vector shape: {y.shape}")
+        
+        # Step 2.5: TabNet compatibility validation
+        self.log_info("Validating TabNet compatibility...")
+        cleaner = TabNetDataCleaner()
+        is_compatible = cleaner.validate_tabnet_compatibility(X, verbose=True)
+        
+        if not is_compatible:
+            self.log_info("Data is not TabNet compatible - applying cleaning...")
+            X = cleaner.comprehensive_data_cleaning(X, verbose=True)
+            self.log_info("Data cleaning completed - verifying compatibility...")
+            cleaner.validate_tabnet_compatibility(X, verbose=True)
+        
+        # Step 2.5: Data validation and NaN handling
+        self.log_info("Validating data quality...")
+        
+        # Check for NaN values in features
+        nan_count = X.isnull().sum().sum()
+        if nan_count > 0:
+            self.log_info(f"Found {nan_count} NaN values in features, filling with 0")
+            X = X.fillna(0.0)
+        
+        # Check for infinite values in features
+        inf_count = np.isinf(X.select_dtypes(include=[np.number])).sum().sum()
+        if inf_count > 0:
+            self.log_info(f"Found {inf_count} infinite values in features, replacing with 0")
+            X = X.replace([np.inf, -np.inf], 0.0)
+        
+        # Check for NaN values in target
+        target_nan_count = np.isnan(y).sum()
+        if target_nan_count > 0:
+            self.log_info(f"Found {target_nan_count} NaN values in target, filling with median")
+            y_median = np.nanmedian(y)
+            y = np.nan_to_num(y, nan=y_median)
+        
+        # Convert DataFrame to numpy array for consistent handling with float32 for compatibility
+        X_array = X.values.astype(np.float32)
+        y = y.astype(np.float32)
+        self.log_info(f"Final feature matrix shape: {X_array.shape}, dtype: {X_array.dtype}")
+        self.log_info(f"Final target vector shape: {y.shape}, dtype: {y.dtype}")
 
         # Step 3: Split data
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=random_state
+            X_array, y, test_size=test_size, random_state=random_state
         )
 
         # Step 4: Scale features
@@ -230,28 +291,32 @@ class TabNetModel:
             'n_independent': 2,  # Number of independent GLU layers at each step
             'n_shared': 2,  # Number of shared GLU layers at each step
             'lambda_sparse': 1e-4,  # Sparsity regularization coefficient
-            'optimizer_fn': 'adam',
+            'optimizer_fn': torch.optim.Adam,
             'optimizer_params': {'lr': 2e-2},
             'mask_type': 'entmax',  # Type of mask function
             'scheduler_params': {'step_size': 30, 'gamma': 0.95},
-            'scheduler_fn': 'StepLR',
+            'scheduler_fn': torch.optim.lr_scheduler.StepLR,
             'verbose': 1 if self.verbose else 0,
-            'device_name': 'cpu'
+            'device_name': 'cpu'  # Use CPU to avoid MPS float64 compatibility issues
         }
 
         # Update with user-provided parameters
         if tabnet_params:
             default_params.update(tabnet_params)
 
-        # Create TabNet regressor with CPU device
+        # Create TabNet regressor with MPS device
         print(f"TabNet using device: {default_params['device_name']}")
         self.tabnet_model = TabNetRegressor(**default_params)
 
         # Train the model
+        # Convert pandas Series to numpy arrays before reshape
+        y_train_array = y_train.values if hasattr(y_train, 'values') else y_train
+        y_test_array = y_test.values if hasattr(y_test, 'values') else y_test
+        
         self.tabnet_model.fit(
             X_train=X_train,
-            y_train=y_train.reshape(-1, 1),
-            eval_set=[(X_test, y_test.reshape(-1, 1))],
+            y_train=y_train_array.reshape(-1, 1),
+            eval_set=[(X_test, y_test_array.reshape(-1, 1))],
             max_epochs=200,
             patience=20,
             batch_size=1024,
@@ -329,29 +394,99 @@ class TabNetModel:
         if self.scaler is None:
             raise ValueError("No scaler available to save")
 
-        # Create feature state for compatibility
-        feature_state = {
-            'model_type': 'TabNet',
-            'training_results': self.training_results,
-            'timestamp': datetime.now().isoformat(),
-            'feature_columns': self.feature_columns
+        # Import needed modules first
+        from pathlib import Path
+        from datetime import datetime
+        import joblib
+        import json
+        
+        # Create save directory
+        models_dir = Path(self.model_manager.model_dir)
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        timestamp_str = datetime.now().strftime('%H%M%S')
+        db_type = self.config._config.base.active_db
+        
+        save_path = models_dir / date_str / f"{db_type}_{timestamp_str}"
+        save_path.mkdir(parents=True, exist_ok=True)
+        
+        saved_paths = {}
+        
+        # Save TabNet model (TabNet automatically adds .zip extension)
+        tabnet_model_path = save_path / "tabnet_model"
+        self.tabnet_model.save_model(str(tabnet_model_path))
+        # TabNet creates a .zip file automatically
+        actual_model_path = str(tabnet_model_path) + ".zip"
+        saved_paths['tabnet_model'] = actual_model_path
+        
+        # Save scaler
+        tabnet_scaler_path = save_path / "tabnet_scaler.joblib"
+        joblib.dump(self.scaler, tabnet_scaler_path)
+        saved_paths['tabnet_scaler'] = str(tabnet_scaler_path)
+        
+        # Save feature columns and config
+        tabnet_config_path = save_path / "tabnet_config.json"
+        
+        # Create JSON-safe training results
+        def make_json_safe(obj):
+            """Recursively convert objects to JSON-safe format."""
+            if isinstance(obj, (str, int, float, bool, type(None))):
+                return obj
+            elif isinstance(obj, dict):
+                return {key: make_json_safe(value) for key, value in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [make_json_safe(item) for item in obj]
+            elif hasattr(obj, 'tolist'):  # numpy arrays
+                return obj.tolist()
+            else:
+                return str(obj)
+        
+        json_safe_results = make_json_safe(self.training_results) if self.training_results else {}
+        
+        config_data = {
+            'feature_columns': self.feature_columns,
+            'training_results': json_safe_results,
+            'db_type': db_type,
+            'created_at': datetime.now().isoformat(),
+            'model_type': 'TabNet'
         }
+        
+        with open(tabnet_config_path, 'w') as f:
+            json.dump(config_data, f, indent=2)
+        saved_paths['tabnet_config'] = str(tabnet_config_path)
 
-        # Save using model manager with proper TabNet parameters
-        saved_paths = self.model_manager.save_models(
-            rf_model=None,  # No RF model for TabNet
-            lstm_model=None,  # No LSTM model for TabNet
-            tabnet_model=self.tabnet_model,
-            tabnet_scaler=self.scaler,
-            tabnet_feature_columns=self.feature_columns,
-            feature_state=feature_state
-        )
+        # Update config.yaml with latest TabNet model path
+        relative_path = save_path.relative_to(models_dir)
+        self._update_config_tabnet(str(relative_path))
 
         self.log_info(f"TabNet model saved successfully with scaler and config")
         self.log_info(f"  Model: {saved_paths.get('tabnet_model', 'Not saved')}")
         self.log_info(f"  Scaler: {saved_paths.get('tabnet_scaler', 'Not saved')}")
         self.log_info(f"  Config: {saved_paths.get('tabnet_config', 'Not saved')}")
         return saved_paths
+    
+    def _update_config_tabnet(self, model_path: str):
+        """Update config.yaml with latest TabNet model path."""
+        import yaml
+        
+        try:
+            with open('config.yaml', 'r') as f:
+                config_data = yaml.safe_load(f)
+            
+            # Update TabNet model path
+            if 'models' not in config_data:
+                config_data['models'] = {}
+            if 'latest_models' not in config_data['models']:
+                config_data['models']['latest_models'] = {}
+            
+            config_data['models']['latest_models']['tabnet'] = model_path
+            
+            with open('config.yaml', 'w') as f:
+                yaml.dump(config_data, f, default_flow_style=False, indent=2)
+                
+            self.log_info(f"Updated config.yaml with TabNet model path: {model_path}")
+            
+        except Exception as e:
+            self.log_info(f"Warning: Could not update config.yaml: {e}")
 
 
 def main(progress_callback=None):

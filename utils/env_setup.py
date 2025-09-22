@@ -47,12 +47,6 @@ class ModelsConfig(BaseModel):
     """Models configuration"""
     model_dir: str
 
-class LSTMConfig(BaseModel):
-    """LSTM configuration"""
-    sequence_length: int = 5
-    step_size: int = 1
-    sequential_features: List[str] = []
-    static_features: List[str] = []
 
 class DatasetConfig(BaseModel):
     """Dataset splitting configuration"""
@@ -74,7 +68,6 @@ class Config(BaseModel):
     models: ModelsConfig
     databases: List[Dict[str, Any]]
     base: Baseconfig
-    lstm: Optional[LSTMConfig]
     dataset: Optional[DatasetConfig]
 
     # Allow additional fields for custom config values
@@ -290,36 +283,6 @@ class AppConfig:
             return self._config.cache.use_cache
         return True
 
-    def get_lstm_config(self) -> Dict[str, Any]:
-        """
-        Get LSTM configuration parameters
-
-        Returns:
-            Dictionary with LSTM parameters
-        """
-        lstm_config = {}
-
-        # Get LSTM parameters from config if available
-        if hasattr(self._config, 'lstm'):
-            lstm_config = {
-                'sequence_length': self._config.lstm.sequence_length,
-                'step_size': self._config.lstm.step_size
-            }
-
-            # Add feature lists if defined
-            if hasattr(self._config.lstm, 'sequential_features') and self._config.lstm.sequential_features:
-                lstm_config['sequential_features'] = self._config.lstm.sequential_features
-
-            if hasattr(self._config.lstm, 'static_features') and self._config.lstm.static_features:
-                lstm_config['static_features'] = self._config.lstm.static_features
-        else:
-            # Default values
-            lstm_config = {
-                'sequence_length': 5,
-                'step_size': 1
-            }
-
-        return lstm_config
 
     @staticmethod
     def get_model_paths(config, model_name: str = 'hybrid_model', model_type: str = None) -> Dict[str, Any]:
@@ -378,7 +341,7 @@ class AppConfig:
             'logs': os.path.join(complete_model_dir, 'logs'),
             'artifacts': {
                 'rf_model': f"hybrid_rf_model.joblib",
-                'lstm_model': f"hybrid_lstm_model",
+                'feedforward_model': f"hybrid_feedforward_model",
                 'feature_engineer': f"hybrid_feature_engineer.joblib"
             },
             'active_db': active_db,
