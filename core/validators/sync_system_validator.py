@@ -9,7 +9,6 @@ import numpy as np
 # Import components for validation
 from core.connectors.api_daily_sync import RaceFetcher
 from core.orchestrators.unified_data_pipeline import UnifiedDataPipeline
-from core.connectors.enhanced_api_manager import EnhancedAPIManager
 
 
 class SyncSystemValidator:

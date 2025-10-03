@@ -223,7 +223,6 @@ class RacePredictor:
             'idJockey': 0,
             'numero': 0,
             'typec': 'P',  # Default to Plat
-            'final_position': np.nan,  # This will be missing during prediction
             'jour': datetime.now().strftime('%Y-%m-%d')
         }
 
@@ -243,26 +242,39 @@ class RacePredictor:
             if field in race_df.columns:
                 race_df[field] = pd.to_numeric(race_df[field], errors='coerce').fillna(0)
 
-        # Step 2.5: Intelligent earnings imputation for missing gainsCarriere
-        # This handles missing career earnings by estimating from performance indicators
-        from core.calculators.earnings_imputation import impute_earnings_safe
+        # Ensure target column is NOT present during prediction
+        if 'final_position' in race_df.columns:
+            race_df = race_df.drop('final_position', axis=1)
+            if self.verbose:
+                print("  ⚠️  Removed 'final_position' column from prediction data")
 
-        race_df = impute_earnings_safe(race_df, verbose=self.verbose, inplace=True)
+        # Step 3: Apply FeatureCalculator FIRST (matching training pipeline exactly)
+        # Training uses: FeatureCalculator.calculate_all_features(df_historical)
+        # This includes musique preprocessing and confidence-weighted earnings calculations
+        if self.verbose:
+            print("  🔧 Applying FeatureCalculator (same as training)...")
 
-        # Step 3: Use the SAME data preparation pipeline as training
-        # First prepare features (handle missing values, categorical encoding, etc.)
         prep_start = time.time()
-        processed_df = self.orchestrator.prepare_features(race_df, use_cache=False)
+        df_with_features = FeatureCalculator.calculate_all_features(race_df)
         prep_time = time.time() - prep_start
 
         if self.verbose:
-            print(f"  🔧 Feature preparation: {prep_time:.2f}s")
+            print(f"  ✅ FeatureCalculator applied: {prep_time:.2f}s")
 
-        # Step 4: Skip heavy embedding processing for prediction speed
-        # During prediction, we don't need complex embeddings - use processed features directly
-        embedded_df = processed_df
+        # Step 4: Use orchestrator's TabNet preparation (matching training pipeline exactly)
+        # Training uses: orchestrator.prepare_tabnet_features(df_with_features)
+        if self.verbose:
+            print("  🔧 Preparing TabNet features (same as training)...")
+
+        tabnet_start = time.time()
+        embedded_df = self.orchestrator.prepare_tabnet_features(
+            df_with_features,
+            use_cache=False  # Don't cache predictions
+        )
+        tabnet_time = time.time() - tabnet_start
 
         if self.verbose:
+            print(f"  ✅ TabNet features prepared: {tabnet_time:.2f}s")
             print(f"Data preparation complete: {len(embedded_df.columns)} features")
 
         return embedded_df
@@ -497,44 +509,49 @@ class RacePredictor:
         Prepare features specifically for TabNet prediction.
         FIXED: Now uses EXACT SAME pipeline as training for consistency.
 
-        Training uses: orchestrator.prepare_complete_dataset() -> extract_tabnet_features()
-        Prediction now uses: SAME orchestrator.prepare_complete_dataset() -> extract_tabnet_features()
+        Training pipeline:
+        1. FeatureCalculator.calculate_all_features(df_historical)
+        2. orchestrator.prepare_tabnet_features(df_with_features)
+        3. extract features for TabNet
         """
         if self.verbose:
-            print("Preparing TabNet features using training pipeline...")
+            print("Preparing TabNet features using EXACT training pipeline...")
 
-        # Use the SAME preprocessing pipeline as training
-        # This replaces the broken FeatureCalculator.calculate_all_features() approach
+        # Ensure target column is NOT present during prediction
+        race_df_clean = race_df.copy()
+        if 'final_position' in race_df_clean.columns:
+            race_df_clean = race_df_clean.drop('final_position', axis=1)
+            if self.verbose:
+                print("  ⚠️  Removed 'final_position' column from prediction data")
+
+        # Step 1: Apply FeatureCalculator FIRST (matching training exactly)
+        # Training: df_with_features = FeatureCalculator.calculate_all_features(df_historical)
         prep_start = time.time()
+        df_with_features = FeatureCalculator.calculate_all_features(race_df_clean)
+        calc_time = time.time() - prep_start
 
-        # Check if we should use batch processing (same logic as training)
-        total_records = len(race_df)
+        if self.verbose:
+            print(f"  ✅ FeatureCalculator applied: {calc_time:.2f}s")
 
-        if self.orchestrator.should_use_batch_processing(total_records):
-            if self.verbose:
-                print(f"  Using batch processing for {total_records} records")
-            complete_df = self.orchestrator.prepare_complete_dataset_batched(
-                race_df,
-                use_cache=False  # Don't cache predictions
-            )
-        else:
-            if self.verbose:
-                print(f"  Using standard processing for {total_records} records")
-            complete_df = self.orchestrator.prepare_complete_dataset(
-                race_df,
-                use_cache=False  # Don't cache predictions
-            )
+        # Step 2: Use orchestrator's TabNet preparation (matching training exactly)
+        # Training: complete_df = orchestrator.prepare_tabnet_features(df_with_features)
+        tabnet_start = time.time()
+        complete_df = self.orchestrator.prepare_tabnet_features(
+            df_with_features,
+            use_cache=False  # Don't cache predictions
+        )
+        tabnet_time = time.time() - tabnet_start
 
-        prep_time = time.time() - prep_start
+        if self.verbose:
+            print(f"  ✅ TabNet features prepared: {tabnet_time:.2f}s")
 
-        # Extract TabNet features using the same pipeline as training
+        # Step 3: Extract TabNet features using the same pipeline as training
         extract_start = time.time()
         X_tabnet, _ = self.orchestrator.extract_tabnet_features(complete_df)
         extract_time = time.time() - extract_start
 
         if self.verbose:
-            print(f"  🔧 Complete dataset preparation: {prep_time:.2f}s")
-            print(f"  🔧 TabNet feature extraction: {extract_time:.2f}s")
+            print(f"  ✅ TabNet feature extraction: {extract_time:.2f}s")
             print(f"  ✅ TabNet features extracted: {X_tabnet.shape[1]} features (matches training)")
 
         return X_tabnet, complete_df
