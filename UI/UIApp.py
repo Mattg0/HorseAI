@@ -1614,8 +1614,7 @@ def main():
                 st.metric("TabNet", "❌ Not Configured")
 
         # Show blend weights
-        legacy_models = prediction_info.get('legacy_models', {})
-        blend_weights = legacy_models.get('blend_weights', {})
+        blend_weights = prediction_info.get('blend_weights', {})
         if blend_weights:
             st.markdown("**Blend Configuration:**")
             col_w1, col_w2 = st.columns(2)

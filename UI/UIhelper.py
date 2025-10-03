@@ -65,9 +65,7 @@ class PipelineHelper:
 
     def get_active_db(self) -> str:
         """Get active database from config"""
-        print(f"Config data: {self._config_data}")  # Debug line
         if self._config_data and 'base' in self._config_data:
-            print(f"Base section: {self._config_data['base']}")  # Debug line
             return self._config_data['base'].get('active_db', 'Unknown')
         return 'Unknown'
 
@@ -316,19 +314,17 @@ class PipelineHelper:
             if progress_callback:
                 progress_callback(5, "Initializing prediction orchestrator...")
 
-            # Initialize prediction orchestrator
-            predictor = PredictionOrchestrator()
+            # Initialize prediction orchestrator (verbose=False for clean logs)
+            # Errors will still be logged with full details in failure handlers
+            predictor = PredictionOrchestrator(verbose=False)
             
-            # Get model information for debugging
+            # Get model information for diagnostics (only shown on failures)
             model_info = predictor.get_model_info()
-            models_loaded = model_info.get('models_loaded', {})
-            
-            # Debug output showing which models are loaded
-            debug_message = f"Models loaded: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}"
-            print(f"[DEBUG] {debug_message}")
-            
+            models_loaded = model_info.get('legacy_models', {}).get('models_loaded', {})
+            model_weights = model_info.get('legacy_models', {})
+
             if progress_callback:
-                progress_callback(10, f"Getting races to predict... {debug_message}")
+                progress_callback(10, "Getting races to predict...")
 
             # Get races to predict
             if races_to_predict:
@@ -345,8 +341,21 @@ class PipelineHelper:
                         result = predictor.predict_race(comp)
                         if result.get('status') == 'success':
                             predicted_count += 1
+                        else:
+                            # Log failure with diagnostic info
+                            error_msg = result.get('message', 'Unknown error')
+                            print(f"❌ PREDICTION FAILED for race {comp}")
+                            print(f"   Error: {error_msg}")
+                            print(f"   Models: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}")
+                            print(f"   Weights: RF={model_weights.get('rf_weight', 0):.1f}, TabNet={model_weights.get('tabnet_weight', 0):.1f}")
                     except Exception as e:
-                        print(f"Error predicting race {comp}: {str(e)}")
+                        # Log exception with full diagnostic info
+                        print(f"❌ EXCEPTION predicting race {comp}")
+                        print(f"   Error: {str(e)}")
+                        print(f"   Models: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}")
+                        print(f"   Weights: RF={model_weights.get('rf_weight', 0):.1f}, TabNet={model_weights.get('tabnet_weight', 0):.1f}")
+                        import traceback
+                        print(f"   Traceback: {traceback.format_exc()}")
                         continue
             else:
                 # Predict races based on force_reprediction flag
@@ -382,8 +391,21 @@ class PipelineHelper:
                         result = predictor.predict_race(comp)
                         if result.get('status') == 'success':
                             predicted_count += 1
+                        else:
+                            # Log failure with diagnostic info
+                            error_msg = result.get('message', 'Unknown error')
+                            print(f"❌ PREDICTION FAILED for race {comp}")
+                            print(f"   Error: {error_msg}")
+                            print(f"   Models: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}")
+                            print(f"   Weights: RF={model_weights.get('rf_weight', 0):.1f}, TabNet={model_weights.get('tabnet_weight', 0):.1f}")
                     except Exception as e:
-                        print(f"Error predicting race {comp}: {str(e)}")
+                        # Log exception with full diagnostic info
+                        print(f"❌ EXCEPTION predicting race {comp}")
+                        print(f"   Error: {str(e)}")
+                        print(f"   Models: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}")
+                        print(f"   Weights: RF={model_weights.get('rf_weight', 0):.1f}, TabNet={model_weights.get('tabnet_weight', 0):.1f}")
+                        import traceback
+                        print(f"   Traceback: {traceback.format_exc()}")
                         continue
 
                 races_to_predict = [race['comp'] for race in races_to_process]
@@ -391,12 +413,9 @@ class PipelineHelper:
             if progress_callback:
                 progress_callback(100, f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful")
 
-            # Add model debug info to the final result
-            final_message = f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful. {debug_message}"
-            
             return {
                 "success": True,
-                "message": final_message,
+                "message": f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful",
                 "predicted_count": predicted_count,
                 "total_races": len(races_to_predict),
                 "model_info": model_info  # Include full model info in response
@@ -820,16 +839,14 @@ class PipelineHelper:
             # Format simplified model information
             prediction_info = {
                 'ensemble_type': 'RF + TabNet Ensemble',
-                'legacy_models': {
-                    'blend_weights': {
-                        'rf_weight': blend_config.get('rf_weight', 0.5),
-                        'tabnet_weight': blend_config.get('tabnet_weight', 0.5)
-                    },
-                    'optimal_mae': blend_config.get('optimal_mae', 11.78),
-                    'model_status': {
-                        'rf_loaded': rf_ready,
-                        'tabnet_loaded': tabnet_ready
-                    }
+                'blend_weights': {
+                    'rf_weight': blend_config.get('rf_weight', 0.5),
+                    'tabnet_weight': blend_config.get('tabnet_weight', 0.5)
+                },
+                'optimal_mae': blend_config.get('optimal_mae', 11.78),
+                'model_status': {
+                    'rf_loaded': rf_ready,
+                    'tabnet_loaded': tabnet_ready
                 },
                 'model_paths': model_paths,
                 'system_status': 'ready' if (rf_ready and tabnet_ready) else 'partial' if (rf_ready or tabnet_ready) else 'no_models'
@@ -851,15 +868,13 @@ class PipelineHelper:
                 "message": f"Could not retrieve model information: {error_msg}",
                 "prediction_info": {
                     "ensemble_type": "RF + TabNet Ensemble",
-                    "legacy_models": {
-                        "blend_weights": {
-                            "rf_weight": 0.5,
-                            "tabnet_weight": 0.5
-                        },
-                        "model_status": {
-                            "rf_loaded": False,
-                            "tabnet_loaded": False
-                        }
+                    "blend_weights": {
+                        "rf_weight": 0.5,
+                        "tabnet_weight": 0.5
+                    },
+                    "model_status": {
+                        "rf_loaded": False,
+                        "tabnet_loaded": False
                     },
                     "model_paths": self.get_model_paths(),
                     "system_status": "error"

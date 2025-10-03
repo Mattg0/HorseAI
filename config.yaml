@@ -74,6 +74,6 @@ llm_url:
   local: http://localhost:1234
 models:
   latest_models:
-    rf: 2025-09-22/2years_084846
-    tabnet: 2025-09-22/2years_084855
+    rf: 2025-10-01/2years_154345
+    tabnet: 2025-10-01/2years_154355
   model_dir: ./models

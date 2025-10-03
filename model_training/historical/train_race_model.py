@@ -376,6 +376,9 @@ class HorseRaceModel:
                 'train_samples': len(X_train),
                 'test_samples': len(X_test),
                 'features_used': len(feature_columns),
+                'features': len(feature_columns),  # Compatibility field
+                'n_features': len(feature_columns),  # Compatibility field
+                'n_epochs': training_result.get('n_epochs', 'N/A'),  # Pass through epoch info
                 'feature_names': feature_columns,
                 'test_mae': float(mae),
                 'test_rmse': float(rmse),
@@ -591,7 +594,7 @@ def main(progress_callback=None):
         print(f"\n--- TabNet Results ---")
         print(f"Train samples: {tabnet_results.get('train_samples', 'N/A')}")
         print(f"Test samples: {tabnet_results.get('test_samples', 'N/A')}")
-        print(f"Features: {tabnet_results.get('n_features', 'N/A')}")
+        print(f"Features: {tabnet_results.get('features_used', tabnet_results.get('features', 'N/A'))}")
         print(f"Test MAE: {tabnet_results['test_mae']:.4f}")
         print(f"Test RMSE: {tabnet_results['test_rmse']:.4f}")
         print(f"Test R²: {tabnet_results['test_r2']:.4f}")

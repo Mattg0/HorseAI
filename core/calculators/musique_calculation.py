@@ -80,7 +80,7 @@ class MusiqueFeatureExtractor:
 
         stats = {
             'avg_pos': float(np.mean(positions)),
-            'recent_perf': float(np.mean(recent_positions)) if recent_positions else 0.0,
+            'recent_perf': float(np.mean(recent_positions)) if len(recent_positions) > 0 else 0.0,
             'consistency': float(np.std(positions)) if len(positions) > 1 else 0.0,
             'trend': float(positions[0] - np.mean(positions[1:])) if len(positions) >= 2 else 0.0,
             'pct_top3': float(sum(1 for p in positions if p <= 3) / len(positions)),

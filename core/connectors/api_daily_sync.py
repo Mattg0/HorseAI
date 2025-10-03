@@ -1070,6 +1070,67 @@ class RaceFetcher:
                     except Exception as e:
                         self.logger.warning(f"Error parsing {field} for race {comp}: {str(e)}")
 
+            # Debug: Show what API data looks like when loaded from database
+            if self.verbose:
+                print(f"\n=== API DATA DEBUG FOR RACE {comp} ===")
+                print(f"Race metadata: {race_dict.get('hippo')} - {race_dict.get('prixnom')}")
+                print(f"Race date: {race_dict.get('jour')}, Distance: {race_dict.get('dist')}m")
+
+                participants = race_dict.get('participants')
+                if participants:
+                    if isinstance(participants, list):
+                        participants_df = pd.DataFrame(participants)
+
+                        print(f"\n=== PARTICIPANTS DATA DEBUG ===")
+                        print(f"Participants DataFrame shape: {participants_df.shape}")
+                        print(f"Available participant columns ({len(participants_df.columns)}):")
+
+                        # Show columns in groups for readability
+                        cols = list(participants_df.columns)
+                        for i in range(0, len(cols), 10):
+                            chunk = cols[i:i+10]
+                            print(f"  {chunk}")
+
+                        # Check for critical competitive analysis columns
+                        critical_cols = ['recordG', 'hippo', 'coursescheval', 'victoirescheval', 'placescheval',
+                                       'gainsCarriere', 'age', 'derniereplace', 'numero', 'cheval']
+                        print(f"\n=== CRITICAL COLUMNS IN API DATA ===")
+                        for col in critical_cols:
+                            if col in participants_df.columns:
+                                non_null = participants_df[col].notna().sum()
+                                total = len(participants_df)
+                                print(f"✅ {col}: {non_null}/{total} non-null ({non_null/total*100:.1f}%)")
+                                if non_null > 0:
+                                    sample = participants_df[col].dropna().head(2).tolist()
+                                    print(f"   Sample: {sample}")
+                            else:
+                                print(f"❌ {col}: NOT FOUND IN API DATA")
+
+                        # Show sample of first 2 horses
+                        if len(participants_df) > 0:
+                            print(f"\n=== SAMPLE API PARTICIPANT DATA ===")
+                            key_cols = ['numero', 'cheval'] + [col for col in critical_cols if col in participants_df.columns]
+                            available_cols = [col for col in key_cols if col in participants_df.columns]
+                            if available_cols:
+                                sample_data = participants_df[available_cols].head(2)
+                                for i, (idx, row) in enumerate(sample_data.iterrows()):
+                                    print(f"  Horse {i+1}: {dict(row)}")
+
+                    elif isinstance(participants, str):
+                        print(f"❌ WARNING: Participants data is still a string (JSON parsing may have failed)")
+                        try:
+                            parsed_participants = json.loads(participants)
+                            participants_df = pd.DataFrame(parsed_participants)
+                            print(f"✅ Successfully parsed string to DataFrame: {participants_df.shape}")
+                        except Exception as e:
+                            print(f"❌ ERROR: Could not parse participants JSON: {e}")
+                    else:
+                        print(f"❌ ERROR: Participants data is unexpected type: {type(participants)}")
+                else:
+                    print(f"❌ ERROR: No participants data found in race")
+
+                print(f"=== END API DATA DEBUG ===\n")
+
             conn.close()
             return race_dict
 
