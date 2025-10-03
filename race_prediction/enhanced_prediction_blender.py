@@ -2,7 +2,7 @@
 Enhanced prediction blending module for horse race predictions.
 
 This module implements race-specific blending of RF and TabNet models based on race characteristics
-and model performance.
+and model performance, enhanced with competitive field analysis.
 """
 
 import numpy as np
@@ -10,6 +10,7 @@ import yaml
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 import logging
+from .competitive_field_analyzer import CompetitiveFieldAnalyzer
 
 
 class EnhancedPredictionBlender:
@@ -18,30 +19,34 @@ class EnhancedPredictionBlender:
     with dynamic weight assignment based on race characteristics and model performance.
     """
     
-    def __init__(self, config_path: str = 'config.yaml', verbose: bool = False):
+    def __init__(self, config_path: str = 'config.yaml', verbose: bool = False, db_path: str = None):
         """
         Initialize the enhanced blender.
-        
+
         Args:
             config_path: Path to configuration file
             verbose: Enable verbose logging
+            db_path: Database path for historical data queries
         """
         self.config_path = Path(config_path)
         self.verbose = verbose
         self.logger = logging.getLogger(__name__)
-        
+
         # Model categories
         self.legacy_models = {'rf', 'lstm', 'tabnet'}
         self.alternative_models = {'tabnet'}
         self.all_models = self.legacy_models | self.alternative_models
-        
+
+        # Initialize competitive field analyzer with database path
+        self.competitive_analyzer = CompetitiveFieldAnalyzer(verbose=verbose, db_path=db_path)
+
         # Load configuration
         self._load_config()
-        
+
         # Model weights (will be set by configuration or defaults)
         self.default_weights = {}
         self.race_specific_weights = {}
-        
+
         self._initialize_weights()
     
     def _load_config(self):
@@ -127,6 +132,82 @@ class EnhancedPredictionBlender:
             self.logger.info(f"Blended {len(valid_predictions)} models with weights: {weights}")
         
         return blended, blend_info
+
+    def blend_with_competitive_analysis(self, predictions: Dict[str, np.ndarray],
+                                      race_data: Optional[Any] = None,
+                                      race_metadata: Optional[Dict[str, Any]] = None,
+                                      model_performance: Optional[Dict[str, float]] = None) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """
+        Enhanced blending with competitive field analysis.
+
+        Args:
+            predictions: Dictionary of model predictions {model_name: predictions_array}
+            race_data: Race participant data for competitive analysis
+            race_metadata: Optional race characteristics for adaptive blending
+            model_performance: Optional recent performance metrics for models
+
+        Returns:
+            Tuple of (blended_predictions, enhanced_blend_info)
+        """
+        # Filter valid predictions for competitive analysis
+        valid_predictions = {k: v for k, v in predictions.items()
+                           if v is not None and len(v) > 0}
+
+        # Step 1: Basic model blending
+        base_blended, base_blend_info = self.blend_predictions(
+            predictions, race_metadata, model_performance
+        )
+
+        # Step 2: Apply competitive analysis if race data is available
+        if race_data is not None and len(race_data) > 0 and valid_predictions:
+            if self.verbose:
+                self.logger.info("Applying competitive field analysis to enhance predictions")
+
+            # Run competitive analysis with filtered valid predictions
+            competitive_results = self.competitive_analyzer.analyze_competitive_field(
+                race_data, valid_predictions, race_metadata or {}
+            )
+
+            # Extract enhanced predictions
+            enhanced_predictions = competitive_results['enhanced_predictions']
+
+            # Blend the enhanced predictions using the same weights as base blending
+            valid_enhanced = {k: v for k, v in enhanced_predictions.items()
+                            if k in predictions and v is not None}
+
+            if valid_enhanced:
+                # Apply the same blending weights to enhanced predictions
+                weights = base_blend_info['weights_applied']
+                enhanced_blended = np.zeros_like(base_blended)
+
+                for model_name, enhanced_preds in valid_enhanced.items():
+                    if model_name in weights:
+                        enhanced_blended += enhanced_preds * weights[model_name]
+
+                # Enhanced blend info
+                enhanced_blend_info = {
+                    **base_blend_info,
+                    'competitive_analysis_applied': True,
+                    'competitive_summary': competitive_results['adjustment_summary'],
+                    'competitive_scores': competitive_results['competitive_analysis'].get('competitive_scores', {}),
+                    'field_statistics': competitive_results['competitive_analysis'].get('field_statistics', {}),
+                    'top_contenders': competitive_results['competitive_analysis'].get('top_contenders', []),
+                    'performance_expectations': competitive_results['audit_trail'].get('performance_expectations', {})
+                }
+
+                if self.verbose:
+                    field_stats = enhanced_blend_info['field_statistics']
+                    avg_score = field_stats.get('average_competitive_score', 0)
+                    self.logger.info(f"Competitive analysis complete - Field avg competitive score: {avg_score:.3f}")
+
+                return enhanced_blended, enhanced_blend_info
+
+        # Fallback to base blending if no competitive analysis possible
+        base_blend_info['competitive_analysis_applied'] = False
+        if self.verbose and race_data is None:
+            self.logger.info("No race data provided - using base blending only")
+
+        return base_blended, base_blend_info
     
     def _get_race_weights(self, available_models: List[str], 
                          race_metadata: Optional[Dict[str, Any]] = None,

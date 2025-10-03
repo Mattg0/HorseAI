@@ -11,14 +11,14 @@ from pathlib import Path
 from utils.env_setup import AppConfig
 from core.connectors.api_daily_sync import RaceFetcher
 from race_prediction.race_predict import RacePredictor
-from core.storage.prediction_storage import PredictionStorage, PredictionRecord
+# Removed obsolete prediction storage import - using SimplePredictionStorage instead
 
 # Import alternative models (TabNet only)
 try:
     from model_training.models import TransformerModel, EnsembleModel
     ALTERNATIVE_MODELS_AVAILABLE = True
 except ImportError as e:
-    print(f"Alternative models not available: {e}")
+    # Silently handle - alternative models are optional
     ALTERNATIVE_MODELS_AVAILABLE = False
 
 
@@ -61,8 +61,8 @@ class PredictionOrchestrator:
 
         self._setup_logging()
         
-        # Initialize prediction storage
-        self.prediction_storage = PredictionStorage(self.config)
+        # Note: Using SimplePredictionStorage in RacePredictor instead of separate storage
+        self.prediction_storage = None
         
         # Initialize alternative models if available
         self.alternative_models = {}
@@ -414,34 +414,9 @@ class PredictionOrchestrator:
                     rf_weight = blend_config.get('rf_weight', 0.5)
                     tabnet_weight = blend_config.get('tabnet_weight', 0.5)
                     
-                    # Create prediction record for 2-model system
-                    record = PredictionRecord(
-                        race_id=comp,
-                        timestamp=prediction_timestamp,
-                        horse_id=str(row.get('numero', i)),
-                        rf_prediction=None,  # TODO: Extract from main_result_df when RF predictions are available
-                        tabnet_prediction=alt_predictions.get('tabnet_prediction', [None] * n_samples)[i],
-                        ensemble_prediction=main_prediction or 10.0,  # Fallback value
-                        rf_weight=rf_weight,
-                        tabnet_weight=tabnet_weight,
-                        ensemble_confidence_score=None,
-                        actual_position=None,  # Will be updated when results are available
-                        distance=race_data.get('dist'),
-                        track_condition=race_data.get('natpis'),
-                        weather=race_data.get('meteo'),
-                        field_size=len(race_df),
-                        race_type=race_data.get('typec'),
-                        model_versions=model_versions,
-                        prediction_metadata={
-                            'hippo': race_data.get('hippo'),
-                            'prix': race_data.get('prix'),
-                            'horse_name': row.get('cheval', 'Unknown'),
-                            'model_system': '2-model (RF + TabNet)'
-                        }
-                    )
-                    
-                    # Store the record
-                    self.prediction_storage.store_prediction(record)
+                    # Note: Prediction storage now handled by SimplePredictionStorage in RacePredictor
+                    # The alternative model predictions are integrated into the main prediction flow
+                    pass
                     
                 except Exception as e:
                     self.logger.error(f"Failed to store prediction for horse {i}: {e}")

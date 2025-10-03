@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import json
 import joblib
+import time
 from pathlib import Path
 from typing import Dict, List, Union, Any, Optional, Tuple
 import logging
@@ -30,6 +31,9 @@ try:
 except ImportError:
     ALTERNATIVE_MODELS_AVAILABLE = False
 
+# Prediction storage imports
+from .simple_prediction_storage import SimplePredictionStorage, extract_prediction_data_from_competitive_analysis
+
 
 class RacePredictor:
     """
@@ -37,7 +41,8 @@ class RacePredictor:
     Uses the same data preparation pipeline as training for consistency.
     """
 
-    def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False):
+    def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False,
+                 enable_prediction_storage: bool = True):
         """
         Initialize the optimized race predictor.
 
@@ -45,6 +50,7 @@ class RacePredictor:
             model_path: Path to the trained model (if None, uses latest from config)
             db_name: Database name from config (defaults to active_db)
             verbose: Whether to print verbose output
+            enable_prediction_storage: Whether to enable comprehensive prediction storage
         """
         # Initialize config
         self.config = AppConfig()
@@ -65,20 +71,38 @@ class RacePredictor:
             verbose=verbose
         )
 
-        # Load model configuration and determine model path
+        # Load model configuration and determine model paths
+        self.model_manager = get_model_manager()
         if model_path is None:
-            self.model_manager = get_model_manager()
-            model_path = self.model_manager.get_model_path()
+            # Get all model paths from config
+            self.model_paths = self.model_manager.get_all_model_paths()
+            # Use RF path as primary for backward compatibility
+            rf_path = self.model_paths.get('rf')
+            if rf_path:
+                self.model_path = Path(rf_path)
+            else:
+                raise ValueError("No RF model path found - RF model is required")
+        else:
+            self.model_path = Path(model_path)
+            # Get all model paths first, then override RF path if specified
+            self.model_paths = self.model_manager.get_all_model_paths()
+            self.model_paths['rf'] = self.model_path
 
-        self.model_path = Path(model_path)
-        
-        # Initialize enhanced prediction blender
-        self.blender = EnhancedPredictionBlender(verbose=self.verbose)
-        
+        # Initialize enhanced prediction blender with database path for historical data
+        self.blender = EnhancedPredictionBlender(verbose=self.verbose, db_path=str(self.db_path))
+
+        # Initialize prediction storage if enabled
+        self.enable_prediction_storage = enable_prediction_storage
+        if enable_prediction_storage:
+            # Use the same database as race data for easy joins
+            self.simple_storage = SimplePredictionStorage(db_path=str(self.db_path), verbose=self.verbose)
+        else:
+            self.simple_storage = None
+
         # Load models and configuration
         self._load_models()
         self._load_alternative_models()
-        
+
         # Legacy blend weights (for backward compatibility)
         self._load_blend_weights()
 
@@ -86,8 +110,9 @@ class RacePredictor:
             print(f"RacePredictor initialized")
             print(f"  Model: {self.model_path}")
             print(f"  Database: {self.db_path}")
-            print(f"  Legacy weights: RF={self.rf_weight:.1f}, LSTM={self.lstm_weight:.1f}, TabNet={self.tabnet_weight:.1f}")
-            print(f"  Legacy models loaded: RF={self.rf_model is not None}, LSTM={self.lstm_model is not None}, TabNet={self.tabnet_model is not None}")
+            print(f"  Model weights: RF={self.rf_weight:.1f}, TabNet={self.tabnet_weight:.1f}")
+            print(f"  Legacy models loaded: RF={self.rf_model is not None}, TabNet={self.tabnet_model is not None}")
+            print(f"  Prediction storage: {'Enabled' if enable_prediction_storage else 'Disabled'}")
             if hasattr(self, 'alternative_models') and self.alternative_models:
                 alt_loaded = [name for name, model in self.alternative_models.items() if model is not None]
                 print(f"  Alternative models loaded: {alt_loaded if alt_loaded else 'None'}")
@@ -130,26 +155,27 @@ class RacePredictor:
                 self.model_config = json.load(f)
                 # Get blend weights from model config or use default
                 training_results = self.model_config.get('training_results', {})
-                # Check if we have three-model weights
+                # Check if we have RF and TabNet weights
                 if 'rf_weight' in training_results:
-                    self.rf_weight = training_results.get('rf_weight', 0.8)
-                    self.lstm_weight = training_results.get('lstm_weight', 0.1)
-                    self.tabnet_weight = training_results.get('tabnet_weight', 0.1)
+                    self.rf_weight = training_results.get('rf_weight', 0.7)
+                    self.tabnet_weight = training_results.get('tabnet_weight', 0.3)
+                    # LSTM weight ignored (no longer used)
+                    self.lstm_weight = 0.0
                 else:
-                    # Legacy: convert old blend_weight to RF/LSTM split
-                    old_blend_weight = training_results.get('blend_weight', 0.9)
+                    # Legacy: use RF for old blend_weight
+                    old_blend_weight = training_results.get('blend_weight', 0.7)
                     self.rf_weight = old_blend_weight
-                    self.lstm_weight = 1.0 - old_blend_weight
-                    self.tabnet_weight = 0.0
+                    self.tabnet_weight = 1.0 - old_blend_weight
+                    self.lstm_weight = 0.0
         else:
             self.model_config = {}
-            # Use default blend weights if not in config
-            self.rf_weight = 0.8
-            self.lstm_weight = 0.1
-            self.tabnet_weight = 0.1
+            # Use default blend weights if not in config (RF + TabNet only)
+            self.rf_weight = 0.7
+            self.tabnet_weight = 0.3
+            self.lstm_weight = 0.0
 
-        # Load feature engineering state to match training
-        feature_config_path = self.model_path / "hybrid_feature_engineer.joblib"
+        # Load feature engineering state to match training (no hybrid prefix)
+        feature_config_path = self.model_path / "feature_engineer.joblib"
         if feature_config_path.exists():
             feature_config = joblib.load(feature_config_path)
 
@@ -162,8 +188,8 @@ class RacePredictor:
                 if 'embedding_dim' in feature_config:
                     self.orchestrator.embedding_dim = feature_config['embedding_dim']
 
-        # Load RF model (REQUIRED)
-        rf_model_path = self.model_path / "hybrid_rf_model.joblib"
+        # Load RF model (REQUIRED) - no hybrid prefix
+        rf_model_path = self.model_path / "rf_model.joblib"
         if rf_model_path.exists():
             self.rf_model = joblib.load(rf_model_path)
             if self.verbose:
@@ -172,18 +198,8 @@ class RacePredictor:
             self.rf_model = None
             raise FileNotFoundError(f"RF model not found at {rf_model_path} - required for predictions")
 
-        # Load LSTM model (REQUIRED)
-        lstm_model_path = self.model_path / "hybrid_lstm_model.keras"
-        if lstm_model_path.exists():
-            try:
-                from tensorflow.keras.models import load_model
-                self.lstm_model = load_model(lstm_model_path)
-                if self.verbose:
-                    print(f"Loaded LSTM model")
-            except Exception as e:
-                raise RuntimeError(f"Failed to load LSTM model at {lstm_model_path}: {str(e)}")
-        else:
-            raise FileNotFoundError(f"LSTM model not found at {lstm_model_path} - required for predictions")
+        # LSTM model removed - using RF + TabNet only
+        self.lstm_model = None
                 
         # Load TabNet model
         self._load_tabnet_model()
@@ -220,30 +236,31 @@ class RacePredictor:
             'age', 'cotedirect', 'coteprob', 'pourcVictChevalHippo',
             'pourcPlaceChevalHippo', 'pourcVictJockHippo', 'pourcPlaceJockHippo',
             'victoirescheval', 'placescheval', 'coursescheval', 'dist',
-            'temperature', 'forceVent', 'idche', 'idJockey', 'numero'
+            'temperature', 'forceVent', 'idche', 'idJockey', 'numero', 'gainsCarriere'
         ]
 
         for field in numeric_fields:
             if field in race_df.columns:
                 race_df[field] = pd.to_numeric(race_df[field], errors='coerce').fillna(0)
 
+        # Step 2.5: Intelligent earnings imputation for missing gainsCarriere
+        # This handles missing career earnings by estimating from performance indicators
+        from core.calculators.earnings_imputation import impute_earnings_safe
+
+        race_df = impute_earnings_safe(race_df, verbose=self.verbose, inplace=True)
+
         # Step 3: Use the SAME data preparation pipeline as training
         # First prepare features (handle missing values, categorical encoding, etc.)
+        prep_start = time.time()
         processed_df = self.orchestrator.prepare_features(race_df, use_cache=False)
+        prep_time = time.time() - prep_start
 
-        # Step 4: Apply embeddings (this will fit embeddings if needed)
-        # Use a larger sample for fitting if this is the first time
-        if not self.orchestrator.embeddings_fitted:
-            if self.verbose:
-                print("Fitting embeddings from historical data...")
-            # Load some historical data to fit embeddings
-            historical_df = self.orchestrator.load_historical_races(
-                limit=1000, use_cache=True
-            )
-            self.orchestrator.fit_embeddings(historical_df, use_cache=True)
+        if self.verbose:
+            print(f"  🔧 Feature preparation: {prep_time:.2f}s")
 
-        # Apply embeddings to the race data
-        embedded_df = self.orchestrator.apply_embeddings(processed_df, use_cache=False)
+        # Step 4: Skip heavy embedding processing for prediction speed
+        # During prediction, we don't need complex embeddings - use processed features directly
+        embedded_df = processed_df
 
         if self.verbose:
             print(f"Data preparation complete: {len(embedded_df.columns)} features")
@@ -252,6 +269,11 @@ class RacePredictor:
 
     def predict_with_rf(self, X: pd.DataFrame) -> np.ndarray:
         """Generate predictions using the RF model."""
+        if X is None or X.empty:
+            if self.verbose:
+                print("Warning: RF input data is None or empty")
+            return None
+
         if self.rf_model is None:
             raise ValueError("RF model not loaded")
 
@@ -269,7 +291,14 @@ class RacePredictor:
             common_features = set(X.columns) & set(expected_features)
 
             for feature in common_features:
-                aligned_X[feature] = X[feature].values
+                # Clean empty strings and non-numeric values before assignment
+                feature_values = X[feature].replace(['', None, 'NULL'], 0).fillna(0)
+                try:
+                    aligned_X[feature] = pd.to_numeric(feature_values, errors='coerce').fillna(0)
+                except Exception as e:
+                    if self.verbose:
+                        print(f"Warning: Could not convert feature {feature} to numeric, using 0s: {e}")
+                    aligned_X[feature] = 0
 
             X_for_prediction = aligned_X
 
@@ -278,7 +307,12 @@ class RacePredictor:
         else:
             X_for_prediction = X
 
-        return self.rf_model.predict(X_for_prediction)
+        predictions = self.rf_model.predict(X_for_prediction)
+
+        if self.verbose:
+            print(f"RF prediction: {len(predictions)} predictions generated")
+
+        return predictions
 
     def predict_with_lstm(self, embedded_df: pd.DataFrame) -> np.ndarray:
         """Generate predictions using the LSTM model."""
@@ -341,42 +375,55 @@ class RacePredictor:
         self.tabnet_model = None
         self.tabnet_scaler = None
         self.tabnet_feature_columns = None
-        
+
         if not TABNET_AVAILABLE:
             if self.verbose:
                 print("TabNet not available - install pytorch-tabnet")
             return
-        
+
         try:
+            # Get TabNet model path from model_paths
+            tabnet_path = None
+            if hasattr(self, 'model_paths') and 'tabnet' in self.model_paths:
+                tabnet_path = Path(self.model_paths['tabnet'])
+            else:
+                # Fallback to looking in RF model path
+                tabnet_path = self.model_path
+
+            if tabnet_path is None:
+                if self.verbose:
+                    print("No TabNet model path found")
+                return
+
             # Look for TabNet model files
-            tabnet_model_file = self.model_path / "tabnet_model.zip"
+            tabnet_model_file = tabnet_path / "tabnet_model.zip"
             if not tabnet_model_file.exists():
-                tabnet_model_file = self.model_path / "tabnet_model.zip.zip"
-            
+                tabnet_model_file = tabnet_path / "tabnet_model.zip.zip"
+
             if tabnet_model_file.exists():
                 self.tabnet_model = TabNetRegressor()
                 self.tabnet_model.load_model(str(tabnet_model_file))
-                
+
                 # Load scaler
-                scaler_file = self.model_path / "tabnet_scaler.joblib"
+                scaler_file = tabnet_path / "tabnet_scaler.joblib"
                 if scaler_file.exists():
                     self.tabnet_scaler = joblib.load(scaler_file)
-                    
+
                 # Load feature configuration
-                config_file = self.model_path / "tabnet_config.json"
+                config_file = tabnet_path / "tabnet_config.json"
                 if config_file.exists():
                     with open(config_file, 'r') as f:
                         config = json.load(f)
                         self.tabnet_feature_columns = config.get('feature_columns', [])
-                        
+
                 if self.verbose:
                     print(f"Loaded TabNet model from: {tabnet_model_file}")
                     if self.tabnet_feature_columns:
                         print(f"TabNet expects {len(self.tabnet_feature_columns)} features")
             else:
                 if self.verbose:
-                    print("TabNet model not found")
-                    
+                    print(f"TabNet model not found at: {tabnet_path}")
+
         except Exception as e:
             if self.verbose:
                 print(f"Warning: Could not load TabNet model: {str(e)}")
@@ -447,24 +494,49 @@ class RacePredictor:
 
     def prepare_tabnet_features(self, race_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
-        Prepare features specifically for TabNet prediction using domain features.
-        NEW: Uses ModelFeatureSelector for consistency with training.
+        Prepare features specifically for TabNet prediction.
+        FIXED: Now uses EXACT SAME pipeline as training for consistency.
+
+        Training uses: orchestrator.prepare_complete_dataset() -> extract_tabnet_features()
+        Prediction now uses: SAME orchestrator.prepare_complete_dataset() -> extract_tabnet_features()
         """
         if self.verbose:
-            print("Preparing domain features for TabNet prediction...")
-            
-        # Apply feature calculator for musique preprocessing
-        df_with_features = FeatureCalculator.calculate_all_features(race_df)
-        
-        # Apply embeddings to get complete feature set
-        complete_df = self.orchestrator.apply_embeddings(df_with_features)
-        
+            print("Preparing TabNet features using training pipeline...")
+
+        # Use the SAME preprocessing pipeline as training
+        # This replaces the broken FeatureCalculator.calculate_all_features() approach
+        prep_start = time.time()
+
+        # Check if we should use batch processing (same logic as training)
+        total_records = len(race_df)
+
+        if self.orchestrator.should_use_batch_processing(total_records):
+            if self.verbose:
+                print(f"  Using batch processing for {total_records} records")
+            complete_df = self.orchestrator.prepare_complete_dataset_batched(
+                race_df,
+                use_cache=False  # Don't cache predictions
+            )
+        else:
+            if self.verbose:
+                print(f"  Using standard processing for {total_records} records")
+            complete_df = self.orchestrator.prepare_complete_dataset(
+                race_df,
+                use_cache=False  # Don't cache predictions
+            )
+
+        prep_time = time.time() - prep_start
+
         # Extract TabNet features using the same pipeline as training
+        extract_start = time.time()
         X_tabnet, _ = self.orchestrator.extract_tabnet_features(complete_df)
-        
+        extract_time = time.time() - extract_start
+
         if self.verbose:
-            print(f"TabNet prediction features: {X_tabnet.shape[1]} domain features")
-        
+            print(f"  🔧 Complete dataset preparation: {prep_time:.2f}s")
+            print(f"  🔧 TabNet feature extraction: {extract_time:.2f}s")
+            print(f"  ✅ TabNet features extracted: {X_tabnet.shape[1]} features (matches training)")
+
         return X_tabnet, complete_df
     
     def predict_with_tabnet(self, race_df: pd.DataFrame) -> np.ndarray:
@@ -473,12 +545,13 @@ class RacePredictor:
         NEW: Uses same domain feature extraction as training.
         """
         if self.tabnet_model is None:
+            if self.verbose:
+                print("TabNet model not available")
             return None
             
         try:
             # Prepare TabNet-specific features using new pipeline
             X_tabnet, complete_df = self.prepare_tabnet_features(race_df)
-            
             if X_tabnet is None or X_tabnet.empty:
                 if self.verbose:
                     print("Warning: No TabNet features prepared")
@@ -490,22 +563,41 @@ class RacePredictor:
                 missing_features = [col for col in self.tabnet_feature_columns if col not in X_tabnet.columns]
                 
                 if missing_features and self.verbose:
-                    print(f"Warning: Missing TabNet features: {missing_features}")
-                    
+                    print(f"Warning: Missing TabNet features: {len(missing_features)}/{len(self.tabnet_feature_columns)}")
+
                 if not available_features:
                     if self.verbose:
                         print("Warning: No matching TabNet features found")
                     return None
+
+                # Check if we have enough features (at least 70% match)
+                feature_match_ratio = len(available_features) / len(self.tabnet_feature_columns)
+
+                if feature_match_ratio < 0.7:  # Less than 70% feature match
+                    if self.verbose:
+                        print(f"Warning: Insufficient feature match ({feature_match_ratio:.2f} < 0.70)")
+                    return None
                     
-                # Use training feature order
-                X = X_tabnet[available_features].values
+                # Create aligned DataFrame with all training features
+                # Fill missing features with zeros to maintain exact feature order from training
+                aligned_X = pd.DataFrame(0.0, index=range(len(X_tabnet)), columns=self.tabnet_feature_columns)
+
+                # Fill available features with actual values
+                for feature in available_features:
+                    aligned_X[feature] = X_tabnet[feature]
+
+                if self.verbose:
+                    print(f"TabNet features aligned: {aligned_X.shape}")
+                X_df = aligned_X
+                X = X_df.values
             else:
-                # Use all available features
-                X = X_tabnet.values
-                
+                # Use all available features - keep as DataFrame for scaler
+                X_df = X_tabnet
+                X = X_df.values
+
             # Scale features using training scaler
             if self.tabnet_scaler is not None:
-                X_scaled = self.tabnet_scaler.transform(X)
+                X_scaled = self.tabnet_scaler.transform(X_df)
                 if self.verbose:
                     print(f"TabNet features scaled using training scaler")
             else:
@@ -513,14 +605,42 @@ class RacePredictor:
                 if self.verbose:
                     print("Warning: No TabNet scaler available")
                 
-            # Generate predictions
+            # Generate predictions with diagnostics
             tabnet_preds = self.tabnet_model.predict(X_scaled)
+
+            # CRITICAL DEBUGGING: Log raw prediction values AND features
+            if self.verbose:
+                print(f"🔍 TABNET PREDICTION DIAGNOSTICS:")
+                print(f"   Input features shape: {X_scaled.shape}")
+                print(f"   Input features range: {X_scaled.min():.3f} to {X_scaled.max():.3f}")
+
+                # Find which features have extreme values
+                max_vals_per_feature = np.max(np.abs(X_scaled), axis=0)
+                extreme_feature_idx = np.where(max_vals_per_feature > 1000)[0]
+                if len(extreme_feature_idx) > 0:
+                    print(f"   🚨 EXTREME FEATURE VALUES FOUND:")
+                    for idx in extreme_feature_idx:
+                        feature_name = self.tabnet_feature_columns[idx] if self.tabnet_feature_columns and idx < len(self.tabnet_feature_columns) else f"feature_{idx}"
+                        print(f"      Feature {idx} ({feature_name}): max_abs = {max_vals_per_feature[idx]:.0f}")
+                        print(f"      Values: {X_scaled[:, idx]}")
+
+                print(f"   Raw predictions shape: {tabnet_preds.shape}")
+                print(f"   Raw predictions range: {tabnet_preds.min():.3f} to {tabnet_preds.max():.3f}")
+                print(f"   Raw predictions sample: {tabnet_preds.flatten()[:5]}")
+
+                # Check for extreme values
+                extreme_count = np.sum(np.abs(tabnet_preds) > 100)
+                if extreme_count > 0:
+                    print(f"   ⚠️  WARNING: {extreme_count} predictions have absolute value > 100")
+                    print(f"   ⚠️  Extreme values: {tabnet_preds[np.abs(tabnet_preds) > 100]}")
+
             if len(tabnet_preds.shape) > 1:
                 tabnet_preds = tabnet_preds.flatten()
-                
+
             if self.verbose:
+                print(f"   Final predictions after flatten: {tabnet_preds[:5]}")
                 print(f"TabNet prediction: {len(tabnet_preds)} predictions generated")
-                
+
             return tabnet_preds
             
         except Exception as e:
@@ -588,54 +708,208 @@ class RacePredictor:
         Returns:
             DataFrame with predictions and rankings
         """
+        start_time = time.time()
+
+        if race_df is None:
+            raise ValueError("race_df cannot be None")
+
         if self.verbose:
-            print(f"Predicting race with {len(race_df)} participants")
+            print(f"🏇 Predicting race with {len(race_df)} participants")
 
         # Step 1: Prepare data using the same pipeline as training
+        step_start = time.time()
         embedded_df = self.prepare_race_data(race_df)
+        step_time = time.time() - step_start
+        if self.verbose:
+            print(f"⏱️  Step 1 (Data Preparation): {step_time:.2f}s")
+
+        if embedded_df is None:
+            raise ValueError("prepare_race_data returned None")
 
         # Step 2: Extract RF features and generate RF predictions
+        step_start = time.time()
         X_rf, _ = self.orchestrator.extract_rf_features(embedded_df)
-        rf_predictions = self.predict_with_rf(X_rf)
+        feature_time = time.time() - step_start
 
-        # Step 3: Generate LSTM predictions if model available
-        lstm_predictions = self.predict_with_lstm(embedded_df)
-        
+        pred_start = time.time()
+        rf_predictions = self.predict_with_rf(X_rf)
+        rf_pred_time = time.time() - pred_start
+
+        if self.verbose:
+            print(f"⏱️  Step 2a (RF Feature Extraction): {feature_time:.2f}s")
+            print(f"⏱️  Step 2b (RF Prediction): {rf_pred_time:.2f}s")
+
+        # Step 3: LSTM predictions (removed - using RF + TabNet only)
+        step_start = time.time()
+        lstm_predictions = None
+        lstm_time = time.time() - step_start
+        if self.verbose:
+            print(f"⏱️  Step 3 (LSTM Prediction): {lstm_time:.2f}s")
+
         # Step 4: Generate TabNet predictions
+        step_start = time.time()
         tabnet_predictions = self.predict_with_tabnet(race_df)
+        tabnet_time = time.time() - step_start
+        if self.verbose:
+            print(f"⏱️  Step 4 (TabNet Prediction): {tabnet_time:.2f}s")
         
         # Step 5: Generate alternative model predictions
+        step_start = time.time()
         alternative_predictions = self._predict_with_alternative_models(race_df, embedded_df)
+        alt_time = time.time() - step_start
+        if self.verbose:
+            print(f"⏱️  Step 5 (Alternative Models): {alt_time:.2f}s")
         
-        # Step 6: Collect all predictions for blending
+        # Step 6: Collect all predictions for blending (RF and TabNet only)
         all_predictions = {
             'rf': rf_predictions,
-            'lstm': lstm_predictions,
             'tabnet': tabnet_predictions
         }
-        
+
         # Add alternative model predictions
         all_predictions.update(alternative_predictions)
-        
-        # Step 7: Use enhanced blender for intelligent blending
+
+        # Debug: Print prediction status (only show available models)
+        if self.verbose:
+            for model, preds in all_predictions.items():
+                if preds is not None:
+                    print(f"✅ {model}: {type(preds)} shape {preds.shape}")
+                # Don't show None models to avoid confusion
+
+        # Step 7: Use enhanced blender with competitive field analysis
         race_metadata = {
             'distance': race_df.get('dist', [0]).iloc[0] if 'dist' in race_df.columns else 1600,
+            'dist': race_df.get('dist', [0]).iloc[0] if 'dist' in race_df.columns else 1600,
             'typec': race_df.get('typec', ['P']).iloc[0] if 'typec' in race_df.columns else 'P',
             'field_size': len(race_df),
-            'hippo': race_df.get('hippo', ['']).iloc[0] if 'hippo' in race_df.columns else ''
+            'hippo': race_df.get('hippo', ['']).iloc[0] if 'hippo' in race_df.columns else '',
+            'comp': race_df.get('comp', ['']).iloc[0] if 'comp' in race_df.columns else ''
         }
-        
-        final_predictions, blend_info = self.blender.blend_predictions(
+
+        # Debug: Show race data structure before competitive analysis
+        if self.verbose:
+            print(f"\n=== RACE DATA DEBUG BEFORE COMPETITIVE ANALYSIS ===")
+            print(f"race_df shape: {race_df.shape}")
+            print(f"race_df columns ({len(race_df.columns)}): {list(race_df.columns)}")
+
+            # Check critical competitive columns
+            critical_cols = ['recordG', 'hippo', 'coursescheval', 'victoirescheval', 'placescheval', 'gainsCarriere', 'age']
+            print(f"\n=== CRITICAL COLUMNS CHECK ===")
+            for col in critical_cols:
+                if col in race_df.columns:
+                    non_null = race_df[col].notna().sum()
+                    print(f"✅ {col}: {non_null}/{len(race_df)} non-null ({non_null/len(race_df)*100:.1f}%)")
+                    if non_null > 0:
+                        sample = race_df[col].dropna().head(2).tolist()
+                        print(f"   Sample: {sample}")
+                else:
+                    print(f"❌ {col}: NOT FOUND")
+
+            # Show first few rows with key columns
+            key_cols = ['numero', 'cheval'] + [col for col in critical_cols if col in race_df.columns]
+            available_key_cols = [col for col in key_cols if col in race_df.columns]
+            if available_key_cols:
+                print(f"\n=== SAMPLE RACE DATA (first 3 horses) ===")
+                sample_data = race_df[available_key_cols].head(3)
+                for i, (idx, row) in enumerate(sample_data.iterrows()):
+                    print(f"Horse {i+1}: {dict(row)}")
+
+            print(f"=== END RACE DATA DEBUG ===\n")
+
+        # Step 7: Use competitive analysis enhanced blending
+        step_start = time.time()
+        final_predictions, blend_info = self.blender.blend_with_competitive_analysis(
             predictions=all_predictions,
+            race_data=race_df,  # Use original race data for competitive analysis
             race_metadata=race_metadata
         )
+        blend_time = time.time() - step_start
+        if self.verbose:
+            print(f"⏱️  Step 7 (Competitive Blending): {blend_time:.2f}s")
+
+        # Extract competitive analysis results for simple storage
+        competitive_results = {}
+        if blend_info.get('competitive_analysis_applied', False):
+            # Extract the actual competitive analysis data from blend_info
+            # Now competitive_scores are available directly in blend_info
+            competitive_results = {
+                'competitive_analysis': {
+                    'competitive_scores': blend_info.get('competitive_scores', {}),
+                    'field_statistics': blend_info.get('field_statistics', {}),
+                    'top_contenders': blend_info.get('top_contenders', [])
+                },
+                'audit_trail': {
+                    'adjustment_summary': blend_info.get('competitive_summary', {})
+                }
+            }
         
         if self.verbose:
             print(f"Enhanced blending used {blend_info['total_models']} models: {blend_info['models_used']}")
             print(f"Applied weights: {blend_info['weights_applied']}")
             print(f"Blend method: {blend_info['blend_method']}")
 
-        # Step 8: Create result DataFrame
+            # Log competitive analysis results if applied
+            if blend_info.get('competitive_analysis_applied', False):
+                field_stats = blend_info.get('field_statistics', {})
+                avg_score = field_stats.get('average_competitive_score', 0)
+                competitiveness = field_stats.get('field_competitiveness', 'unknown')
+                print(f"Competitive analysis applied - Field competitiveness: {competitiveness}, Avg score: {avg_score:.3f}")
+
+                top_contenders = blend_info.get('top_contenders', [])
+                if top_contenders:
+                    print(f"Top contenders: {[c['horse_index'] for c in top_contenders[:3]]}")
+
+                performance_expectations = blend_info.get('performance_expectations', {})
+                for model, expectations in performance_expectations.items():
+                    r2_improvement = expectations.get('estimated_r2_improvement', 0)
+                    print(f"{model} expected R² improvement: +{r2_improvement:.3f}")
+            else:
+                print("Competitive analysis: Not applied (insufficient race data)")
+
+        # Extract base predictions from all_predictions (needed for simple storage)
+        base_predictions = {k: v for k, v in all_predictions.items() if v is not None}
+
+        # Step 8: Store prediction data for competitive analysis
+        if self.verbose:
+            print(f"DEBUG: simple_storage is {'not None' if self.simple_storage is not None else 'None'}")
+
+        if self.simple_storage is not None:
+            try:
+                if self.verbose:
+                    print(f"DEBUG: Attempting to store prediction data...")
+                # Use comp as race_id to match daily_race table
+                race_id = race_metadata.get('comp')
+
+                # Extract prediction data using helper function
+                if self.verbose:
+                    print(f"DEBUG: competitive_results keys: {list(competitive_results.keys())}")
+                    print(f"DEBUG: blend_info keys: {list(blend_info.keys())}")
+
+                predictions_data = extract_prediction_data_from_competitive_analysis(
+                    race_id=race_id,
+                    race_data=race_df,
+                    base_predictions=base_predictions,
+                    competitive_results=competitive_results,
+                    final_predictions=final_predictions,
+                    blend_weights=blend_info.get('weights_applied', {})
+                )
+
+                if self.verbose:
+                    print(f"DEBUG: predictions_data length: {len(predictions_data)}")
+                    if predictions_data:
+                        print(f"DEBUG: First prediction data: {predictions_data[0]}")
+
+                # Store simple prediction data
+                stored_count = self.simple_storage.store_race_predictions(race_id, predictions_data)
+
+                if self.verbose:
+                    print(f"Simple prediction storage: {stored_count} horses stored for race {race_id}")
+
+            except Exception as e:
+                if self.verbose:
+                    print(f"Warning: Failed to store simple prediction data: {e}")
+
+        # Step 9: Create result DataFrame
         result_df = race_df.copy()
         result_df['predicted_position'] = final_predictions
 
@@ -678,7 +952,6 @@ class RacePredictor:
                 'tabnet_weight': self.tabnet_weight,
                 'models_loaded': {
                     'rf': self.rf_model is not None,
-                    'lstm': self.lstm_model is not None,
                     'tabnet': self.tabnet_model is not None
                 }
             },
@@ -712,7 +985,9 @@ def predict_race_simple(race_data: Union[pd.DataFrame, List[Dict], str],
         DataFrame with predictions and rankings
     """
     # Convert input to DataFrame if needed
-    if isinstance(race_data, str):
+    if race_data is None:
+        raise ValueError("race_data cannot be None")
+    elif isinstance(race_data, str):
         race_df = pd.DataFrame(json.loads(race_data))
     elif isinstance(race_data, list):
         race_df = pd.DataFrame(race_data)
