@@ -561,6 +561,7 @@ def main():
             "🎲 Execute Prediction",
             "✨ AI Insight",
             "📈 Execute Evaluation",
+            "⚖️ Model Weight Analysis",
             "🔄 Incremental Training",
             "🎯 Execute Full Training",
             "🔄 MySQL ↔ SQLite Sync",
@@ -832,16 +833,25 @@ def main():
                         status_indicators.append("✅ Processed")
                     if race.get('has_predictions', 0):
                         status_indicators.append("🔮 Predicted")
-                    else:
-                        race["prediction_results"]= json.dumps({"predicted_arriv": "N/A"})
                     if race.get('has_results', 0):
                         status_indicators.append("🏁 Results")
+
+                    # Handle prediction results safely
+                    import json
+                    predicted_arriv = "N/A"
+                    if race.get("prediction_results"):
+                        try:
+                            pred_data = json.loads(race["prediction_results"])
+                            predicted_arriv = pred_data.get("predicted_arriv", "N/A")
+                        except (json.JSONDecodeError, TypeError):
+                            predicted_arriv = "N/A"
+
                     races_df.append({
                         "Date": race['jour'],
                         "Race ID": race['comp'],
                         "Track": race['hippo'],
                         "Race": race_name,
-                        "Prediction": json.loads(race["prediction_results"]).get("predicted_arriv"),
+                        "Prediction": predicted_arriv,
                         "Type": race.get('typec', 'N/A'),
                         "Status": " | ".join(status_indicators) if status_indicators else "⏳ Pending"
                     })
@@ -1238,6 +1248,220 @@ def main():
                         st.warning("No races available for analysis.")
                         st.info("Go to '🎲 Execute Prediction' to sync and predict today's races.")
                 
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            elif operation == "⚖️ Model Weight Analysis":
+                st.markdown('''
+                <div class="config-panel">
+                    <h3>⚖️ Automated Weight & Pattern Analysis</h3>
+                </div>
+                ''', unsafe_allow_html=True)
+
+                st.info("🤖 Automated analysis: Tests all RF/TabNet weight combinations (0.0-1.0 by 0.1), finds optimal weights, and detects patterns based on race features")
+
+                # Initialize session state for analysis results
+                if 'weight_patterns' not in st.session_state:
+                    st.session_state.weight_patterns = None
+
+                # Simple Configuration
+                st.markdown("### ⚙️ Configuration")
+
+                left, right = st.columns(2)
+
+                with left:
+                    date_from_weight = st.date_input(
+                        "Start Date:",
+                        value=(datetime.now() - timedelta(days=90)).date(),
+                        key="weight_date_from",
+                        help="Recommended: 30-90 days for reliable patterns"
+                    )
+
+                with right:
+                    date_to_weight = st.date_input(
+                        "End Date:",
+                        value=datetime.now().date(),
+                        key="weight_date_to"
+                    )
+
+                # Single-click automated analysis
+                if st.button("🚀 Run Automated Analysis", key="run_auto_analysis", help="Tests all weights and detects patterns automatically"):
+                    with st.spinner("📊 Loading race data..."):
+                        # Load data
+                        data_result = st.session_state.helper.load_weight_analysis_data(
+                            date_from=date_from_weight.strftime('%Y-%m-%d'),
+                            date_to=date_to_weight.strftime('%Y-%m-%d'),
+                            race_filters=None
+                        )
+
+                        if data_result['success']:
+                            log_output(data_result['message'], "success")
+
+                            # Run automated pattern detection
+                            with st.spinner("🔍 Testing all weight combinations (0.0-1.0 by 0.1) and detecting patterns..."):
+                                pattern_result = st.session_state.helper.detect_weight_patterns(
+                                    race_data=data_result['race_data'],
+                                    weight_step=0.1
+                                )
+
+                                if pattern_result['success']:
+                                    st.session_state.weight_patterns = pattern_result
+                                    log_output(pattern_result['message'], "success")
+                                else:
+                                    log_output(pattern_result['message'], "error")
+                        else:
+                            log_output(data_result['message'], "error")
+
+                        st.rerun()
+
+                # Display Results
+                if st.session_state.weight_patterns is not None:
+                    patterns = st.session_state.weight_patterns['patterns']
+
+                    st.markdown("### 📊 Analysis Results")
+
+                    # Summary insights
+                    st.markdown("#### 💡 Key Findings")
+                    for insight in patterns['summary']:
+                        if insight['type'] == 'no_patterns':
+                            st.success(f"✅ {insight['message']}")
+                        elif insight['type'] == 'patterns_found':
+                            st.warning(f"⚠️ {insight['message']}")
+                        else:
+                            st.info(f"📌 {insight['message']}")
+
+                    # Overall Optimal Weights
+                    overall = patterns['overall_best']
+
+                    st.markdown("#### 🎯 Overall Best Weights")
+                    tab1, tab2, tab3, tab4, tab5 = st.columns(5)
+                    with tab1:
+                        st.metric("RF Weight", f"{overall['rf_weight']:.1f}")
+                    with tab2:
+                        st.metric("TabNet Weight", f"{overall['tabnet_weight']:.1f}")
+                    with tab3:
+                        st.metric("Winner Accuracy", f"{overall['winner_accuracy']*100:.1f}%")
+                    with tab4:
+                        st.metric("Podium Accuracy", f"{overall['podium_accuracy']*100:.1f}%")
+                    with tab5:
+                        st.metric("MAE", f"{overall['mae']:.2f}")
+
+                    # Pattern-specific recommendations
+                    st.markdown("#### 🔍 Detected Patterns Requiring Custom Weights")
+
+                    # Race Type Patterns
+                    if patterns['by_race_type']:
+                        st.markdown("##### 🏇 Race Type Patterns")
+
+                        for pattern in patterns['by_race_type']:
+                            with st.expander(f"**{pattern['typec']}** - Custom weights recommended"):
+                                pcol1, pcol2, pcol3, pcol4 = st.columns(4)
+
+                                with pcol1:
+                                    st.metric("Optimal RF", f"{pattern['optimal_rf_weight']:.1f}")
+                                with pcol2:
+                                    st.metric("Optimal TabNet", f"{pattern['optimal_tabnet_weight']:.1f}")
+                                with pcol3:
+                                    st.metric("Winner Accuracy", f"{pattern['winner_accuracy']*100:.1f}%")
+                                    if pattern['improvement_vs_overall'] > 0:
+                                        st.success(f"+{pattern['improvement_vs_overall']*100:.1f}% vs overall")
+                                with pcol4:
+                                    st.metric("Races", pattern['total_races'])
+
+                                st.info(f"💡 **Recommendation:** {pattern['recommendation']}")
+                    else:
+                        st.success("✅ No significant race type patterns detected - overall weights work well")
+
+                    # Distance Range Patterns
+                    if patterns['by_distance_range']:
+                        st.markdown("##### 📏 Distance Range Patterns")
+
+                        for pattern in patterns['by_distance_range']:
+                            with st.expander(f"**{pattern['distance_range']}** - Custom weights recommended"):
+                                pcol1, pcol2, pcol3, pcol4 = st.columns(4)
+
+                                with pcol1:
+                                    st.metric("Optimal RF", f"{pattern['optimal_rf_weight']:.1f}")
+                                with pcol2:
+                                    st.metric("Optimal TabNet", f"{pattern['optimal_tabnet_weight']:.1f}")
+                                with pcol3:
+                                    st.metric("Winner Accuracy", f"{pattern['winner_accuracy']*100:.1f}%")
+                                    if pattern['improvement_vs_overall'] > 0:
+                                        st.success(f"+{pattern['improvement_vs_overall']*100:.1f}% vs overall")
+                                with pcol4:
+                                    st.metric("Races", pattern['total_races'])
+
+                                st.info(f"💡 **Recommendation:** {pattern['recommendation']}")
+                    else:
+                        st.success("✅ No significant distance patterns detected - overall weights work well")
+
+                    # Field Size Patterns
+                    if patterns['by_field_size']:
+                        st.markdown("##### 👥 Field Size Patterns")
+
+                        for pattern in patterns['by_field_size']:
+                            with st.expander(f"**{pattern['field_size']}** - Custom weights recommended"):
+                                pcol1, pcol2, pcol3, pcol4 = st.columns(4)
+
+                                with pcol1:
+                                    st.metric("Optimal RF", f"{pattern['optimal_rf_weight']:.1f}")
+                                with pcol2:
+                                    st.metric("Optimal TabNet", f"{pattern['optimal_tabnet_weight']:.1f}")
+                                with pcol3:
+                                    st.metric("Winner Accuracy", f"{pattern['winner_accuracy']*100:.1f}%")
+                                    if pattern['improvement_vs_overall'] > 0:
+                                        st.success(f"+{pattern['improvement_vs_overall']*100:.1f}% vs overall")
+                                with pcol4:
+                                    st.metric("Races", pattern['total_races'])
+
+                                st.info(f"💡 **Recommendation:** {pattern['recommendation']}")
+                    else:
+                        st.success("✅ No significant field size patterns detected - overall weights work well")
+
+                    # Weight performance visualization
+                    with st.expander("📈 View All Weight Combinations Performance"):
+                        all_results_df = pd.DataFrame(st.session_state.weight_patterns['all_weight_results'])
+
+                        # Winner accuracy line chart
+                        fig_winner = px.line(
+                            all_results_df,
+                            x='rf_weight',
+                            y='winner_accuracy',
+                            title='Winner Accuracy vs RF Weight (all tested combinations)',
+                            markers=True
+                        )
+                        fig_winner.update_yaxes(title='Winner Accuracy', tickformat='.1%')
+                        fig_winner.update_xaxes(title='RF Weight')
+                        fig_winner.update_traces(line_color='#244855', marker_color='#E64833')
+                        fig_winner.update_layout(
+                            height=400,
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)'
+                        )
+                        st.plotly_chart(fig_winner, use_container_width=True)
+
+                        # Data table
+                        st.dataframe(all_results_df, hide_index=True, use_container_width=True)
+
+                    # Export options
+                    with st.expander("💾 Export Pattern Results"):
+                        # Create comprehensive export
+                        export_data = {
+                            'overall_best': patterns['overall_best'],
+                            'race_type_patterns': patterns['by_race_type'],
+                            'distance_patterns': patterns['by_distance_range'],
+                            'field_size_patterns': patterns['by_field_size']
+                        }
+
+                        import json
+                        json_str = json.dumps(export_data, indent=2)
+
+                        st.download_button(
+                            label="📥 Download Pattern Analysis (JSON)",
+                            data=json_str,
+                            file_name=f"weight_pattern_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                            mime="application/json"
+                        )
+
                 st.markdown('</div>', unsafe_allow_html=True)
 
             elif operation == "🔄 Incremental Training":

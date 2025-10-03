@@ -8,7 +8,6 @@ from pathlib import Path
 
 # Import feature calculators for consistency
 from core.calculators.static_feature_calculator import FeatureCalculator
-from core.calculators.phase2_feature_calculator import Phase2FeatureCalculator
 from core.calculators.musique_calculation import MusiqueFeatureExtractor
 from core.data_cleaning.tabnet_cleaner import TabNetDataCleaner
 
@@ -45,7 +44,6 @@ class UnifiedDataPipeline:
         self.feature_calculator = FeatureCalculator()
         self.tabnet_cleaner = TabNetDataCleaner()
         self.musique_extractor = MusiqueFeatureExtractor()
-        self.phase2_calculator = Phase2FeatureCalculator()
 
         # Initialize handicap encoder if available
         self.handicap_encoder = HandicapEncoder() if HandicapEncoder else None
@@ -158,7 +156,7 @@ class UnifiedDataPipeline:
         df = self._apply_musique_features(df)
 
         # Step 5: Calculate Phase 2 derived features
-        df = self._apply_phase2_features(df, race_context)
+        df = self._apply_advanced_features(df, race_context)
 
         # Step 6: Apply consistent missing value handling
         df = self._apply_consistent_missing_value_handling(df)
@@ -232,7 +230,7 @@ class UnifiedDataPipeline:
 
         return processed_df
 
-    def _apply_phase2_features(self, df: pd.DataFrame, race_context: Optional[Dict]) -> pd.DataFrame:
+    def _apply_advanced_features(self, df: pd.DataFrame, race_context: Optional[Dict]) -> pd.DataFrame:
         """Apply Phase 2 derived features consistently."""
         processed_df = df.copy()
 
@@ -250,20 +248,29 @@ class UnifiedDataPipeline:
                     )
                 }
 
-                # Calculate Phase 2 features
-                phase2_features = self.phase2_calculator.calculate_all_phase2_features(participant, race_info)
-                for key, value in phase2_features.items():
+                # Calculate advanced features (formerly Phase 2 features, now in FeatureCalculator)
+                class_features = FeatureCalculator.calculate_class_movement_features(participant, race_info)
+                speed_features = FeatureCalculator.calculate_speed_figure_features(participant, race_info)
+                form_features = FeatureCalculator.calculate_form_context_features(participant, race_info)
+                connection_features = FeatureCalculator.calculate_connection_features(participant)
+                competition_features = FeatureCalculator.calculate_competition_context_features(participant, race_info)
+                interaction_features = FeatureCalculator.calculate_interaction_features(participant, race_info)
+
+                # Merge all advanced features
+                advanced_features = {**class_features, **speed_features, **form_features,
+                                   **connection_features, **competition_features, **interaction_features}
+                for key, value in advanced_features.items():
                     processed_df.at[index, key] = value
 
             except Exception as e:
-                self.logger.warning(f"⚠️  Error calculating Phase 2 features for row {index}: {str(e)}")
+                self.logger.warning(f"⚠️  Error calculating advanced features for row {index}: {str(e)}")
 
         if self.verbose:
-            phase2_cols = [col for col in processed_df.columns if col in [
-                'competitive_index', 'field_strength_score', 'purse_impact_factor',
-                'distance_specialization', 'form_momentum', 'class_adjustment'
+            advanced_cols = [col for col in processed_df.columns if col in [
+                'class_drop_pct', 'speed_figure_proxy', 'form_momentum', 'trainer_change',
+                'field_size_change', 'distance_comfort', 'recence_x_class_drop'
             ]]
-            self.logger.info(f"⚙️  Applied Phase 2 features: {len(phase2_cols)} competitive analysis features")
+            self.logger.info(f"⚙️  Applied advanced features: {len(advanced_cols)} features")
 
         return processed_df
 
@@ -480,7 +487,7 @@ class UnifiedDataPipeline:
                 'calculated': [],
                 'musique': [],
                 'equipment': [],
-                'phase2': []
+                'advanced': []
             },
             'missing_value_stats': {}
         }
@@ -502,7 +509,7 @@ class UnifiedDataPipeline:
             elif 'blinkers' in column or 'shoeing' in column or 'equipment' in column:
                 schema['feature_categories']['equipment'].append(column)
             elif column in ['competitive_index', 'field_strength_score', 'purse_impact_factor']:
-                schema['feature_categories']['phase2'].append(column)
+                schema['feature_categories']['advanced'].append(column)
             elif column in ['ratio_victoires', 'ratio_places', 'efficacite_couple', 'perf_cheval_hippo']:
                 schema['feature_categories']['calculated'].append(column)
             else:

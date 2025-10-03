@@ -1,9 +1,10 @@
-from typing import Dict, List, Union, Optional
+from typing import Dict, List, Union, Optional, Any
 import pandas as pd
 import numpy as np
 import json
+import re
+from decimal import Decimal
 from core.calculators.musique_calculation import MusiqueFeatureExtractor
-from core.calculators.phase2_feature_calculator import Phase2FeatureCalculator
 from core.data_cleaning.tabnet_cleaner import TabNetDataCleaner
 
 class FeatureCalculator:
@@ -453,6 +454,245 @@ class FeatureCalculator:
         return features
 
     @staticmethod
+    def safe_string(value: Any, default: str = '') -> str:
+        """Safely convert value to string."""
+        if pd.isna(value) or value is None:
+            return default
+        return str(value).strip()
+
+    @staticmethod
+    def parse_time_to_seconds(time_str: str) -> Optional[float]:
+        """
+        Parse French racing time format to seconds.
+        Examples: "2'42\"53" -> 162.53, "3'19\"52" -> 199.52
+        """
+        if not time_str or pd.isna(time_str):
+            return None
+
+        time_str = str(time_str).strip()
+        if not time_str or time_str in ('', 'N/A'):
+            return None
+
+        # Match patterns like "2'42"53" or "2:42.53"
+        patterns = [
+            r"(\d+)'(\d+)\"(\d+)",  # 2'42"53
+            r"(\d+):(\d+)\.(\d+)",  # 2:42.53
+            r"(\d+)\.(\d+)\.(\d+)"  # 2.42.53
+        ]
+
+        for pattern in patterns:
+            match = re.match(pattern, time_str)
+            if match:
+                minutes, seconds, centiseconds = map(int, match.groups())
+                return minutes * 60 + seconds + centiseconds / 100
+
+        return None
+
+    @staticmethod
+    def calculate_class_movement_features(participant: Dict[str, Any], race_info: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate class movement analysis features."""
+        features = {}
+
+        current_purse = FeatureCalculator.safe_numeric(race_info.get('cheque', 0), 0.0)
+        prev_purse = FeatureCalculator.safe_numeric(participant.get('dernierealloc', 0), 0.0)
+        field_size = FeatureCalculator.safe_numeric(race_info.get('partant', 1), 1.0)
+
+        # Class drop percentage
+        if prev_purse > 0:
+            features['class_drop_pct'] = max(0, (prev_purse - current_purse) / prev_purse)
+        else:
+            features['class_drop_pct'] = 0.0
+
+        # Purse per starter
+        if field_size > 0 and current_purse > 0 and np.isfinite(current_purse):
+            features['purse_per_starter'] = current_purse / field_size
+        else:
+            features['purse_per_starter'] = 0.0
+
+        # Purse ratio
+        if prev_purse > 0:
+            features['purse_ratio'] = current_purse / prev_purse
+        else:
+            features['purse_ratio'] = 1.0
+
+        # Moving up in class
+        features['moving_up_in_class'] = 1.0 if features['purse_ratio'] > 1.5 else 0.0
+
+        # Class shock indicator
+        ratio = features['purse_ratio']
+        features['class_shock_indicator'] = 1.0 if (ratio > 2.0 or ratio < 0.5) else 0.0
+
+        # Handicap level change
+        current_handicap_score = FeatureCalculator.safe_numeric(race_info.get('handicap_level_score', 0), 0.0)
+        features['handicap_level_change'] = current_handicap_score
+
+        return features
+
+    @staticmethod
+    def calculate_speed_figure_features(participant: Dict[str, Any], race_info: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate speed figure proxy features."""
+        features = {}
+
+        current_time_str = FeatureCalculator.safe_string(participant.get('tempstot', ''))
+        current_distance = FeatureCalculator.safe_numeric(race_info.get('dist', 0), 0.0)
+        record_time_str = FeatureCalculator.safe_string(participant.get('recordG', ''))
+
+        current_time = FeatureCalculator.parse_time_to_seconds(current_time_str)
+        record_time = FeatureCalculator.parse_time_to_seconds(record_time_str)
+
+        # Time per distance
+        if current_time and current_distance > 0:
+            features['time_per_distance'] = current_time / current_distance
+        else:
+            features['time_per_distance'] = 0.0
+
+        # Time vs record ratio
+        if current_time and record_time and record_time > 0:
+            features['time_vs_record'] = current_time / record_time
+        else:
+            features['time_vs_record'] = 1.0
+
+        # Pace rating
+        if current_time and current_distance > 0:
+            standard_distance = 2000
+            normalized_time = (current_time / current_distance) * standard_distance
+            features['pace_rating'] = max(0, 200 - normalized_time / 60 * 100)
+        else:
+            features['pace_rating'] = 100.0
+
+        # Speed figure proxy
+        time_component = 1.0 / max(features['time_vs_record'], 0.1)
+        distance_component = features['time_per_distance'] if features['time_per_distance'] > 0 else 1.0
+        features['speed_figure_proxy'] = time_component / max(distance_component, 0.001) * 100
+
+        return features
+
+    @staticmethod
+    def calculate_form_context_features(participant: Dict[str, Any], race_info: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate form context analysis features."""
+        features = {}
+
+        current_odds = FeatureCalculator.safe_numeric(participant.get('coteprob', 0), 0.0)
+        prev_odds = FeatureCalculator.safe_numeric(participant.get('dernierecote', 0), 0.0)
+        prev_position_str = FeatureCalculator.safe_string(participant.get('derniereplace', ''))
+        current_distance = FeatureCalculator.safe_numeric(race_info.get('dist', 0), 0.0)
+        prev_distance = FeatureCalculator.safe_numeric(participant.get('dernieredist', 0), 0.0)
+        recency = FeatureCalculator.safe_numeric(participant.get('recence', 0), 0.0)
+
+        # Market confidence shift
+        if prev_odds > 0 and current_odds > 0:
+            features['market_confidence_shift'] = prev_odds / current_odds
+        else:
+            features['market_confidence_shift'] = 1.0
+
+        # Last race improvement
+        try:
+            prev_position = int(prev_position_str) if prev_position_str.isdigit() else 10
+            features['last_race_improvement'] = max(0, 15 - prev_position) / 15
+        except:
+            features['last_race_improvement'] = 0.5
+
+        # Bounce risk
+        prev_pos_num = 10
+        try:
+            if prev_position_str.isdigit():
+                prev_pos_num = int(prev_position_str)
+        except:
+            pass
+        features['bounce_risk'] = 1.0 if prev_pos_num <= 3 else 0.0
+
+        # Layoff distance interaction
+        if prev_distance > 0:
+            distance_change_pct = abs(current_distance - prev_distance) / prev_distance
+            features['layoff_distance_interaction'] = (recency / 30) * distance_change_pct
+        else:
+            features['layoff_distance_interaction'] = recency / 60
+
+        return features
+
+    @staticmethod
+    def calculate_connection_features(participant: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate trainer/connection change features."""
+        features = {}
+
+        current_trainer = FeatureCalculator.safe_string(participant.get('entraineur', ''))
+        prev_trainer = FeatureCalculator.safe_string(participant.get('dernierEnt', ''))
+
+        # Trainer change indicator
+        if current_trainer and prev_trainer and current_trainer != prev_trainer:
+            features['trainer_change'] = 1.0
+        else:
+            features['trainer_change'] = 0.0
+
+        # Connection stability
+        features['connection_stability'] = 1.0 - features['trainer_change']
+
+        return features
+
+    @staticmethod
+    def calculate_competition_context_features(participant: Dict[str, Any], race_info: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate competition context features."""
+        features = {}
+
+        current_field = FeatureCalculator.safe_numeric(race_info.get('partant', 0), 0.0)
+        prev_field = FeatureCalculator.safe_numeric(participant.get('derniernbpartants', 0), 0.0)
+        current_distance = FeatureCalculator.safe_numeric(race_info.get('dist', 0), 0.0)
+        prev_distance = FeatureCalculator.safe_numeric(participant.get('dernieredist', 0), 0.0)
+
+        # Field size change
+        if prev_field > 0:
+            features['field_size_change'] = (current_field - prev_field) / prev_field
+        else:
+            features['field_size_change'] = 0.0
+
+        # Distance comfort
+        if prev_distance > 0:
+            distance_change_pct = abs(current_distance - prev_distance) / prev_distance
+            features['distance_comfort'] = max(0, 1.0 - distance_change_pct)
+        else:
+            features['distance_comfort'] = 0.5
+
+        # Competition level shift
+        features['competition_level_shift'] = current_field / 20.0
+
+        return features
+
+    @staticmethod
+    def calculate_interaction_features(participant: Dict[str, Any], race_info: Dict[str, Any]) -> Dict[str, float]:
+        """Calculate feature interaction combinations."""
+        features = {}
+
+        recency = FeatureCalculator.safe_numeric(participant.get('recence', 0), 0.0)
+        current_purse = FeatureCalculator.safe_numeric(race_info.get('cheque', 0), 0.0)
+        prev_purse = FeatureCalculator.safe_numeric(participant.get('dernierealloc', 0), 0.0)
+
+        class_drop = 0.0
+        if prev_purse > 0:
+            class_drop = max(0, (prev_purse - current_purse) / prev_purse)
+
+        current_trainer = FeatureCalculator.safe_string(participant.get('entraineur', ''))
+        prev_trainer = FeatureCalculator.safe_string(participant.get('dernierEnt', ''))
+        trainer_change = 1.0 if (current_trainer and prev_trainer and current_trainer != prev_trainer) else 0.0
+
+        current_distance = FeatureCalculator.safe_numeric(race_info.get('dist', 0), 0.0)
+        prev_distance = FeatureCalculator.safe_numeric(participant.get('dernieredist', 0), 0.0)
+
+        distance_change = 0.0
+        if prev_distance > 0:
+            distance_change = abs(current_distance - prev_distance) / prev_distance
+
+        # Recency × Class Drop
+        features['recence_x_class_drop'] = (recency / 30) * class_drop
+
+        # Trainer Change × Recency
+        features['trainer_change_x_recence'] = trainer_change * (recency / 30)
+
+        # Distance Change × Recency
+        features['distance_change_x_recence'] = distance_change * (recency / 30)
+
+        return features
+
+    @staticmethod
     def calculate_equipment_impact_features(participant: Dict) -> Dict[str, float]:
         """
         Calculate combined equipment impact features.
@@ -639,52 +879,37 @@ class FeatureCalculator:
                 column_name = f"joc_bytype_{type_key}"
                 result_df.at[index, column_name] = type_values
 
-            # Phase 2: Calculate advanced derived features
-            # Extract race-level information for Phase 2 features
+            # Advanced derived features
             race_info = {
                 'cheque': participant.get('cheque', 0),
-                'partant': participant.get('partant', 0), 
+                'partant': participant.get('partant', 0),
                 'dist': participant.get('dist', 0),
                 'handicap_level_score': participant.get('handicap_level_score', 0)
             }
-            
-            phase2_features = Phase2FeatureCalculator.calculate_all_phase2_features(participant, race_info)
-            for key, value in phase2_features.items():
+
+            # Calculate advanced features
+            class_features = FeatureCalculator.calculate_class_movement_features(participant, race_info)
+            for key, value in class_features.items():
+                result_df.at[index, key] = value
+
+            speed_features = FeatureCalculator.calculate_speed_figure_features(participant, race_info)
+            for key, value in speed_features.items():
+                result_df.at[index, key] = value
+
+            form_features = FeatureCalculator.calculate_form_context_features(participant, race_info)
+            for key, value in form_features.items():
+                result_df.at[index, key] = value
+
+            connection_features = FeatureCalculator.calculate_connection_features(participant)
+            for key, value in connection_features.items():
+                result_df.at[index, key] = value
+
+            competition_features = FeatureCalculator.calculate_competition_context_features(participant, race_info)
+            for key, value in competition_features.items():
+                result_df.at[index, key] = value
+
+            interaction_features = FeatureCalculator.calculate_interaction_features(participant, race_info)
+            for key, value in interaction_features.items():
                 result_df.at[index, key] = value
 
         return result_df
-
-
-def main():
-    """
-    Exemple d'utilisation du calculateur de features.
-    """
-    # Exemple avec des données de test
-    test_participant = {
-        'coursescheval': 10,
-        'victoirescheval': 2,
-        'placescheval': 5,
-        'gainsCarriere': 100000,
-        'musiqueche': '1 3 2 4 5',
-        'nbCourseCouple': 5,
-        'nbVictCouple': 1,
-        'nbPlaceCouple': 3,
-        'TxVictCouple': 20.0,
-        'pourcVictCheval': 15.0,
-        'pourcVictChevalHippo': 25.0,
-        'pourcPlaceChevalHippo': 50.0,
-        'pourcVictJockHippo': 30.0,
-        'pourcPlaceJockHippo': 60.0
-    }
-
-    # Calculer les features
-    features = FeatureCalculator.calculate_all_features(test_participant)
-
-    # Afficher les résultats
-    print("Features calculées:")
-    for feature_name, value in features.items():
-        print(f"{feature_name}: {value}")
-
-
-if __name__ == "__main__":
-    main()
