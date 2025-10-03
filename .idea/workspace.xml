@@ -4,12 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="Working Training and Prediction + basic weighting">
     <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="fix batching type issue">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UI/UIApp.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIApp.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UI/UIhelper.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIhelper.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/calculators/musique_calculation.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/calculators/musique_calculation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/calculators/static_feature_calculator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/storage/prediction_storage.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/connectors/sqlite_historical_writer.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/sqlite_historical_writer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" afterDir="false" />
@@ -66,6 +76,39 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.UIApp.executor": "Run",
+    "Python.api_daily_sync.executor": "Run",
+    "Python.blend_testing.executor": "Run",
+    "Python.comprehensive_training.executor": "Run",
+    "Python.daily_predictor.executor": "Run",
+    "Python.debug_json_pipeline.executor": "Run",
+    "Python.embedding_feature.executor": "Run",
+    "Python.env_setup.executor": "Run",
+    "Python.envdebug.executor": "Run",
+    "Python.horse_embedding.executor": "Run",
+    "Python.musique_calculation.executor": "Debug",
+    "Python.mysql_connector.executor": "Run",
+    "Python.mysql_sqlite_sync.executor": "Run",
+    "Python.mysql_to_sqlite.executor": "Run",
+    "Python.predict_daily_races.executor": "Run",
+    "Python.predict_evaluator.executor": "Run",
+    "Python.predict_orchestrator_cli.executor": "Run",
+    "Python.prediction_orchestrator.executor": "Run",
+    "Python.race_predict.executor": "Run",
+    "Python.regression_enhancement.executor": "Run",
+    "Python.streamlit.executor": "Run",
+    "Python.tabnet_model.executor": "Run",
+    "Python.test.executor": "Debug",
+    "Python.three_model_race_predict.executor": "Run",
+    "Python.train_model.executor": "Debug",
+    "Python.train_race_model.executor": "Run",
+    "Python.train_tabnet.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "Shell Script.remote_training.sh.executor": "Run",
+    "git-widget-placeholder": "fastforward-neural-net"
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;Python.UIApp.executor&quot;: &quot;Run&quot;,
@@ -594,6 +637,23 @@
       <option name="project" value="LOCAL" />
       <updated>1756808202879</updated>
     </task>
+    <task id="LOCAL-00042" summary="New Training - no LSTM/FeedForward">
+      <option name="closed" value="true" />
+      <created>1758539337651</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1758539337651</updated>
+    </task>
+    <task id="LOCAL-00043" summary="Working Training and Prediction + basic weighting">
+      <option name="closed" value="true" />
+      <created>1758551370533</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1758551370533</updated>
+    </task>
+    <option name="localTasksCounter" value="44" />
     <option name="localTasksCounter" value="42" />
     <servers />
   </component>
@@ -616,6 +676,9 @@
     <MESSAGE value="Well... Final Version!!" />
     <MESSAGE value="deploy script + trining output" />
     <MESSAGE value="fix batching type issue" />
+    <MESSAGE value="New Training - no LSTM/FeedForward" />
+    <MESSAGE value="Working Training and Prediction + basic weighting" />
+    <option name="LAST_COMMIT_MESSAGE" value="Working Training and Prediction + basic weighting" />
     <option name="LAST_COMMIT_MESSAGE" value="fix batching type issue" />
   </component>
   <component name="XDebuggerManager">
@@ -623,6 +686,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
+          <line>654</line>
           <line>534</line>
           <option name="timeStamp" value="30" />
         </line-breakpoint>
@@ -638,11 +702,13 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
+          <line>521</line>
           <line>409</line>
           <option name="timeStamp" value="139" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
+          <line>639</line>
           <line>519</line>
           <option name="timeStamp" value="140" />
         </line-breakpoint>
@@ -658,17 +724,17 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
-          <line>719</line>
+          <line>1053</line>
           <option name="timeStamp" value="359" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
-          <line>722</line>
+          <line>1056</line>
           <option name="timeStamp" value="360" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
-          <line>720</line>
+          <line>1054</line>
           <option name="timeStamp" value="361" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">

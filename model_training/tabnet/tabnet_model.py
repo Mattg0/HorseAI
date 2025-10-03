@@ -312,8 +312,9 @@ class TabNetModel:
         # Convert pandas Series to numpy arrays before reshape
         y_train_array = y_train.values if hasattr(y_train, 'values') else y_train
         y_test_array = y_test.values if hasattr(y_test, 'values') else y_test
-        
-        self.tabnet_model.fit(
+
+        # Train with history tracking
+        history = self.tabnet_model.fit(
             X_train=X_train,
             y_train=y_train_array.reshape(-1, 1),
             eval_set=[(X_test, y_test_array.reshape(-1, 1))],
@@ -324,6 +325,9 @@ class TabNetModel:
             num_workers=0,
             drop_last=False
         )
+
+        # Get actual number of epochs trained (TabNet stops early with patience)
+        actual_epochs = len(history) if history is not None else 200
 
         # Generate predictions
         train_preds = self.tabnet_model.predict(X_train).flatten()
@@ -344,6 +348,8 @@ class TabNetModel:
             'train_samples': len(X_train),
             'test_samples': len(X_test),
             'features': X_train.shape[1],
+            'n_features': X_train.shape[1],  # Compatibility field
+            'n_epochs': actual_epochs,  # Actual epochs trained
             'train_mae': float(train_mae),
             'test_mae': float(test_mae),
             'train_rmse': float(train_rmse),

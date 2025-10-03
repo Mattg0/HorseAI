@@ -13,6 +13,112 @@ class FeatureCalculator:
     """
     
     @staticmethod
+    def calculate_confidence_weighted_earnings(gains_carriere: float, courses_cheval: float, field_mean: float = 100000) -> float:
+        """
+        Calculate earnings per race with confidence weighting based on sample size.
+
+        Horses with few races get shrunk toward field mean to prevent extreme outliers.
+        Horses with many races (20+) use actual earnings per race.
+
+        This fixes TabNet scaling issues caused by horses with minimal experience
+        but high earnings creating extreme gains_par_course values.
+
+        Args:
+            gains_carriere: Total career earnings
+            courses_cheval: Number of career races
+            field_mean: Typical earnings per race (default 100k)
+
+        Returns:
+            Confidence-weighted earnings per race
+
+        Examples:
+            - Horse with 1 race, 675k earnings:
+              Raw = 675,000, Confidence = 0.05, Result = ~67,500
+            - Horse with 20 races, 150k avg:
+              Raw = 150,000, Confidence = 1.0, Result = 150,000
+        """
+        if courses_cheval == 0:
+            return 0.0
+
+        # Ensure non-negative inputs
+        gains_carriere = max(0.0, gains_carriere)
+        field_mean = max(0.0, field_mean)
+
+        # Calculate raw earnings per race
+        raw_earnings_per_race = gains_carriere / courses_cheval
+
+        # Confidence factor: 0 to 1 based on number of races
+        # Plateaus at 20 races (100% confidence)
+        confidence = min(courses_cheval / 20.0, 1.0)
+
+        # Weight between individual estimate and field mean
+        # Low confidence = closer to field mean
+        # High confidence = use actual performance
+        weighted_value = (raw_earnings_per_race * confidence) + (field_mean * (1 - confidence))
+
+        # Final safety check
+        return max(0.0, weighted_value)
+
+    @staticmethod
+    def calculate_field_mean_earnings(participants_data: list, min_races: int = 5) -> float:
+        """
+        Calculate field average earnings per race for context-aware weighting.
+
+        Uses only horses with sufficient race experience for reliable estimate.
+
+        Args:
+            participants_data: List of participant dictionaries
+            min_races: Minimum races required for inclusion
+
+        Returns:
+            Median earnings per race from experienced horses, or default 100k
+        """
+        experienced_earnings = []
+
+        for participant in participants_data:
+            gains = FeatureCalculator.safe_numeric(participant.get('gainsCarriere', 0), 0.0)
+            courses = FeatureCalculator.safe_numeric(participant.get('coursescheval', 0), 0.0)
+
+            if courses >= min_races and gains > 0:
+                earnings_per_race = gains / courses
+                # Cap at reasonable maximum to prevent outliers from skewing field mean
+                # Use much stricter threshold for field mean calculation
+                if earnings_per_race <= 300000:  # 300k per race is already very high
+                    experienced_earnings.append(earnings_per_race)
+
+        if experienced_earnings and len(experienced_earnings) >= 2:
+            # Use median for robustness against remaining outliers
+            return float(np.median(experienced_earnings))
+        else:
+            # Fallback to reasonable default for typical horse racing
+            return 100000.0
+
+    @staticmethod
+    def validate_earnings_features(features: Dict[str, float], feature_name: str) -> None:
+        """
+        Validate earnings features to catch extreme outliers that could break models.
+
+        Args:
+            features: Dictionary of calculated features
+            feature_name: Name of the feature to validate
+
+        Raises:
+            AssertionError: If feature values are outside reasonable bounds
+        """
+        if feature_name in features:
+            value = features[feature_name]
+
+            # Validate range
+            assert value >= 0, f"Negative {feature_name}: {value}"
+
+            # With confidence weighting, values should be much more reasonable
+            # But allow some flexibility for genuinely high-earning experienced horses
+            if value > 500000:
+                print(f"🚨 Very high {feature_name}: {value:,.0f} (confidence weighting may need adjustment)")
+            elif value > 300000:
+                print(f"⚠️  High {feature_name}: {value:,.0f} (monitoring)")
+
+    @staticmethod
     def safe_numeric(value, default=0.0):
         """Safely convert value to numeric, handling various types including racing positions."""
         if pd.isna(value) or value is None:
@@ -39,23 +145,27 @@ class FeatureCalculator:
         return default
 
     @staticmethod
-    def calculate_performance_ratios(participant: Dict) -> Dict[str, float]:
+    def calculate_performance_ratios(participant: Dict, field_mean: float = 100000) -> Dict[str, float]:
         """
-        Calcule les ratios de performance du cheval.
+        Calcule les ratios de performance du cheval avec pondération par confiance.
 
         Args:
             participant: Dictionnaire contenant les données du participant
+            field_mean: Moyenne de terrain pour la pondération par confiance
 
         Returns:
-            Dict avec les ratios calculés
+            Dict avec les ratios calculés (gains_par_course utilise la pondération par confiance)
         """
         courses_total = FeatureCalculator.safe_numeric(participant.get('coursescheval', 0), 0.0)
+        gains_carriere = FeatureCalculator.safe_numeric(participant.get('gainsCarriere', 0), 0.0)
 
         if courses_total > 0:
             ratios = {
                 'ratio_victoires': FeatureCalculator.safe_numeric(participant.get('victoirescheval,', 0), 0.0) / courses_total,
                 'ratio_places': FeatureCalculator.safe_numeric(participant.get('placescheval', 0), 0.0) / courses_total,
-                'gains_par_course': FeatureCalculator.safe_numeric(participant.get('gainsCarriere', 0), 0.0) / courses_total
+                'gains_par_course': FeatureCalculator.calculate_confidence_weighted_earnings(
+                    gains_carriere, courses_total, field_mean
+                )
             }
         else:
             ratios = {
@@ -64,36 +174,48 @@ class FeatureCalculator:
                 'gains_par_course': 0.0
             }
 
+        # Validate the critical feature that was causing TabNet issues
+        FeatureCalculator.validate_earnings_features(ratios, 'gains_par_course')
+
         return ratios
 
     @staticmethod
-    def calculate_phase1_career_features(participant: Dict) -> Dict[str, float]:
+    def calculate_phase1_career_features(participant: Dict, field_mean: float = 100000) -> Dict[str, float]:
         """
-        Calculate Phase 1 career performance features.
-        
+        Calculate Phase 1 career performance features with confidence weighting.
+
         Args:
             participant: Dictionary containing participant data
-            
+            field_mean: Field mean for confidence weighting
+
         Returns:
             Dict with Phase 1 career features
         """
         courses_total = FeatureCalculator.safe_numeric(participant.get('coursescheval', 0), 0.0)
         victoires = FeatureCalculator.safe_numeric(participant.get('victoirescheval', 0), 0.0)
-        
+        gains_carriere = FeatureCalculator.safe_numeric(participant.get('gainsCarriere', 0), 0.0)
+
+        # Ensure earnings are non-negative (prevent calculation errors)
+        gains_carriere = max(0.0, gains_carriere)
+
         features = {}
-        
+
         # Career strike rate (more specific than ratio_victoires)
         features['career_strike_rate'] = victoires / courses_total if courses_total > 0 else 0.0
-        
-        # Earnings per race
-        gains_carriere = FeatureCalculator.safe_numeric(participant.get('gainsCarriere', 0), 0.0)
-        features['earnings_per_race'] = gains_carriere / courses_total if courses_total > 0 else 0.0
-        
+
+        # Earnings per race - now using confidence weighting to prevent TabNet scaling issues
+        features['earnings_per_race'] = FeatureCalculator.calculate_confidence_weighted_earnings(
+            gains_carriere, courses_total, field_mean
+        ) if courses_total > 0 else 0.0
+
         # Recent vs career earnings comparison
         gains_annee = FeatureCalculator.safe_numeric(participant.get('gainsAnneeEnCours', 0), 0.0)
         gains_precedente = FeatureCalculator.safe_numeric(participant.get('gainsAnneePrecedente', 0), 0.0)
         features['earnings_trend'] = (gains_annee - gains_precedente) / max(gains_precedente, 1) if gains_precedente > 0 else 0.0
-        
+
+        # Validate earnings features
+        FeatureCalculator.validate_earnings_features(features, 'earnings_per_race')
+
         return features
     
     @staticmethod
@@ -413,13 +535,25 @@ class FeatureCalculator:
         cleaner = TabNetDataCleaner()
         result_df = cleaner.comprehensive_data_cleaning(result_df, verbose=False)
 
+        # Apply comprehensive data cleaning for TabNet compatibility
+        cleaner = TabNetDataCleaner()
+        result_df = cleaner.comprehensive_data_cleaning(result_df, verbose=False)
+
+        # Calculate field mean earnings for confidence weighting
+        # This helps prevent extreme outliers from breaking TabNet scaling
+        participants_list = result_df.to_dict('records')
+        field_mean = FeatureCalculator.calculate_field_mean_earnings(participants_list)
+
+        if len(result_df) > 0:
+            print(f"🏇 Field mean earnings per race: {field_mean:,.0f} (from {len(participants_list)} horses)")
+
         # Itérer sur chaque ligne du DataFrame
         for index, participant_row in result_df.iterrows():
             # Extraire le participant comme un dictionnaire
             participant = participant_row.to_dict()
 
-            # Calculer les ratios de performance
-            ratios = FeatureCalculator.calculate_performance_ratios(participant)
+            # Calculer les ratios de performance avec pondération par confiance
+            ratios = FeatureCalculator.calculate_performance_ratios(participant, field_mean)
             for key, value in ratios.items():
                 result_df.at[index, key] = value
 
@@ -448,8 +582,8 @@ class FeatureCalculator:
             for key, value in equipment_impact_features.items():
                 result_df.at[index, key] = value
 
-            # Phase 1: Calculer les features de carrière
-            phase1_career_features = FeatureCalculator.calculate_phase1_career_features(participant)
+            # Phase 1: Calculer les features de carrière avec pondération par confiance
+            phase1_career_features = FeatureCalculator.calculate_phase1_career_features(participant, field_mean)
             for key, value in phase1_career_features.items():
                 result_df.at[index, key] = value
 

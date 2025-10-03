@@ -178,12 +178,15 @@ class FeatureEmbeddingOrchestrator:
                 # Use a simple cache approach with the historical_data cache type
                 cached_data = self.cache_manager.load_dataframe('historical_data')
                 if cached_data is not None:
-                    print("Using cached historical race data...")
+                    if self.verbose:
+                        print("Using cached historical race data...")
                     return cached_data
             except Exception as e:
-                print(f"Warning: Could not load from cache: {str(e)}. Loading from database...")
+                if self.verbose:
+                    print(f"Warning: Could not load from cache: {str(e)}. Loading from database...")
 
-        print("Loading historical race data from database...")
+        if self.verbose:
+            print("Loading historical race data from database...")
         conn = sqlite3.connect(self.sqlite_path)
 
         # Base query to get race data
@@ -301,13 +304,16 @@ class FeatureEmbeddingOrchestrator:
                 # FIX: Use cache_key directly as the cache_type
                 cached_embeddings = self.cache_manager.load_dataframe(cache_key)
                 if isinstance(cached_embeddings, dict) and 'embeddings_fitted' in cached_embeddings:
-                    print("Using cached embedding models...")
+                    if self.verbose:
+                        print("Using cached embedding models...")
                     self.embeddings_fitted = True
                     return self
             except Exception as e:
-                print(f"Warning: Could not load embeddings from cache: {str(e)}")
+                if self.verbose:
+                    print(f"Warning: Could not load embeddings from cache: {str(e)}")
 
-        print("Fitting entity embeddings...")
+        if self.verbose:
+            print("Fitting entity embeddings...")
 
         # Handle Course embeddings
         if 'idche' in df.columns:
@@ -323,11 +329,13 @@ class FeatureEmbeddingOrchestrator:
                 if len(course_info) > 5:
                     self.course_embedder.fit(course_info)
 
-                print("Course embeddings prepared")
+                if self.verbose:
+                    print("Course embeddings prepared")
             except Exception as e:
-                print(f"Warning: Could not prepare Course embeddings: {str(e)}")
-                import traceback
-                traceback.print_exc()
+                if self.verbose:
+                    print(f"Warning: Could not prepare Course embeddings: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
 
         # Handle jockey embeddings
         if 'idJockey' in df.columns:
@@ -337,18 +345,22 @@ class FeatureEmbeddingOrchestrator:
 
                 # Fit jockey embedder
                 self.jockey_embedder.fit(df)
-                print("Jockey embeddings fitted")
+                if self.verbose:
+                    print("Jockey embeddings fitted")
             except Exception as e:
-                print(f"Warning: Could not fit jockey embeddings: {str(e)}")
+                if self.verbose:
+                    print(f"Warning: Could not fit jockey embeddings: {str(e)}")
 
         # Handle couple embeddings
         if 'idche' in df.columns and 'idJockey' in df.columns and 'final_position' in df.columns:
             try:
                 # Train couple embeddings
                 self.couple_embedder.train(df, target_col='final_position')
-                print("Couple embeddings trained")
+                if self.verbose:
+                    print("Couple embeddings trained")
             except Exception as e:
-                print(f"Warning: Could not train couple embeddings: {str(e)}")
+                if self.verbose:
+                    print(f"Warning: Could not train couple embeddings: {str(e)}")
 
         self.embeddings_fitted = True
 
@@ -360,7 +372,8 @@ class FeatureEmbeddingOrchestrator:
                 # FIX: Pass the cache_key directly as the cache_type
                 self.cache_manager.save_dataframe(embeddings_status, cache_key)
             except Exception as e:
-                print(f"Warning: Could not cache embedding status: {str(e)}")
+                if self.verbose:
+                    print(f"Warning: Could not cache embedding status: {str(e)}")
         return self
     def prepare_features(self, df, use_cache=True):
         """
@@ -387,12 +400,15 @@ class FeatureEmbeddingOrchestrator:
                 # FIX: Use cache_key directly as the cache_type, remove 'features' parameter
                 cached_df = self.cache_manager.load_dataframe(cache_key)
                 if cached_df is not None:
-                    print("Using cached prepared features...")
+                    if self.verbose:
+                        print("Using cached prepared features...")
                     return cached_df
             except Exception as e:
-                print(f"Warning: Could not load prepared features from cache: {str(e)}")
+                if self.verbose:
+                    print(f"Warning: Could not load prepared features from cache: {str(e)}")
 
-        print("Preparing features...")
+        if self.verbose:
+            print("Preparing features...")
 
         # Make a copy to avoid modifying the original
         processed_df = df.copy()
@@ -422,9 +438,15 @@ class FeatureEmbeddingOrchestrator:
         # Convert date to datetime and extract useful features
         if 'jour' in processed_df.columns:
             processed_df['jour'] = pd.to_datetime(processed_df['jour'], errors='coerce')
-            processed_df['year'] = processed_df['jour'].dt.year
-            processed_df['month'] = processed_df['jour'].dt.month
-            processed_df['dayofweek'] = processed_df['jour'].dt.dayofweek
+
+            # Use concat to avoid fragmentation
+            date_features = pd.DataFrame({
+                'year': processed_df['jour'].dt.year,
+                'month': processed_df['jour'].dt.month,
+                'dayofweek': processed_df['jour'].dt.dayofweek
+            }, index=processed_df.index)
+
+            processed_df = pd.concat([processed_df, date_features], axis=1)
 
 
         # Cache the result
@@ -433,7 +455,8 @@ class FeatureEmbeddingOrchestrator:
                 # FIX: Pass cache_key directly as the cache_type, remove 'features' parameter
                 self.cache_manager.save_dataframe(processed_df, cache_key)
             except Exception as e:
-                print(f"Warning: Could not cache prepared features: {str(e)}")
+                if self.verbose:
+                    print(f"Warning: Could not cache prepared features: {str(e)}")
 
         return processed_df
     def _detect_target_column(self, df):
@@ -753,7 +776,7 @@ class FeatureEmbeddingOrchestrator:
                 if clean_df[col].dtype == 'object':
                     empty_count = (clean_df[col] == '').sum()
                     if empty_count > 0:
-                        clean_df[col] = clean_df[col].replace('', np.nan)
+                        clean_df[col] = clean_df[col].replace('', np.nan).infer_objects(copy=False)
                         modifications['filled_na'].append(f"{col} ({empty_count} empty strings)")
 
                 # Convert to numeric if possible
@@ -1513,7 +1536,7 @@ class FeatureEmbeddingOrchestrator:
             y = pd.Series(index=training_df.index, dtype='float64')
 
         # Select feature columns (excluding target and identifier columns)
-        exclude_cols = [target_column, 'comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id', 'jour', 'cl']
+        exclude_cols = [target_column, 'comp', 'rank', 'idche', 'idJockey', 'idEntraineur', 'couple_id', 'jour', 'cl', 'numero']
 
         # Create final feature set
         feature_cols = [col for col in training_df.columns if col not in exclude_cols]
@@ -2024,7 +2047,7 @@ class FeatureEmbeddingOrchestrator:
         # Numerical features that TabNet can use directly
         numerical_cols = [
             'age', 'cotedirect', 'coteprob', 'dist', 'temperature', 'forceVent',
-            'numero', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo',
+            'pourcVictChevalHippo', 'pourcPlaceChevalHippo',
             'pourcVictJockHippo', 'pourcPlaceJockHippo', 'victoirescheval',
             'placescheval', 'coursescheval'
         ]

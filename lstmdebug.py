@@ -24,7 +24,7 @@ from core.connectors.api_daily_sync import RaceFetcher
 
 # ===== CONFIGURATION =====
 MODEL_PATH = "models/2years/hybrid/2years_full_v20250409/hybrid_lstm_model.keras"
-FEATURE_CONFIG_PATH = "models/2years/hybrid/2years_full_v20250409/hybrid_feature_engineer.joblib"
+FEATURE_CONFIG_PATH = "models/2years/hybrid/2years_full_v20250409/feature_engineer.joblib"
 COMP_ID = "1576910"  # The specific race to analyze
 DB_NAME = "2years"  # Database to use
 
