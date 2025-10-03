@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="Working Training and Prediction + basic weighting">
+    <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="fix batching type issue">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UI/UIApp.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIApp.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/UI/UIhelper.py" beforeDir="false" afterPath="$PROJECT_DIR$/UI/UIhelper.py" afterDir="false" />
@@ -19,6 +20,18 @@
       <change beforePath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/mysql_historical_fetcher.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/connectors/sqlite_historical_writer.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/sqlite_historical_writer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/embedding_feature.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/storage/prediction_storage.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/storage/prediction_storage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/transformers/historical_race_transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/transformers/historical_race_transformer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/models/feedforward_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/models/feedforward_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/tabnet/tabnet_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/enhanced_prediction_blender.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/env_setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/env_setup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/model_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/model_manager.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -96,8 +109,41 @@
     "RunOnceActivity.git.unshallow": "true",
     "Shell Script.remote_training.sh.executor": "Run",
     "git-widget-placeholder": "fastforward-neural-net"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.UIApp.executor&quot;: &quot;Run&quot;,
+    &quot;Python.api_daily_sync.executor&quot;: &quot;Run&quot;,
+    &quot;Python.blend_testing.executor&quot;: &quot;Run&quot;,
+    &quot;Python.comprehensive_training.executor&quot;: &quot;Run&quot;,
+    &quot;Python.daily_predictor.executor&quot;: &quot;Run&quot;,
+    &quot;Python.debug_json_pipeline.executor&quot;: &quot;Run&quot;,
+    &quot;Python.embedding_feature.executor&quot;: &quot;Run&quot;,
+    &quot;Python.env_setup.executor&quot;: &quot;Run&quot;,
+    &quot;Python.envdebug.executor&quot;: &quot;Run&quot;,
+    &quot;Python.horse_embedding.executor&quot;: &quot;Run&quot;,
+    &quot;Python.musique_calculation.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.mysql_connector.executor&quot;: &quot;Run&quot;,
+    &quot;Python.mysql_sqlite_sync.executor&quot;: &quot;Run&quot;,
+    &quot;Python.mysql_to_sqlite.executor&quot;: &quot;Run&quot;,
+    &quot;Python.predict_daily_races.executor&quot;: &quot;Run&quot;,
+    &quot;Python.predict_evaluator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.predict_orchestrator_cli.executor&quot;: &quot;Run&quot;,
+    &quot;Python.prediction_orchestrator.executor&quot;: &quot;Run&quot;,
+    &quot;Python.race_predict.executor&quot;: &quot;Run&quot;,
+    &quot;Python.regression_enhancement.executor&quot;: &quot;Run&quot;,
+    &quot;Python.streamlit.executor&quot;: &quot;Run&quot;,
+    &quot;Python.tabnet_model.executor&quot;: &quot;Run&quot;,
+    &quot;Python.test.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.three_model_race_predict.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_model.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.train_race_model.executor&quot;: &quot;Run&quot;,
+    &quot;Python.train_tabnet.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;Shell Script.remote_training.sh.executor&quot;: &quot;Run&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;fastforward-neural-net&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/core/connectors" />
@@ -608,6 +654,7 @@
       <updated>1758551370533</updated>
     </task>
     <option name="localTasksCounter" value="44" />
+    <option name="localTasksCounter" value="42" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -632,6 +679,7 @@
     <MESSAGE value="New Training - no LSTM/FeedForward" />
     <MESSAGE value="Working Training and Prediction + basic weighting" />
     <option name="LAST_COMMIT_MESSAGE" value="Working Training and Prediction + basic weighting" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix batching type issue" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -639,6 +687,7 @@
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
           <line>654</line>
+          <line>534</line>
           <option name="timeStamp" value="30" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -654,11 +703,13 @@
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
           <line>521</line>
+          <line>409</line>
           <option name="timeStamp" value="139" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
           <line>639</line>
+          <line>519</line>
           <option name="timeStamp" value="140" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">

@@ -880,6 +880,43 @@ class PipelineHelper:
                     "system_status": "error"
                 }
             }
+    
+    def _check_alternative_models(self) -> Dict[str, bool]:
+        """Check if alternative model files exist"""
+        model_status = {
+            'transformer_loaded': False,
+            'ensemble_loaded': False
+        }
+        
+        try:
+            models_dir = Path("models")
+            if models_dir.exists():
+                # Check for transformer model files
+                transformer_files = list(models_dir.glob("*transformer*.h5")) + list(models_dir.glob("*transformer*.keras"))
+                model_status['transformer_loaded'] = len(transformer_files) > 0
+                
+                # Check for ensemble model files (pickle files)
+                ensemble_files = list(models_dir.glob("*ensemble*.pkl")) + list(models_dir.glob("*ensemble*.joblib"))
+                model_status['ensemble_loaded'] = len(ensemble_files) > 0
+                
+        except Exception as e:
+            print(f"Warning: Could not check alternative model status: {e}")
+            
+        return model_status
+    
+    def _get_overall_system_status(self, legacy_model_info: Dict, alt_model_status: Dict) -> str:
+        """Determine overall system status"""
+        legacy_loaded = any(legacy_model_info.get(k, False) for k in ['has_rf', 'has_lstm', 'has_tabnet'])
+        alt_loaded = any(alt_model_status.values())
+        
+        if legacy_loaded and alt_loaded:
+            return 'full_operational'
+        elif legacy_loaded:
+            return 'legacy_operational'
+        elif alt_loaded:
+            return 'alternative_operational'
+        else:
+            return 'no_models_loaded'
 
     def get_ai_quinte_advice(self, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
         """Get AI betting advice specifically focused on quinte races with 3 refined recommendations"""

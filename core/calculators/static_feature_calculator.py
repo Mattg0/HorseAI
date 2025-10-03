@@ -530,6 +530,10 @@ class FeatureCalculator:
         """
         # Créer une copie du DataFrame pour éviter de modifier l'original
         result_df = df.copy()
+        
+        # Apply comprehensive data cleaning for TabNet compatibility
+        cleaner = TabNetDataCleaner()
+        result_df = cleaner.comprehensive_data_cleaning(result_df, verbose=False)
 
         # Apply comprehensive data cleaning for TabNet compatibility
         cleaner = TabNetDataCleaner()
