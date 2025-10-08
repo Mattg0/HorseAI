@@ -2,10 +2,61 @@ base:
   active_db: 2years
   rootdir: /Users/mattg0/Docs/HorseAIv2/
 blend:
+  default_weights:
+    accuracy: 13.83
+    description: TabNet default for unmatched scenarios
+    rf_weight: 0.0
+    tabnet_weight: 1.0
   description: Optimal blend weights for 2-model system (RF, TabNet)
+  dynamic_weights:
+  - accuracy: 22.2
+    condition:
+      typec: "Mont\xE9"
+    description: "TabNet only for Mont\xE9 races"
+    weights:
+      rf_weight: 0.0
+      tabnet_weight: 1.0
+  - accuracy: 20.0
+    condition:
+      partant_max: 8
+    description: "TabNet only for small fields (\u22648 horses)"
+    weights:
+      rf_weight: 0.0
+      tabnet_weight: 1.0
+  - accuracy: 19.1
+    condition:
+      dist_max: 2500
+      dist_min: 2000
+    description: TabNet-heavy for medium distances (2000-2500m)
+    weights:
+      rf_weight: 0.2
+      tabnet_weight: 0.8
+  - accuracy: 11.3
+    condition:
+      partant_max: 16
+      partant_min: 13
+    description: RF-heavy for large fields (13-16 horses)
+    weights:
+      rf_weight: 0.6
+      tabnet_weight: 0.4
+  - accuracy: 11.1
+    condition:
+      typec: "Attel\xE9"
+    description: "RF-heavy for Attel\xE9 races"
+    weights:
+      rf_weight: 0.6
+      tabnet_weight: 0.4
+  - accuracy: 5.9
+    condition:
+      partant_min: 17
+    description: RF only for very large fields (>16 horses)
+    weights:
+      rf_weight: 1.0
+      tabnet_weight: 0.0
   optimal_mae: 11.78
-  rf_weight: 0.5
-  tabnet_weight: 0.5
+  rf_weight: 0.0
+  tabnet_weight: 1.0
+  use_dynamic_weights: true
 cache:
   base_path: cache
   types:
@@ -74,6 +125,6 @@ llm_url:
   local: http://localhost:1234
 models:
   latest_models:
-    rf: 2025-10-01/2years_154345
-    tabnet: 2025-10-01/2years_154355
+    rf: 2025-10-07/2years_170219
+    tabnet: 2025-10-07/2years_170302
   model_dir: ./models

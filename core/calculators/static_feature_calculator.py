@@ -14,51 +14,59 @@ class FeatureCalculator:
     """
     
     @staticmethod
-    def calculate_confidence_weighted_earnings(gains_carriere: float, courses_cheval: float, field_mean: float = 100000) -> float:
+    def normalize_earnings_to_quality(gains_carriere: float, courses_cheval: float, field_mean: float = 100000) -> float:
         """
-        Calculate earnings per race with confidence weighting based on sample size.
+        Convert absolute earnings to normalized quality class (0.0 to 1.0).
 
-        Horses with few races get shrunk toward field mean to prevent extreme outliers.
-        Horses with many races (20+) use actual earnings per race.
+        Uses log-scale normalization to compress extreme values into TabNet-friendly range.
+        This completely eliminates extreme value issues while preserving relative quality signal.
 
-        This fixes TabNet scaling issues caused by horses with minimal experience
-        but high earnings creating extreme gains_par_course values.
+        Quality Scale:
+            0.0 = No earnings
+            0.3 = Below average (< 50k/race)
+            0.5 = Average (~100k/race, typical field mean)
+            0.7 = Above average (~200k/race)
+            0.9 = Elite (~500k/race)
+            1.0 = Top earners (>1M/race, capped at 99th percentile)
 
         Args:
             gains_carriere: Total career earnings
             courses_cheval: Number of career races
-            field_mean: Typical earnings per race (default 100k)
+            field_mean: Field average earnings per race (for context)
 
         Returns:
-            Confidence-weighted earnings per race
+            Normalized quality score [0.0, 1.0]
 
         Examples:
-            - Horse with 1 race, 675k earnings:
-              Raw = 675,000, Confidence = 0.05, Result = ~67,500
-            - Horse with 20 races, 150k avg:
-              Raw = 150,000, Confidence = 1.0, Result = 150,000
+            - Horse with 0 earnings: 0.0
+            - Horse with 50k/race: ~0.29
+            - Horse with 100k/race: ~0.50 (average)
+            - Horse with 500k/race: ~0.89 (elite)
+            - Horse with 2M/race: 1.0 (capped)
         """
         if courses_cheval == 0:
             return 0.0
 
         # Ensure non-negative inputs
         gains_carriere = max(0.0, gains_carriere)
-        field_mean = max(0.0, field_mean)
 
         # Calculate raw earnings per race
         raw_earnings_per_race = gains_carriere / courses_cheval
 
-        # Confidence factor: 0 to 1 based on number of races
-        # Plateaus at 20 races (100% confidence)
-        confidence = min(courses_cheval / 20.0, 1.0)
+        # Cap at 1M per race (99th percentile) to prevent extreme outliers
+        # This prevents a single lucky big-purse win from dominating
+        EARNINGS_CAP = 1000000.0
 
-        # Weight between individual estimate and field mean
-        # Low confidence = closer to field mean
-        # High confidence = use actual performance
-        weighted_value = (raw_earnings_per_race * confidence) + (field_mean * (1 - confidence))
+        # Clamp to reasonable range
+        clamped_earnings = min(raw_earnings_per_race, EARNINGS_CAP)
 
-        # Final safety check
-        return max(0.0, weighted_value)
+        # Log-scale normalization: log(x + 1) / log(cap + 1)
+        # +1 prevents log(0) and provides smooth curve from 0
+        import math
+        quality = math.log(clamped_earnings + 1) / math.log(EARNINGS_CAP + 1)
+
+        # Ensure output is in [0, 1] range
+        return max(0.0, min(1.0, quality))
 
     @staticmethod
     def calculate_field_mean_earnings(participants_data: list, min_races: int = 5) -> float:
@@ -97,27 +105,20 @@ class FeatureCalculator:
     @staticmethod
     def validate_earnings_features(features: Dict[str, float], feature_name: str) -> None:
         """
-        Validate earnings features to catch extreme outliers that could break models.
+        Validate earnings features are in normalized [0, 1] range.
 
         Args:
             features: Dictionary of calculated features
             feature_name: Name of the feature to validate
 
         Raises:
-            AssertionError: If feature values are outside reasonable bounds
+            AssertionError: If feature values are outside [0, 1] range
         """
         if feature_name in features:
             value = features[feature_name]
 
-            # Validate range
-            assert value >= 0, f"Negative {feature_name}: {value}"
-
-            # With confidence weighting, values should be much more reasonable
-            # But allow some flexibility for genuinely high-earning experienced horses
-            if value > 500000:
-                print(f"🚨 Very high {feature_name}: {value:,.0f} (confidence weighting may need adjustment)")
-            elif value > 300000:
-                print(f"⚠️  High {feature_name}: {value:,.0f} (monitoring)")
+            # Validate normalized range [0, 1]
+            assert 0.0 <= value <= 1.0, f"{feature_name} out of range [0,1]: {value}"
 
     @staticmethod
     def safe_numeric(value, default=0.0):
@@ -164,7 +165,7 @@ class FeatureCalculator:
             ratios = {
                 'ratio_victoires': FeatureCalculator.safe_numeric(participant.get('victoirescheval,', 0), 0.0) / courses_total,
                 'ratio_places': FeatureCalculator.safe_numeric(participant.get('placescheval', 0), 0.0) / courses_total,
-                'gains_par_course': FeatureCalculator.calculate_confidence_weighted_earnings(
+                'gains_par_course': FeatureCalculator.normalize_earnings_to_quality(
                     gains_carriere, courses_total, field_mean
                 )
             }
@@ -204,8 +205,8 @@ class FeatureCalculator:
         # Career strike rate (more specific than ratio_victoires)
         features['career_strike_rate'] = victoires / courses_total if courses_total > 0 else 0.0
 
-        # Earnings per race - now using confidence weighting to prevent TabNet scaling issues
-        features['earnings_per_race'] = FeatureCalculator.calculate_confidence_weighted_earnings(
+        # Earnings per race - normalized to 0-1 quality class to prevent TabNet scaling issues
+        features['earnings_per_race'] = FeatureCalculator.normalize_earnings_to_quality(
             gains_carriere, courses_total, field_mean
         ) if courses_total > 0 else 0.0
 

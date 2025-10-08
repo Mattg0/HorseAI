@@ -238,9 +238,21 @@ class RacePredictor:
             'temperature', 'forceVent', 'idche', 'idJockey', 'numero', 'gainsCarriere'
         ]
 
+        # CRITICAL FIX: Log values before/after conversion to debug data loss
         for field in numeric_fields:
             if field in race_df.columns:
+                # DEBUG: Log original values for critical fields
+                if field in ['cotedirect', 'coteprob', 'gainsCarriere'] and self.verbose:
+                    original_values = race_df[field].head(5).tolist()
+                    print(f"  DEBUG {field} BEFORE conversion: {original_values}")
+
+                # Convert to numeric, coercing errors to NaN
                 race_df[field] = pd.to_numeric(race_df[field], errors='coerce').fillna(0)
+
+                # DEBUG: Log converted values
+                if field in ['cotedirect', 'coteprob', 'gainsCarriere'] and self.verbose:
+                    converted_values = race_df[field].head(5).tolist()
+                    print(f"  DEBUG {field} AFTER conversion: {converted_values}")
 
         # Ensure target column is NOT present during prediction
         if 'final_position' in race_df.columns:
@@ -360,10 +372,10 @@ class RacePredictor:
         """Load optimal blend weights from config."""
         try:
             blend_config = self.config._config.blend
-            self.rf_weight = blend_config.rf_weight
-            self.lstm_weight = blend_config.lstm_weight
-            self.tabnet_weight = blend_config.tabnet_weight
-            
+            self.rf_weight = blend_config.get('rf_weight', 0.0)
+            self.lstm_weight = blend_config.get('lstm_weight', 0.0)  # Default to 0 if not present
+            self.tabnet_weight = blend_config.get('tabnet_weight', 1.0)
+
             # Validate weights sum to 1
             total_weight = self.rf_weight + self.lstm_weight + self.tabnet_weight
             if abs(total_weight - 1.0) > 1e-6:
@@ -373,14 +385,116 @@ class RacePredictor:
                 self.rf_weight = self.rf_weight / total_weight
                 self.lstm_weight = self.lstm_weight / total_weight
                 self.tabnet_weight = self.tabnet_weight / total_weight
-                
-        except (AttributeError, KeyError):
+
+        except (AttributeError, KeyError) as e:
             # Use default optimal weights if not in config
             if self.verbose:
-                print("Using default optimal blend weights: 80/10/10")
-            self.rf_weight = 0.8
-            self.lstm_weight = 0.1
-            self.tabnet_weight = 0.1
+                print(f"Error loading blend weights ({e}), using default: 0/0/1 (TabNet only)")
+            self.rf_weight = 0.0
+            self.lstm_weight = 0.0
+            self.tabnet_weight = 1.0
+
+    def get_optimal_weights(self, race_metadata: Dict) -> Tuple[float, float]:
+        """
+        Dynamic model weighting based on race characteristics.
+
+        Args:
+            race_metadata: Dictionary with race characteristics including:
+                - typec: Race type (Monté, Attelé, etc.)
+                - field_size or partant: Number of participants
+                - dist or distance: Race distance in meters
+
+        Returns:
+            Tuple of (rf_weight, tabnet_weight)
+        """
+        try:
+            blend_config = self.config._config.blend
+
+            # Check if dynamic weights are enabled
+            if not blend_config.get('use_dynamic_weights', False):
+                if self.verbose:
+                    print("Dynamic weights disabled, using static weights")
+                return (self.rf_weight, self.tabnet_weight)
+
+            # Get race characteristics
+            typec = race_metadata.get('typec', '')
+            field_size = race_metadata.get('field_size', race_metadata.get('partant', 0))
+            distance = race_metadata.get('dist', race_metadata.get('distance', 0))
+
+            if self.verbose:
+                print(f"Evaluating dynamic weights for: typec={typec}, field_size={field_size}, distance={distance}")
+
+            # Get dynamic weight rules from config
+            dynamic_weights = blend_config.get('dynamic_weights', [])
+
+            # Evaluate each rule in order (first match wins)
+            for rule in dynamic_weights:
+                if not isinstance(rule, dict) or 'condition' not in rule:
+                    continue
+
+                condition = rule['condition']
+                matched = True
+
+                # Check typec condition
+                if 'typec' in condition:
+                    if typec != condition['typec']:
+                        matched = False
+
+                # Check field size conditions
+                if matched and 'partant_min' in condition:
+                    if field_size < condition['partant_min']:
+                        matched = False
+
+                if matched and 'partant_max' in condition:
+                    if field_size > condition['partant_max']:
+                        matched = False
+
+                # Check distance conditions
+                if matched and 'dist_min' in condition:
+                    if distance < condition['dist_min']:
+                        matched = False
+
+                if matched and 'dist_max' in condition:
+                    if distance > condition['dist_max']:
+                        matched = False
+
+                # If all conditions matched, return the weights
+                if matched:
+                    weights = rule.get('weights', {})
+                    rf_w = weights.get('rf_weight', 0.5)
+                    tabnet_w = weights.get('tabnet_weight', 0.5)
+
+                    if self.verbose:
+                        description = rule.get('description', 'No description')
+                        accuracy = rule.get('accuracy', 'N/A')
+                        print(f"✅ Matched rule: {description} (accuracy: {accuracy}%)")
+                        print(f"   Weights: RF={rf_w:.1f}, TabNet={tabnet_w:.1f}")
+
+                    return (rf_w, tabnet_w)
+
+            # No rule matched, use default weights
+            default_weights = blend_config.get('default_weights', None)
+            if default_weights and isinstance(default_weights, dict):
+                rf_w = default_weights.get('rf_weight', 0.0)
+                tabnet_w = default_weights.get('tabnet_weight', 1.0)
+
+                if self.verbose:
+                    description = default_weights.get('description', 'Default weights')
+                    accuracy = default_weights.get('accuracy', 'N/A')
+                    print(f"Using default weights: {description} (accuracy: {accuracy}%)")
+                    print(f"   Weights: RF={rf_w:.1f}, TabNet={tabnet_w:.1f}")
+
+                return (rf_w, tabnet_w)
+
+            # Fallback to static weights
+            if self.verbose:
+                print(f"No dynamic rules matched, using static weights: RF={self.rf_weight:.1f}, TabNet={self.tabnet_weight:.1f}")
+            return (self.rf_weight, self.tabnet_weight)
+
+        except Exception as e:
+            if self.verbose:
+                print(f"Error in get_optimal_weights: {e}, falling back to static weights")
+            return (self.rf_weight, self.tabnet_weight)
 
     def _load_tabnet_model(self):
         """Load TabNet model and associated files."""
@@ -507,15 +621,15 @@ class RacePredictor:
     def prepare_tabnet_features(self, race_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         Prepare features specifically for TabNet prediction.
-        FIXED: Now uses EXACT SAME pipeline as training for consistency.
+        FIXED: Now uses saved feature columns from training for exact alignment.
 
         Training pipeline:
         1. FeatureCalculator.calculate_all_features(df_historical)
         2. orchestrator.prepare_tabnet_features(df_with_features)
-        3. extract features for TabNet
+        3. Select features matching saved tabnet_feature_columns
         """
         if self.verbose:
-            print("Preparing TabNet features using EXACT training pipeline...")
+            print("Preparing TabNet features using saved feature alignment...")
 
         # Ensure target column is NOT present during prediction
         race_df_clean = race_df.copy()
@@ -525,7 +639,6 @@ class RacePredictor:
                 print("  ⚠️  Removed 'final_position' column from prediction data")
 
         # Step 1: Apply FeatureCalculator FIRST (matching training exactly)
-        # Training: df_with_features = FeatureCalculator.calculate_all_features(df_historical)
         prep_start = time.time()
         df_with_features = FeatureCalculator.calculate_all_features(race_df_clean)
         calc_time = time.time() - prep_start
@@ -534,7 +647,6 @@ class RacePredictor:
             print(f"  ✅ FeatureCalculator applied: {calc_time:.2f}s")
 
         # Step 2: Use orchestrator's TabNet preparation (matching training exactly)
-        # Training: complete_df = orchestrator.prepare_tabnet_features(df_with_features)
         tabnet_start = time.time()
         complete_df = self.orchestrator.prepare_tabnet_features(
             df_with_features,
@@ -545,14 +657,33 @@ class RacePredictor:
         if self.verbose:
             print(f"  ✅ TabNet features prepared: {tabnet_time:.2f}s")
 
-        # Step 3: Extract TabNet features using the same pipeline as training
-        extract_start = time.time()
-        X_tabnet, _ = self.orchestrator.extract_tabnet_features(complete_df)
-        extract_time = time.time() - extract_start
+        # Step 3: CRITICAL FIX - Use saved feature columns instead of extract_tabnet_features
+        # The extract_tabnet_features method calls prepare_training_dataset which excludes columns
+        # But we need to match EXACTLY what was saved during training
+        if self.tabnet_feature_columns:
+            # Filter to only features that exist in complete_df
+            available_features = [f for f in self.tabnet_feature_columns if f in complete_df.columns]
+            missing_features = [f for f in self.tabnet_feature_columns if f not in complete_df.columns]
 
-        if self.verbose:
-            print(f"  ✅ TabNet feature extraction: {extract_time:.2f}s")
-            print(f"  ✅ TabNet features extracted: {X_tabnet.shape[1]} features (matches training)")
+            if missing_features and self.verbose:
+                print(f"  ⚠️  Missing {len(missing_features)} features from training:")
+                for feat in missing_features[:10]:  # Show first 10
+                    print(f"     - {feat}")
+
+            # Create aligned DataFrame with exact training features
+            X_tabnet = complete_df[available_features].copy()
+
+            if self.verbose:
+                print(f"  ✅ TabNet features aligned: {X_tabnet.shape[1]} features from saved config")
+                print(f"     Match ratio: {len(available_features)}/{len(self.tabnet_feature_columns)} ({len(available_features)/len(self.tabnet_feature_columns)*100:.1f}%)")
+        else:
+            # Fallback: use feature_selector (less reliable)
+            if self.verbose:
+                print("  ⚠️  No saved feature columns - using feature_selector (may mismatch)")
+
+            tabnet_features = self.orchestrator.feature_selector.get_model_features('tabnet', complete_df)
+            available_features = [f for f in tabnet_features if f in complete_df.columns]
+            X_tabnet = complete_df[available_features].copy()
 
         return X_tabnet, complete_df
     
@@ -599,9 +730,25 @@ class RacePredictor:
                 # Fill missing features with zeros to maintain exact feature order from training
                 aligned_X = pd.DataFrame(0.0, index=range(len(X_tabnet)), columns=self.tabnet_feature_columns)
 
+                # DEBUG: Log critical features before alignment
+                if self.verbose:
+                    for feat in ['cotedirect', 'coteprob', 'gainsAnneeEnCours']:
+                        if feat in X_tabnet.columns:
+                            print(f"  DEBUG: X_tabnet[{feat}] before align: {X_tabnet[feat].head(3).tolist()}")
+                        if feat in available_features:
+                            print(f"  DEBUG: {feat} IN available_features ✅")
+                        else:
+                            print(f"  DEBUG: {feat} NOT in available_features ❌")
+
                 # Fill available features with actual values
                 for feature in available_features:
                     aligned_X[feature] = X_tabnet[feature]
+
+                # DEBUG: Log critical features after alignment
+                if self.verbose:
+                    for feat in ['cotedirect', 'coteprob', 'gainsAnneeEnCours']:
+                        if feat in aligned_X.columns:
+                            print(f"  DEBUG: aligned_X[{feat}] after align: {aligned_X[feat].head(3).tolist()}")
 
                 if self.verbose:
                     print(f"TabNet features aligned: {aligned_X.shape}")
@@ -793,7 +940,7 @@ class RacePredictor:
                     print(f"✅ {model}: {type(preds)} shape {preds.shape}")
                 # Don't show None models to avoid confusion
 
-        # Step 7: Use enhanced blender with competitive field analysis
+        # Step 7: Prepare race metadata and apply dynamic weights
         race_metadata = {
             'distance': race_df.get('dist', [0]).iloc[0] if 'dist' in race_df.columns else 1600,
             'dist': race_df.get('dist', [0]).iloc[0] if 'dist' in race_df.columns else 1600,
@@ -802,6 +949,21 @@ class RacePredictor:
             'hippo': race_df.get('hippo', ['']).iloc[0] if 'hippo' in race_df.columns else '',
             'comp': race_df.get('comp', ['']).iloc[0] if 'comp' in race_df.columns else ''
         }
+
+        # Apply dynamic weights based on race characteristics
+        if self.verbose:
+            print(f"\n=== DYNAMIC WEIGHTING ===")
+
+        rf_weight, tabnet_weight = self.get_optimal_weights(race_metadata)
+
+        # Update blender's default weights for this race
+        self.blender.default_weights['rf'] = rf_weight
+        self.blender.default_weights['tabnet'] = tabnet_weight
+        self.blender.default_weights['lstm'] = 0.0  # LSTM not used
+
+        if self.verbose:
+            print(f"Dynamic weights applied: RF={rf_weight:.2f}, TabNet={tabnet_weight:.2f}")
+            print(f"=== END DYNAMIC WEIGHTING ===\n")
 
         # Debug: Show race data structure before competitive analysis
         if self.verbose:
@@ -833,7 +995,7 @@ class RacePredictor:
 
             print(f"=== END RACE DATA DEBUG ===\n")
 
-        # Step 7: Use competitive analysis enhanced blending
+        # Step 8: Use competitive analysis enhanced blending
         step_start = time.time()
         final_predictions, blend_info = self.blender.blend_with_competitive_analysis(
             predictions=all_predictions,
@@ -842,7 +1004,7 @@ class RacePredictor:
         )
         blend_time = time.time() - step_start
         if self.verbose:
-            print(f"⏱️  Step 7 (Competitive Blending): {blend_time:.2f}s")
+            print(f"⏱️  Step 8 (Competitive Blending): {blend_time:.2f}s")
 
         # Extract competitive analysis results for simple storage
         competitive_results = {}
@@ -886,7 +1048,7 @@ class RacePredictor:
         # Extract base predictions from all_predictions (needed for simple storage)
         base_predictions = {k: v for k, v in all_predictions.items() if v is not None}
 
-        # Step 8: Store prediction data for competitive analysis
+        # Step 9: Store prediction data for competitive analysis
         if self.verbose:
             print(f"DEBUG: simple_storage is {'not None' if self.simple_storage is not None else 'None'}")
 
@@ -926,7 +1088,7 @@ class RacePredictor:
                 if self.verbose:
                     print(f"Warning: Failed to store simple prediction data: {e}")
 
-        # Step 9: Create result DataFrame
+        # Step 10: Create result DataFrame
         result_df = race_df.copy()
         result_df['predicted_position'] = final_predictions
 
@@ -944,6 +1106,262 @@ class RacePredictor:
             print(f"Top 3 predicted: {numeros_ordered[:3]}")
 
         return result_df
+
+    def re_blend_existing_predictions_with_dynamic_weights(self, race_id: Optional[str] = None,
+                                                           date: Optional[str] = None,
+                                                           all_races: bool = True,
+                                                           verbose: bool = None) -> Dict[str, Any]:
+        """
+        Re-blend existing predictions with dynamic weights without re-predicting.
+        This is much faster than re-running predictions from scratch.
+
+        Args:
+            race_id: Specific race_id to re-blend. If provided, only that race is processed.
+            date: Specific date (YYYY-MM-DD) to re-blend. Ignored if race_id or all_races=True.
+            all_races: If True, re-blends ALL races with predictions (default). Overrides date.
+            verbose: Override instance verbosity
+
+        Returns:
+            Dictionary with summary of re-blending results
+        """
+        if verbose is None:
+            verbose = self.verbose
+
+        if verbose:
+            print(f"🔄 Re-blending predictions with dynamic weights...")
+
+        # Connect to database
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+
+        try:
+            # Get races to re-blend
+            if race_id:
+                # Specific race only
+                race_query = """
+                    SELECT DISTINCT comp, typec, partant, dist
+                    FROM daily_race
+                    WHERE comp = ?
+                """
+                races = pd.read_sql_query(race_query, conn, params=(race_id,))
+            elif all_races:
+                # All races that have predictions
+                race_query = """
+                    SELECT DISTINCT dr.comp, dr.typec, dr.partant, dr.dist
+                    FROM daily_race dr
+                    JOIN race_predictions rp ON dr.comp = rp.race_id
+                """
+                races = pd.read_sql_query(race_query, conn)
+            elif date:
+                # Specific date
+                race_query = """
+                    SELECT DISTINCT comp, typec, partant, dist
+                    FROM daily_race
+                    WHERE jour = ?
+                """
+                races = pd.read_sql_query(race_query, conn, params=(date,))
+            else:
+                # Default to all races with predictions
+                race_query = """
+                    SELECT DISTINCT dr.comp, dr.typec, dr.partant, dr.dist
+                    FROM daily_race dr
+                    JOIN race_predictions rp ON dr.comp = rp.race_id
+                """
+                races = pd.read_sql_query(race_query, conn)
+
+            if len(races) == 0:
+                if verbose:
+                    print("No races found to re-blend")
+                return {'races_processed': 0, 'horses_updated': 0}
+
+            if verbose:
+                print(f"Found {len(races)} races to re-blend")
+
+            # Process each race
+            total_updated = 0
+            races_updated = []
+
+            for idx, race_row in races.iterrows():
+                race_comp = race_row['comp']
+
+                # Get race metadata for dynamic weights
+                race_metadata = {
+                    'typec': race_row['typec'],
+                    'field_size': race_row['partant'],
+                    'partant': race_row['partant'],
+                    'dist': race_row['dist'],
+                    'distance': race_row['dist']
+                }
+
+                # Get optimal weights for this race
+                rf_weight, tabnet_weight = self.get_optimal_weights(race_metadata)
+                use_dynamic = self.config._config.blend.get('use_dynamic_weights', False)
+
+                if verbose:
+                    print(f"\nRace {race_comp}: typec={race_row['typec']}, partant={race_row['partant']}, dist={race_row['dist']}")
+                    print(f"  Dynamic weights: RF={rf_weight:.2f}, TabNet={tabnet_weight:.2f}")
+
+                # Get existing predictions for this race
+                pred_query = """
+                    SELECT id, horse_id, rf_prediction, tabnet_prediction,
+                           ensemble_weight_rf, ensemble_weight_tabnet
+                    FROM race_predictions
+                    WHERE race_id = ?
+                """
+                predictions = pd.read_sql_query(pred_query, conn, params=(race_comp,))
+
+                if len(predictions) == 0:
+                    if verbose:
+                        print(f"  No predictions found for race {race_comp}, skipping")
+                    continue
+
+                # Re-blend predictions with new weights
+                updates = []
+                for _, pred_row in predictions.iterrows():
+                    rf_pred = pred_row['rf_prediction']
+                    tabnet_pred = pred_row['tabnet_prediction']
+
+                    # Skip if either prediction is missing
+                    if pd.isna(rf_pred) or pd.isna(tabnet_pred):
+                        continue
+
+                    # Calculate new ensemble prediction
+                    new_ensemble_pred = rf_pred * rf_weight + tabnet_pred * tabnet_weight
+
+                    # Store update info
+                    updates.append({
+                        'id': pred_row['id'],
+                        'ensemble_weight_rf': rf_weight,
+                        'ensemble_weight_tabnet': tabnet_weight,
+                        'ensemble_prediction': new_ensemble_pred,
+                        'final_prediction': new_ensemble_pred  # Update final too
+                    })
+
+                # Apply updates to race_predictions
+                cursor = conn.cursor()
+                for update in updates:
+                    cursor.execute("""
+                        UPDATE race_predictions
+                        SET ensemble_weight_rf = ?,
+                            ensemble_weight_tabnet = ?,
+                            ensemble_prediction = ?,
+                            final_prediction = ?
+                        WHERE id = ?
+                    """, (
+                        update['ensemble_weight_rf'],
+                        update['ensemble_weight_tabnet'],
+                        update['ensemble_prediction'],
+                        update['final_prediction'],
+                        update['id']
+                    ))
+
+                # Update prediction_results in daily_race using participants mapping
+                import json
+
+                # Get updated predictions ordered by final_prediction
+                cursor.execute("""
+                    SELECT
+                        json_extract(p.value, '$.numero') as numero,
+                        rp.final_prediction
+                    FROM daily_race dr,
+                         json_each(dr.participants) p
+                    LEFT JOIN race_predictions rp ON rp.race_id = dr.comp
+                        AND rp.horse_id = json_extract(p.value, '$.idche')
+                    WHERE dr.comp = ?
+                    ORDER BY rp.final_prediction ASC
+                """, (race_comp,))
+
+                # Build new predicted_arriv from numeros sorted by final_prediction
+                numeros_ordered = [str(row[0]) for row in cursor.fetchall()]
+                new_predicted_arriv = '-'.join(numeros_ordered)
+
+                # Update the prediction_results JSON
+                cursor.execute("SELECT prediction_results FROM daily_race WHERE comp = ?", (race_comp,))
+                result = cursor.fetchone()
+
+                if result and result[0]:
+                    try:
+                        pred_json = json.loads(result[0])
+
+                        # Update predicted_arriv
+                        pred_json['predicted_arriv'] = new_predicted_arriv
+
+                        # Update metadata
+                        if 'metadata' not in pred_json:
+                            pred_json['metadata'] = {}
+                        pred_json['metadata']['blend_weight_rf'] = rf_weight
+                        pred_json['metadata']['blend_weight_tabnet'] = tabnet_weight
+                        pred_json['metadata']['reblend_method'] = 'dynamic_weights' if use_dynamic else 'static_weights'
+
+                        # Update predictions array with new positions and ranks
+                        cursor.execute("""
+                            SELECT
+                                json_extract(p.value, '$.idche') as idche,
+                                json_extract(p.value, '$.numero') as numero,
+                                rp.final_prediction
+                            FROM daily_race dr,
+                                 json_each(dr.participants) p
+                            LEFT JOIN race_predictions rp ON rp.race_id = dr.comp
+                                AND rp.horse_id = json_extract(p.value, '$.idche')
+                            WHERE dr.comp = ?
+                            ORDER BY rp.final_prediction ASC
+                        """, (race_comp,))
+
+                        # Create mapping of idche -> (predicted_position, predicted_rank)
+                        updated_data = {}
+                        for rank, row in enumerate(cursor.fetchall(), 1):
+                            idche, numero, final_pred = row
+                            updated_data[idche] = {
+                                'predicted_position': final_pred,
+                                'predicted_rank': rank
+                            }
+
+                        # Update each prediction in the array
+                        for pred in pred_json.get('predictions', []):
+                            idche = pred.get('idche')
+                            if idche and idche in updated_data:
+                                pred['predicted_position'] = updated_data[idche]['predicted_position']
+                                pred['predicted_rank'] = updated_data[idche]['predicted_rank']
+
+                        # Save updated JSON
+                        cursor.execute("""
+                            UPDATE daily_race
+                            SET prediction_results = ?
+                            WHERE comp = ?
+                        """, (json.dumps(pred_json), race_comp))
+
+                        if verbose:
+                            print(f"  Updated predicted_arriv: {new_predicted_arriv}")
+
+                    except json.JSONDecodeError:
+                        if verbose:
+                            print(f"  Warning: Could not parse prediction_results for {race_comp}")
+
+                conn.commit()
+                total_updated += len(updates)
+                races_updated.append({
+                    'race_id': race_comp,
+                    'horses_updated': len(updates),
+                    'rf_weight': rf_weight,
+                    'tabnet_weight': tabnet_weight
+                })
+
+                if verbose:
+                    print(f"  Updated {len(updates)} horses")
+
+            if verbose:
+                print(f"\n✅ Re-blending complete!")
+                print(f"   Races processed: {len(races_updated)}")
+                print(f"   Total horses updated: {total_updated}")
+
+            return {
+                'races_processed': len(races_updated),
+                'horses_updated': total_updated,
+                'races_detail': races_updated
+            }
+
+        finally:
+            conn.close()
 
     def get_model_info(self) -> Dict:
         """
@@ -1065,6 +1483,49 @@ def example_prediction():
     print(f"\nPredicted arrival order: {results['predicted_arriv'].iloc[0]}")
 
     return results
+
+
+def re_blend_predictions_with_dynamic_weights(race_id: Optional[str] = None,
+                                               date: Optional[str] = None,
+                                               all_races: bool = True,
+                                               db_name: str = None,
+                                               verbose: bool = True) -> Dict[str, Any]:
+    """
+    Standalone function to re-blend existing predictions with dynamic weights.
+    Can be called from UI or scripts without re-predicting.
+
+    Args:
+        race_id: Specific race_id to re-blend. If provided, only that race is processed.
+        date: Specific date (YYYY-MM-DD) to re-blend. Ignored if race_id or all_races=True.
+        all_races: If True, re-blends ALL races with predictions (default). Overrides date.
+        db_name: Database name (defaults to active_db from config)
+        verbose: Whether to print progress
+
+    Returns:
+        Dictionary with summary of re-blending results
+
+    Example:
+        # Re-blend ALL races with predictions (default)
+        result = re_blend_predictions_with_dynamic_weights()
+
+        # Re-blend specific date only
+        result = re_blend_predictions_with_dynamic_weights(date='2025-10-07', all_races=False)
+
+        # Re-blend specific race
+        result = re_blend_predictions_with_dynamic_weights(race_id='1606874', all_races=False)
+    """
+    # Initialize predictor (lightweight - no model loading needed)
+    predictor = RacePredictor(db_name=db_name, verbose=verbose)
+
+    # Call re-blend method
+    result = predictor.re_blend_existing_predictions_with_dynamic_weights(
+        race_id=race_id,
+        date=date,
+        all_races=all_races,
+        verbose=verbose
+    )
+
+    return result
 
 
 if __name__ == "__main__":

@@ -269,6 +269,69 @@ def execute_full_training(progress_bar, status_text):
             log_output("Failed to start training", "error")
 
 
+def execute_re_blending(all_races=True, date=None, progress_bar=None, status_text=None):
+    """Execute re-blending with dynamic weights"""
+    if all_races:
+        log_output(f"Starting re-blending for ALL races...", "info")
+    else:
+        log_output(f"Starting re-blending for {date}...", "info")
+
+    def progress_callback(percentage, message):
+        if progress_bar:
+            progress_bar.progress(percentage / 100)
+        if status_text:
+            status_text.text(message)
+
+    try:
+        result = st.session_state.helper.reblend_with_dynamic_weights(
+            date=date,
+            all_races=all_races,
+            progress_callback=progress_callback
+        )
+
+        if result["success"]:
+            if progress_bar:
+                progress_bar.progress(100)
+            races_processed = result.get('races_processed', 0)
+            horses_updated = result.get('horses_updated', 0)
+
+            if races_processed == 0:
+                if status_text:
+                    status_text.text(f"No races found")
+                log_output(f"⚠️  No races with predictions found.", "warning")
+            else:
+                if status_text:
+                    status_text.text("Re-blending completed!")
+                log_output(result["message"], "success")
+                log_output(f"✅ Processed {races_processed} races, updated {horses_updated} horses", "info")
+
+                # Show per-race details if available
+                races_detail = result.get('races_detail', [])
+                if races_detail:
+                    log_output(f"\nWeight changes (first 5 races):", "info")
+                    for race_info in races_detail[:5]:
+                        race_id = race_info['race_id']
+                        horses = race_info['horses_updated']
+                        rf_w = race_info['rf_weight']
+                        tabnet_w = race_info['tabnet_weight']
+                        log_output(f"  {race_id}: {horses} horses (RF={rf_w:.2f}, TabNet={tabnet_w:.2f})", "info")
+
+            st.session_state.reblend_results = result
+        else:
+            if progress_bar:
+                progress_bar.progress(100)
+            if status_text:
+                status_text.text("Re-blending failed!")
+            log_output(result["message"], "error")
+
+    except Exception as e:
+        if progress_bar:
+            progress_bar.progress(100)
+        if status_text:
+            status_text.text("Error during re-blending!")
+        log_output(f"Re-blending error: {str(e)}", "error")
+
+
 def execute_predictions(selected_races, progress_bar, status_text, force_reprediction=False):
     """Execute predictions using pipeline helper"""
     prediction_type = "force reprediction" if force_reprediction else "standard prediction"
@@ -882,10 +945,39 @@ def main():
                         st.rerun()
                     else:
                         st.info("No races need predictions")
-                if st.button(" 🔁Force Reprediction All"):
+                if st.button("🔁 Force Reprediction All"):
                     progress_bar = st.progress(0)
                     status_text = st.empty()
                     execute_predictions(None, progress_bar, status_text, force_reprediction=True)
+                    st.rerun()
+
+                # Re-blending section
+                st.markdown("---")
+                st.markdown("### ⚡ Quick Re-blending with Dynamic Weights")
+                st.info("Re-apply new weights to existing predictions without re-running full prediction (much faster!)")
+
+                # Show total races with predictions
+                import sqlite3
+                try:
+                    conn = sqlite3.connect(st.session_state.helper.config_path.replace('config.yaml', 'data/hippique2.db'))
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT COUNT(DISTINCT dr.comp)
+                        FROM daily_race dr
+                        JOIN race_predictions rp ON dr.comp = rp.race_id
+                    """)
+                    total_races = cursor.fetchone()[0]
+                    conn.close()
+
+                    if total_races:
+                        st.caption(f"📊 Total races with predictions: {total_races}")
+                except:
+                    pass
+
+                if st.button("⚡ Re-blend ALL Races with Dynamic Weights", key="reblend_all_btn", type="primary", help="Update ALL predictions with new weights without re-predicting"):
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    execute_re_blending(all_races=True, progress_bar=progress_bar, status_text=status_text)
                     st.rerun()
 
                 st.markdown('</div>', unsafe_allow_html=True)

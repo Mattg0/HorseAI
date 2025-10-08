@@ -23,6 +23,7 @@ from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
 from utils.predict_evaluator import PredictEvaluator
 from model_training.regressions.regression_enhancement import IncrementalTrainingPipeline
 from utils.ai_advisor import BettingAdvisor
+from race_prediction.race_predict import re_blend_predictions_with_dynamic_weights as reblend_predictions_func
 
 class PipelineHelper:
     """Helper class for config management and status calculations"""
@@ -427,7 +428,69 @@ class PipelineHelper:
                 "error": str(e),
                 "message": f"Prediction failed: {str(e)}"
             }
+    def reblend_with_dynamic_weights(self, date: str = None, all_races: bool = True, progress_callback=None) -> Dict[str, Any]:
+        """
+        Re-blend existing predictions with dynamic weights without re-predicting.
+        Much faster than re-running predictions.
 
+        Args:
+            date: Date to re-blend (YYYY-MM-DD). Ignored if all_races=True.
+            all_races: If True, re-blends ALL races with predictions (default).
+            progress_callback: Optional callback for progress updates
+
+        Returns:
+            Dictionary with re-blending results
+        """
+        try:
+            if progress_callback:
+                progress_callback(10, "Initializing re-blending...")
+
+            if progress_callback:
+                if all_races:
+                    progress_callback(30, "Re-calculating weights for ALL races...")
+                else:
+                    progress_callback(30, f"Re-calculating weights for {date}...")
+
+            # Execute re-blending using the imported function
+            result = reblend_predictions_func(
+                date=date,
+                all_races=all_races,
+                verbose=False  # Keep it clean for UI
+            )
+
+            if progress_callback:
+                progress_callback(90, "Finalizing...")
+
+            # Format response
+            races_processed = result.get('races_processed', 0)
+            horses_updated = result.get('horses_updated', 0)
+            races_detail = result.get('races_detail', [])
+
+            if progress_callback:
+                progress_callback(100, "Re-blending complete!")
+
+            return {
+                'success': True,
+                'races_processed': races_processed,
+                'horses_updated': horses_updated,
+                'races_detail': races_detail,
+                'message': f"Successfully re-blended {races_processed} races ({horses_updated} horses) with dynamic weights"
+            }
+
+        except Exception as e:
+            import traceback
+            error_msg = f"Error during re-blending: {str(e)}"
+            print(f"❌ {error_msg}")
+            print(f"   Traceback: {traceback.format_exc()}")
+
+            if progress_callback:
+                progress_callback(100, f"Error: {str(e)}")
+
+            return {
+                'success': False,
+                'error': str(e),
+                'message': error_msg
+            }
 
 
 
@@ -969,11 +1032,13 @@ class PipelineHelper:
             db_path = config.get_active_db_path()
             conn = sqlite3.connect(db_path)
 
-            # Get races with actual results
+            # Get races with actual results (not pending)
             query = """
                 SELECT comp, jour, typec, dist, partant, hippo, cheque, actual_results
                 FROM daily_race
                 WHERE actual_results IS NOT NULL
+                  AND actual_results != 'pending'
+                  AND actual_results != ''
             """
 
             params = []
@@ -1015,6 +1080,9 @@ class PipelineHelper:
 
             # For each race: get predictions and create mapping
             race_data = []
+            skipped_no_predictions = 0
+            skipped_no_mapping = 0
+            skipped_no_results = 0
             for _, race in races_df.iterrows():
                 comp = race['comp']
 
@@ -1027,6 +1095,7 @@ class PipelineHelper:
                 mapping_result = pd.read_sql_query(mapping_query, conn, params=[comp])
 
                 if mapping_result.empty or not mapping_result.iloc[0]['prediction_results']:
+                    skipped_no_mapping += 1
                     continue
 
                 # Parse prediction_results to get numero→idche mapping
@@ -1041,6 +1110,7 @@ class PipelineHelper:
                             numero_to_idche[numero] = idche
                             idche_to_numero[idche] = numero
                 except (json.JSONDecodeError, KeyError):
+                    skipped_no_mapping += 1
                     continue
 
                 # Get raw RF/TabNet predictions for this race
@@ -1055,6 +1125,7 @@ class PipelineHelper:
                 preds = pd.read_sql_query(pred_query, conn, params=[comp])
 
                 if preds.empty:
+                    skipped_no_predictions += 1
                     continue
 
                 # Parse actual results (formato: "11-7-8-3..." these are numeros)
