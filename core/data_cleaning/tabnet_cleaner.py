@@ -221,14 +221,16 @@ class TabNetDataCleaner:
     def _final_nan_elimination(self, df: pd.DataFrame, verbose: bool) -> pd.DataFrame:
         """Category 5: Final NaN elimination with domain-appropriate defaults."""
         final_nans_filled = 0
-        
+
         # Get numeric columns
         numeric_columns = df.select_dtypes(include=[np.number]).columns
-        
-        # Fill numeric columns with 0 (racing default for missing data)
+
+        # CRITICAL FIX: Only fill NaN values, preserve existing real values
+        # Previous bug: fillna was applied to entire column even with 1 NaN, converting all to 0
         for col in numeric_columns:
             nan_count = df[col].isnull().sum()
             if nan_count > 0:
+                # PRESERVE REAL VALUES: Only fill actual NaN positions with 0
                 df[col] = df[col].fillna(0.0)
                 final_nans_filled += nan_count
                 if verbose and nan_count > 0:
