@@ -1,0 +1,45 @@
+================================================================================
+FEATURE AUDIT REPORT
+================================================================================
+
+Dataset: 519 records, 92 features
+
+
+1. MISSING VALUES
+
+No missing values
+
+2. CONSTANT FEATURES
+
+Constant: ['is_handicap_quinte', 'handicap_division', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_track_bias', 'ratio_victoires', 'efficacite_couple', 'regularite_couple', 'progression_couple']
+
+Low variance: ['quinte_handicap_specialist', 'quinte_conditions_specialist', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF']
+
+3. POTENTIAL LEAKAGE
+
+['avg_quinte_position', 'weather_clear', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'placescheval', 'ratio_places', 'pourcPlaceChevalHippo', 'pourcPlaceJockHippo']
+
+4. SKEWED FEATURES
+
+[]
+
+5. OUTLIER HEAVY FEATURES
+
+['quinte_win_rate', 'quinte_conditions_specialist', 'purse_level_category', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'joc_global_total_races', 'joc_weighted_total_races']
+
+6. HIGHLY CORRELATED PAIRS
+
+[['che_global_total_races', 'che_weighted_total_races'], ['che_global_dnf_rate', 'che_weighted_dnf_rate'], ['che_weighted_avg_pos', 'che_bytype_avg_pos'], ['che_weighted_pct_top3', 'che_bytype_pct_top3'], ['che_weighted_nb_courses', 'che_bytype_nb_courses'], ['che_weighted_trend', 'che_bytype_trend'], ['joc_global_avg_pos', 'joc_weighted_avg_pos'], ['joc_global_total_races', 'joc_weighted_total_races'], ['joc_global_dnf_rate', 'joc_weighted_dnf_rate'], ['joc_weighted_avg_pos', 'joc_bytype_avg_pos'], ['joc_weighted_recent_perf', 'joc_bytype_recent_perf'], ['joc_weighted_consistency', 'joc_bytype_consistency'], ['joc_weighted_pct_top3', 'joc_bytype_pct_top3'], ['joc_weighted_nb_courses', 'joc_bytype_nb_courses'], ['joc_weighted_trend', 'joc_bytype_trend'], ['pourcPlaceJockHippo', 'perf_jockey_hippo']]
+
+8. LOGICAL ISSUES
+
+che_global_trend: 320 negative values (may be invalid)
+che_weighted_trend: 251 negative values (may be invalid)
+che_bytype_trend: 251 negative values (may be invalid)
+joc_global_trend: 282 negative values (may be invalid)
+joc_weighted_trend: 273 negative values (may be invalid)
+joc_bytype_trend: 273 negative values (may be invalid)
+
+9. ZERO PATTERNS
+
+['quinte_win_rate', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'is_handicap_quinte', 'handicap_division', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'che_global_dnf_rate', 'che_weighted_dnf_rate', 'che_bytype_dnf_rate', 'joc_bytype_dnf_rate', 'ratio_victoires', 'pourcVictChevalHippo', 'efficacite_couple', 'regularite_couple', 'progression_couple']

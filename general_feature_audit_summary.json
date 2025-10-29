@@ -1,0 +1,68 @@
+{
+  "constant_features": [
+    "coteprob",
+    "handicapDistance",
+    "gainsAnneeEnCours",
+    "gains_par_course",
+    "blinkers_first_time",
+    "blinkers_high_impact_change",
+    "moving_up_in_class",
+    "speed_figure_proxy",
+    "market_confidence_shift",
+    "trainer_change",
+    "earnings_per_race",
+    "earnings_trend",
+    "vha_normalized",
+    "claiming_tax_trend",
+    "class_stability"
+  ],
+  "high_missing_features": [],
+  "zero_variance_features": [
+    "coteprob",
+    "gains_par_course",
+    "blinkers_first_time",
+    "blinkers_high_impact_change",
+    "moving_up_in_class",
+    "earnings_per_race",
+    "earnings_trend",
+    "vha_normalized",
+    "claiming_tax_trend"
+  ],
+  "highly_correlated_pairs": [
+    [
+      "pourcPlaceChevalHippo",
+      "perf_cheval_hippo"
+    ],
+    [
+      "class_drop_pct",
+      "purse_ratio"
+    ]
+  ],
+  "requires_log_transform": [
+    "pourcVictChevalHippo",
+    "perf_cheval_hippo",
+    "class_drop_pct",
+    "purse_ratio",
+    "distance_consistency"
+  ],
+  "outlier_heavy_features": [
+    "age",
+    "nbVictCouple",
+    "TxVictCouple",
+    "barefoot_to_shod",
+    "major_shoeing_change",
+    "recence_x_class_drop",
+    "last_race_odds_normalized"
+  ],
+  "potential_leakage": [
+    "placescheval",
+    "pourcPlaceChevalHippo",
+    "ratio_places",
+    "class_drop_pct",
+    "moving_up_in_class",
+    "recence_x_class_drop",
+    "last_race_position_normalized",
+    "claiming_tax_trend",
+    "class_stability"
+  ]
+}

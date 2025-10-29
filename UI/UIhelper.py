@@ -212,41 +212,93 @@ class PipelineHelper:
             return False
 
         self.is_training = True
+
+        # Create background thread with name for tracking
         self.training_thread = threading.Thread(
             target=self._training_worker,
-            daemon=True
+            daemon=True,
+            name="TrainingWorkerThread"
         )
         self.training_thread.start()
+
+        # Send initial status with thread info
+        import os
+        self.training_queue.put({
+            'type': 'info',
+            'message': f'Training started in background',
+            'process_id': os.getpid(),
+            'thread_id': self.training_thread.ident,
+            'thread_name': self.training_thread.name,
+            'is_alive': self.training_thread.is_alive()
+        })
+
         return True
 
     def _training_worker(self):
         """Background training worker"""
+        import os
+        import threading
+        from datetime import datetime
+
+        thread_id = threading.current_thread().ident
+        thread_name = threading.current_thread().name
+        start_time = datetime.now()
+
+        # Send worker started message
+        self.training_queue.put({
+            'type': 'worker_started',
+            'message': f'Training worker thread started',
+            'thread_id': thread_id,
+            'thread_name': thread_name,
+            'process_id': os.getpid(),
+            'start_time': start_time.isoformat()
+        })
+
         try:
             def progress_callback(percent, message):
+                # Enhanced progress callback with thread info
                 self.training_queue.put({
                     'type': 'progress',
                     'percent': percent,
-                    'message': message
+                    'message': message,
+                    'thread_id': thread_id,
+                    'timestamp': datetime.now().isoformat()
                 })
 
             # Run actual training
             train_race_model.main(progress_callback=progress_callback)
 
+            # Calculate duration
+            duration = (datetime.now() - start_time).total_seconds()
+
             # Send completion
             self.training_queue.put({
                 'type': 'complete',
                 'success': True,
-                'message': 'Training completed successfully'
+                'message': 'Training completed successfully',
+                'duration_seconds': duration,
+                'thread_id': thread_id
             })
         except Exception as e:
+            import traceback
+            duration = (datetime.now() - start_time).total_seconds()
+
             self.training_queue.put({
                 'type': 'complete',
                 'success': False,
                 'error': str(e),
-                'message': f'Training failed: {str(e)}'
+                'message': f'Training failed: {str(e)}',
+                'traceback': traceback.format_exc(),
+                'duration_seconds': duration,
+                'thread_id': thread_id
             })
         finally:
             self.is_training = False
+            self.training_queue.put({
+                'type': 'worker_stopped',
+                'message': 'Training worker thread stopped',
+                'thread_id': thread_id
+            })
 
     def get_training_updates(self) -> List[Dict[str, Any]]:
         """Get latest training updates"""
@@ -258,6 +310,26 @@ class PipelineHelper:
         except queue.Empty:
             pass
         return updates
+
+    def get_training_status(self) -> Dict[str, Any]:
+        """Get current training thread status"""
+        import os
+
+        status = {
+            'is_training': self.is_training,
+            'process_id': os.getpid(),
+            'thread_exists': self.training_thread is not None if hasattr(self, 'training_thread') else False
+        }
+
+        if hasattr(self, 'training_thread') and self.training_thread is not None:
+            status.update({
+                'thread_id': self.training_thread.ident,
+                'thread_name': self.training_thread.name,
+                'thread_alive': self.training_thread.is_alive(),
+                'thread_daemon': self.training_thread.daemon
+            })
+
+        return status
     # Prediction operations
     def get_daily_races(self) -> List[Dict[str, Any]]:
         """Get races from daily_race table for a specific date"""
@@ -729,6 +801,115 @@ class PipelineHelper:
 
         return ". ".join(message_parts)
 
+    def execute_quinte_incremental_training(self, date_from: str, date_to: str,
+                                           limit: int = None,
+                                           focus_on_failures: bool = True,
+                                           progress_callback=None) -> Dict[str, Any]:
+        """Execute quinté incremental training with UI feedback"""
+        try:
+            if progress_callback:
+                progress_callback(5, "Initializing quinté incremental training pipeline...")
+
+            # Initialize pipeline
+            pipeline = IncrementalTrainingPipeline(
+                model_path=None,  # Use latest quinté model from config
+                db_name=self.get_active_db(),
+                verbose=True
+            )
+
+            if progress_callback:
+                progress_callback(10, "Running quinté incremental training...")
+
+            # Run quinté training pipeline
+            results = pipeline.run_quinte_incremental_training(
+                date_from=date_from,
+                date_to=date_to,
+                limit=limit,
+                focus_on_failures=focus_on_failures,
+                progress_callback=progress_callback
+            )
+
+            # Check if training was successful
+            success = results.get("status") == "success"
+
+            if not success:
+                return {
+                    "success": False,
+                    "message": results.get("message", "Quinté incremental training failed"),
+                    "error": results.get("error", "Unknown error"),
+                    "training_results": results
+                }
+
+            # Format results for UI consumption
+            formatted_results = {
+                "success": True,
+                "message": self._format_quinte_training_message(results),
+                "training_results": {
+                    "races_processed": results.get("races_processed", 0),
+                    "baseline_metrics": results.get("baseline_metrics", {}),
+                    "improved_metrics": results.get("improved_metrics", {}),
+                    "failure_patterns": results.get("failure_patterns", {}),
+                    "corrections_suggested": results.get("corrections_suggested", 0),
+                    "corrections_applied": results.get("corrections_applied", []),
+                    "model_saved": results.get("model_saved", ""),
+                    "execution_time": results.get("execution_time", 0)
+                }
+            }
+
+            return formatted_results
+
+        except Exception as e:
+            import traceback
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Quinté incremental training failed: {str(e)}",
+                "traceback": traceback.format_exc(),
+                "training_results": {}
+            }
+
+    def _format_quinte_training_message(self, results: Dict[str, Any]) -> str:
+        """Format a user-friendly message for quinté training results"""
+        races_count = results.get("races_processed", 0)
+
+        message_parts = [f"Processed {races_count} quinté races"]
+
+        # Baseline metrics
+        baseline = results.get("baseline_metrics", {})
+        improved = results.get("improved_metrics", {})
+
+        if baseline and improved:
+            # Quinté désordre improvement
+            baseline_desordre = baseline.get("quinte_desordre_rate", 0) * 100
+            improved_desordre = improved.get("quinte_desordre_rate", 0) * 100
+            desordre_change = improved_desordre - baseline_desordre
+
+            if desordre_change > 0:
+                message_parts.append(f"Quinté désordre improved: {baseline_desordre:.1f}% → {improved_desordre:.1f}% (+{desordre_change:.1f}%)")
+            else:
+                message_parts.append(f"Quinté désordre: {improved_desordre:.1f}%")
+
+            # Bonus 4 improvement
+            baseline_bonus4 = baseline.get("bonus_4_rate", 0) * 100
+            improved_bonus4 = improved.get("bonus_4_rate", 0) * 100
+            bonus4_change = improved_bonus4 - baseline_bonus4
+
+            if bonus4_change > 0:
+                message_parts.append(f"Bonus 4 improved: {baseline_bonus4:.1f}% → {improved_bonus4:.1f}% (+{bonus4_change:.1f}%)")
+
+        # Corrections applied
+        corrections_count = results.get("corrections_suggested", 0)
+        if corrections_count > 0:
+            message_parts.append(f"Applied {corrections_count} correction strategies")
+
+        # Model saved
+        model_path = results.get("model_saved", "")
+        if model_path:
+            model_name = model_path.split('/')[-1] if '/' in model_path else "new model"
+            message_parts.append(f"Saved: {model_name}")
+
+        return ". ".join(message_parts)
+
     def get_races_with_results(self, date_from: str, date_to: str) -> List[Dict[str, Any]]:
         """Get races that have both predictions and results for the incremental training UI"""
         try:
@@ -746,131 +927,7 @@ class PipelineHelper:
             print(f"Error getting races with results: {e}")
             return []
 
-    def get_ai_betting_advice(self, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
-        """Get AI betting advice based on latest evaluation results"""
-        try:
-            # Initialize the evaluator to get comprehensive results
-            evaluator = PredictEvaluator()
-            
-            # Get evaluation metrics
-            metrics = evaluator.evaluate_all_races()
-            
-            # Get bet type wins
-            bet_type_wins = evaluator.get_races_won_by_bet_type()
-            
-            # Get quinte analysis
-            quinte_analysis = evaluator.get_quinte_horse_betting_analysis()
-            
-            # Format evaluation results for AI advisor
-            evaluation_results = self._format_results_for_advisor(metrics, bet_type_wins, quinte_analysis)
-            
-            # Initialize AI advisor (will use config if lm_studio_url is None)
-            advisor = BettingAdvisor(lm_studio_url=lm_studio_url, verbose=verbose)
-            
-            # Get AI advice
-            ai_advice = advisor.analyze_daily_results(evaluation_results)
-            
-            return {
-                "success": True,
-                "message": "AI betting advice generated successfully",
-                "ai_advice": ai_advice,
-                "evaluation_data": evaluation_results
-            }
-            
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "message": f"Failed to get AI betting advice: {str(e)}"
-            }
-
-    def get_ai_race_advice(self, race_comp: str, lm_studio_url: str = None, verbose: bool = False) -> Dict[str, Any]:
-        """Get AI advice for a specific race"""
-        try:
-            # Get race data and predictions
-            race_fetcher = RaceFetcher()
-            race_data = race_fetcher.get_race_by_comp(race_comp)
-            
-            if not race_data:
-                return {
-                    "success": False,
-                    "message": f"Race {race_comp} not found"
-                }
-            
-            # Get prediction results from race data
-            prediction_results = race_data.get('prediction_results')
-            
-            if not prediction_results:
-                return {
-                    "success": False,
-                    "message": f"No predictions found for race {race_comp}"
-                }
-            
-            # Parse prediction results if they're stored as JSON string
-            if isinstance(prediction_results, str):
-                try:
-                    prediction_results = json.loads(prediction_results)
-                except json.JSONDecodeError:
-                    return {
-                        "success": False,
-                        "message": f"Invalid prediction results format for race {race_comp}"
-                    }
-            
-            # Get previous results for context
-            evaluator = PredictEvaluator()
-            previous_results = evaluator.evaluate_all_races()
-            previous_results_dict = self._format_results_for_advisor(previous_results, {}, {})
-            
-            # Initialize AI advisor (will use config if lm_studio_url is None)
-            advisor = BettingAdvisor(lm_studio_url=lm_studio_url, verbose=verbose)
-            
-            # Get AI race advice
-            ai_advice = advisor.analyze_race_prediction(race_data, prediction_results, previous_results_dict)
-            
-            return {
-                "success": True,
-                "message": "AI race advice generated successfully",
-                "ai_advice": ai_advice,
-                "race_data": race_data,
-                "predictions": prediction_results
-            }
-            
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "message": f"Failed to get AI race advice: {str(e)}"
-            }
-
-    def _format_results_for_advisor(self, metrics, bet_type_wins, quinte_analysis) -> Dict[str, Any]:
-        """Format evaluation results for AI advisor consumption"""
-        # Convert metrics object to dictionary format expected by advisor
-        formatted_results = {
-            'summary_metrics': {
-                'total_races': metrics.total_races,
-                'winner_accuracy': metrics.overall_winner_accuracy,
-                'podium_accuracy': metrics.overall_podium_accuracy,
-                'mean_rank_error': getattr(metrics, 'mean_rank_error', 0)
-            },
-            'pmu_summary': {},
-            'race_details': []
-        }
-        
-        # Format bet type wins into PMU summary format
-        if hasattr(metrics, 'bet_win_rates'):
-            for bet_type, stats in metrics.bet_win_rates.items():
-                formatted_results['pmu_summary'][f'{bet_type}_rate'] = stats.get('rate', 0)
-        
-        # Add quinte analysis
-        if quinte_analysis:
-            formatted_results['quinte_analysis'] = quinte_analysis
-            
-        # Add race details if available
-        if bet_type_wins:
-            formatted_results['race_details'] = bet_type_wins
-            
-        return formatted_results
-
+    
     def get_prediction_model_info(self) -> Dict[str, Any]:
         """Get comprehensive information about all prediction models"""
         try:

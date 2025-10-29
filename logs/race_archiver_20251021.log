@@ -1,0 +1,14 @@
+2025-10-21 12:12:09,051 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251021.log
+2025-10-21 12:12:09,181 - RaceArchiver - INFO - Database structure verified
+2025-10-21 12:19:54,819 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251021.log
+2025-10-21 12:19:54,821 - RaceArchiver - INFO - Database structure verified
+2025-10-21 12:19:58,276 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251021.log
+2025-10-21 12:19:58,283 - RaceArchiver - INFO - Database structure verified
+2025-10-21 12:23:02,729 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251021.log
+2025-10-21 12:23:02,731 - RaceArchiver - INFO - Database structure verified
+2025-10-21 15:39:49,015 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251021.log
+2025-10-21 15:39:49,122 - RaceArchiver - INFO - Database structure verified
+2025-10-21 15:46:53,640 - model_training.features.couple_embedding - INFO - Epoch 1/4 - Train Loss: 0.5958 - Valid Loss: 0.5950 - Train Acc: 0.7208 - Valid Acc: 0.7192
+2025-10-21 15:46:54,545 - model_training.features.couple_embedding - INFO - Epoch 2/4 - Train Loss: 0.5918 - Valid Loss: 0.5954 - Train Acc: 0.7208 - Valid Acc: 0.7192
+2025-10-21 15:46:55,466 - model_training.features.couple_embedding - INFO - Epoch 3/4 - Train Loss: 0.5885 - Valid Loss: 0.5967 - Train Acc: 0.7208 - Valid Acc: 0.7192
+2025-10-21 15:46:56,386 - model_training.features.couple_embedding - INFO - Epoch 4/4 - Train Loss: 0.5822 - Valid Loss: 0.5993 - Train Acc: 0.7208 - Valid Acc: 0.7192

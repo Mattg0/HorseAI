@@ -5,7 +5,7 @@ from datetime import datetime
 from core.transformers.handicap_encoder import HandicapEncoder
 
 
-def write_races_to_sqlite(sqlite_db, course_data, participants_data):
+def write_races_to_sqlite(sqlite_db, course_data, participants_data, target_table='historical_races'):
     """
     Write race data to SQLite database.
 
@@ -13,16 +13,17 @@ def write_races_to_sqlite(sqlite_db, course_data, participants_data):
         sqlite_db: Path to SQLite database
         course_data: DataFrame with course information
         participants_data: DataFrame with participant information
+        target_table: Target table name ('historical_races' or 'historical_quinte')
     """
     conn = sqlite3.connect(sqlite_db)
     cursor = conn.cursor()
 
     # Prepare the insert statement with handicap and Phase 2 columns
-    insert_query = '''
-    INSERT OR REPLACE INTO historical_races 
-    (comp, jour, reunion, prix, quinte, hippo, meteo, dist, corde, natpis, 
-     pistegp, typec, partant, temperature, forceVent, directionVent, 
-     nebulosite, participants, created_at, handi_raw, is_handicap, 
+    insert_query = f'''
+    INSERT OR REPLACE INTO {target_table}
+    (comp, jour, reunion, prix, quinte, hippo, meteo, dist, corde, natpis,
+     pistegp, typec, partant, temperature, forceVent, directionVent,
+     nebulosite, participants, created_at, handi_raw, is_handicap,
      is_category_handicap, handicap_division, handicap_level_score,
      cheque, reclam, groupe, sex, tempscourse)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -93,13 +94,14 @@ def write_races_to_sqlite(sqlite_db, course_data, participants_data):
     print("Race data inserted into SQLite successfully.")
 
 
-def write_results_to_sqlite(sqlite_db, result_data):
+def write_results_to_sqlite(sqlite_db, result_data, target_table='race_results'):
     """
     Write race results to SQLite database.
 
     Args:
         sqlite_db: Path to SQLite database
         result_data: DataFrame with race results
+        target_table: Target table name ('race_results' or 'quinte_results')
     """
     conn = sqlite3.connect(sqlite_db)
     cursor = conn.cursor()
@@ -109,11 +111,11 @@ def write_results_to_sqlite(sqlite_db, result_data):
         ordre_arrivee = result['ordre_arrivee']
         created_at = datetime.now()
 
-        cursor.execute("""
-            INSERT OR REPLACE INTO race_results (comp, ordre_arrivee, created_at)
+        cursor.execute(f"""
+            INSERT OR REPLACE INTO {target_table} (comp, ordre_arrivee, created_at)
             VALUES (?, ?, ?)
         """, (comp, ordre_arrivee, created_at))
 
     conn.commit()
     conn.close()
-    print("Results data inserted into SQLite successfully.")
+    print(f"Results data inserted into {target_table} successfully.")

@@ -217,12 +217,13 @@ def display_logs():
 
 
 # Placeholder functions for pipeline operations
-def mysql_sqlite_sync(db):
+def mysql_sqlite_sync(db, quinte=False):
     """Placeholder for MySQL to SQLite sync"""
-    log_output("Starting MySQL to SQLite synchronization...", "info")
+    sync_type = "Quinte races only" if quinte else "All races"
+    log_output(f"Starting MySQL to SQLite synchronization ({sync_type})...", "info")
     from core.orchestrators.mysql_sqlite_sync import sync_data
-    sync_data(db)
-    log_output("MySQL to SQLite sync completed successfully!", "success")
+    sync_data(db, quinte=quinte)
+    log_output(f"MySQL to SQLite sync completed successfully! ({sync_type})", "success")
 
 
 def execute_full_training(progress_bar, status_text):
@@ -234,39 +235,83 @@ def execute_full_training(progress_bar, status_text):
         updates = st.session_state.helper.get_training_updates()
 
         for update in updates:
-            if update['type'] == 'progress':
-                progress_bar.progress(update['percent'])
+            if update['type'] == 'info':
+                # Initial thread info
+                log_output(f"✅ {update['message']}", "info")
+                log_output(f"   Process ID: {update.get('process_id', 'N/A')}", "info")
+                log_output(f"   Thread ID: {update.get('thread_id', 'N/A')}", "info")
+                log_output(f"   Thread Name: {update.get('thread_name', 'N/A')}", "info")
+                log_output(f"   Thread Alive: {update.get('is_alive', 'N/A')}", "info")
+
+            elif update['type'] == 'worker_started':
+                log_output(f"🔄 {update['message']}", "info")
+                log_output(f"   Thread ID: {update.get('thread_id', 'N/A')}", "info")
+                log_output(f"   Start Time: {update.get('start_time', 'N/A')}", "info")
+
+            elif update['type'] == 'progress':
+                # Update session state for persistence across reruns
+                st.session_state.training_progress = update['percent']
+                st.session_state.training_status = update['message']
+
+                # Update UI
+                progress_bar.progress(update['percent'] / 100)
                 status_text.text(f"Progress: {update['percent']}% - {update['message']}")
-                log_output(update['message'], "info")
+                log_output(f"[Thread {update.get('thread_id', 'N/A')}] {update['message']}", "info")
+
             elif update['type'] == 'complete':
+                duration = update.get('duration_seconds', 0)
+                duration_str = f"{duration:.1f}s" if duration < 60 else f"{duration/60:.1f}min"
+
                 if update['success']:
-                    progress_bar.progress(100)
+                    st.session_state.training_progress = 100
+                    st.session_state.training_status = "Training completed!"
+
+                    progress_bar.progress(1.0)
                     status_text.text("Training completed!")
-                    log_output(update['message'], "success")
+                    log_output(f"✅ {update['message']} (Duration: {duration_str})", "success")
                 else:
+                    st.session_state.training_progress = 0
+                    st.session_state.training_status = f"Training failed: {update.get('message', 'Unknown error')}"
+
                     progress_bar.progress(0)
                     status_text.text("Training failed!")
-                    log_output(update['message'], "error")
+                    log_output(f"❌ {update['message']} (Duration: {duration_str})", "error")
+                    if 'traceback' in update:
+                        log_output(f"Error details: {update['error']}", "error")
 
                 # Clear training state
                 st.session_state.training_active = False
 
-        # Auto-refresh if still training
+            elif update['type'] == 'worker_stopped':
+                log_output(f"⏹️ {update['message']}", "info")
+
+        # Keep training active if still running
         if st.session_state.helper.is_training:
             st.session_state.training_active = True
-            # This will cause the UI to refresh and check again
             return
     else:
         # Not training - start new training
         log_output("Starting background training...", "info")
 
         if st.session_state.helper.start_training_async():
+            st.session_state.training_progress = 0
+            st.session_state.training_status = "Training started in background..."
+            st.session_state.training_active = True
+
             progress_bar.progress(0)
             status_text.text("Training started in background...")
-            st.session_state.training_active = True
-            log_output("Training started successfully in background", "success")
+            log_output("✅ Training started successfully in background", "success")
+
+            # Get and display thread status
+            thread_status = st.session_state.helper.get_training_status()
+            log_output(f"📊 Training Thread Status:", "info")
+            log_output(f"   Process ID: {thread_status.get('process_id', 'N/A')}", "info")
+            log_output(f"   Thread ID: {thread_status.get('thread_id', 'N/A')}", "info")
+            log_output(f"   Thread Name: {thread_status.get('thread_name', 'N/A')}", "info")
+            log_output(f"   Thread Alive: {thread_status.get('thread_alive', 'N/A')}", "info")
         else:
-            log_output("Failed to start training", "error")
+            st.session_state.training_active = False
+            log_output("❌ Failed to start training", "error")
 
 
 def execute_re_blending(all_races=True, date=None, progress_bar=None, status_text=None):
@@ -600,6 +645,48 @@ def execute_incremental_training(date_from, date_to, limit, update_model, create
         log_output(f"Incremental training error: {str(e)}", "error")
 
 
+def execute_quinte_incremental_training(date_from, date_to, limit, focus_on_failures,
+                                        progress_bar, status_text):
+    """Execute quinté incremental training using specialized pipeline"""
+    log_output("Starting quinté incremental training...", "info")
+
+    def progress_callback(percentage, message):
+        """Callback function to update progress"""
+        progress_bar.progress(percentage / 100)
+        status_text.text(f"Progress: {percentage}% - {message}")
+        log_output(message, "info")
+
+    try:
+        result = st.session_state.helper.execute_quinte_incremental_training(
+            date_from=date_from,
+            date_to=date_to,
+            limit=limit,
+            focus_on_failures=focus_on_failures,
+            progress_callback=progress_callback
+        )
+
+        if result["success"]:
+            progress_bar.progress(1.0)
+            status_text.text("Quinté incremental training completed!")
+            log_output(result["message"], "success")
+            st.session_state.quinte_incremental_results = result
+        else:
+            progress_bar.progress(0)
+            status_text.text("Quinté training failed!")
+            log_output(result["message"], "error")
+            st.session_state.quinte_incremental_results = result
+
+    except Exception as e:
+        progress_bar.progress(0)
+        status_text.text("Quinté training error!")
+        log_output(f"Quinté incremental training error: {str(e)}", "error")
+        import traceback
+        st.session_state.quinte_incremental_results = {
+            "success": False,
+            "message": str(e),
+            "error": traceback.format_exc()
+        }
+
 
 # Main application
 def main():
@@ -622,10 +709,10 @@ def main():
         "Choose Operation:",
         [
             "🎲 Execute Prediction",
-            "✨ AI Insight",
             "📈 Execute Evaluation",
             "⚖️ Model Weight Analysis",
             "🔄 Incremental Training",
+            "🏆 Quinté Incremental Training",
             "🎯 Execute Full Training",
             "🔄 MySQL ↔ SQLite Sync",
             "⚙️ Update Config.yaml",
@@ -656,13 +743,25 @@ def main():
                     custom_db = st.text_input("Custom Database Name:")
                     mysql_db = custom_db if custom_db else "pturf2025"
 
-                st.info("This will synchronize race data from MySQL to SQLite database.")
+                # Quinte filter radio box
+                sync_mode = st.radio(
+                    "Sync Mode:",
+                    ["All Races", "Quinte Races Only"],
+                    help="Select whether to sync all races or only quinte races"
+                )
+
+                quinte_only = (sync_mode == "Quinte Races Only")
+
+                if quinte_only:
+                    st.info("🌟 This will synchronize ONLY quinte races from MySQL to the historical_quinte table.")
+                else:
+                    st.info("This will synchronize all race data from MySQL to the historical_races table.")
 
                 if st.button("🚀 Start Sync", key="sync_btn"):
                     if mysql_db:
-                        mysql_sqlite_sync(mysql_db)
+                        mysql_sqlite_sync(mysql_db, quinte_only)
                     else:
-                        mysql_sqlite_sync(custom_db)
+                        mysql_sqlite_sync(custom_db, quinte_only)
 
                 st.markdown('</div>', unsafe_allow_html=True)
             elif operation == "⚙️ Update Config.yaml":
@@ -856,12 +955,39 @@ def main():
                 st.markdown("**Training Progress**")
                 training_container = st.container()
 
-                if st.button("🚀 Start Training", key="train_btn"):
+                # Show progress if training is active
+                if st.session_state.get('training_active', False):
                     with training_container:
-                        # Create progress bar and status text
-                        progress_bar = st.progress(0)
+                        progress_bar = st.progress(st.session_state.get('training_progress', 0) / 100)
                         status_text = st.empty()
+                        status_text.text(st.session_state.get('training_status', 'Training in progress...'))
+
+                        # Check for updates
                         execute_full_training(progress_bar, status_text)
+
+                        # Show current status
+                        st.info(f"🔄 Training in progress - {st.session_state.get('training_progress', 0)}% complete")
+
+                        # Auto-refresh button (acts as manual refresh)
+                        if st.button("🔄 Refresh Progress", key="refresh_training_btn"):
+                            st.rerun()
+
+                   
+                else:
+                    # Show start button
+                    if st.button("🚀 Start Training", key="train_btn"):
+                        # Initialize session state for tracking
+                        st.session_state.training_progress = 0
+                        st.session_state.training_status = "Starting training..."
+
+                        # Start training (this will set training_active to True)
+                        with training_container:
+                            progress_bar = st.progress(0)
+                            status_text = st.empty()
+                            execute_full_training(progress_bar, status_text)
+
+                        # Trigger rerun to start polling
+                        st.rerun()
 
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1043,305 +1169,6 @@ def main():
                                 st.error(f"❌ Evaluation failed: {results['message']}")
 
                 st.markdown('</div>', unsafe_allow_html=True)
-
-            elif operation == "✨ AI Insight":
-                st.markdown('''
-                <div class="config-panel">
-                    <h3>🤖 AI Betting Insights</h3>
-                </div>
-                ''', unsafe_allow_html=True)
-                
-                st.info("Get intelligent betting advice powered by AI analysis of your prediction results and market odds")
-                
-                # AI Insight tabs
-                tab1, tab2, tab3 = st.tabs(["📊 Daily Betting Advice","🌟 Quinte Race Advice", "🏇 Race-Specific Advice"])
-                
-                with tab1:
-                    st.markdown("### 📊 Daily Betting Performance Analysis")
-                    st.markdown("Get comprehensive daily betting advice based on your model's recent performance")
-                    
-                    # Configuration options
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        lm_studio_url = st.text_input(
-                            "LM Studio URL:", 
-                            value="http://localhost:1234", 
-                            help="Leave empty to use configuration default"
-                        )
-                    with col2:
-                        verbose_ai = st.checkbox("Enable verbose AI output", value=False)
-                    
-                    # Generate daily advice button
-                    if st.button("🧠 Generate Daily Betting Advice", key="daily_ai_advice"):
-                        with st.spinner("Analyzing your prediction results and generating advice..."):
-                            # Use empty string if default URL is used
-                            url_param = lm_studio_url if lm_studio_url != "http://localhost:1234" else None
-                            
-                            result = st.session_state.helper.get_ai_betting_advice(
-                                lm_studio_url=url_param,
-                                verbose=verbose_ai
-                            )
-                            
-                            if result["success"]:
-                                st.success("✅ AI betting advice generated successfully!")
-                                
-                                # Display the AI advice
-                                st.markdown("### 🎯 AI Betting Recommendations")
-                                st.markdown(result["ai_advice"])
-                                
-                                # Show evaluation data used
-                                with st.expander("📊 Evaluation Data Used"):
-                                    eval_data = result["evaluation_data"]
-                                    
-                                    # Summary metrics
-                                    if 'summary_metrics' in eval_data:
-                                        st.markdown("**Performance Summary:**")
-                                        metrics = eval_data['summary_metrics']
-                                        
-                                        col1, col2, col3 = st.columns(3)
-                                        with col1:
-                                            st.metric("Total Races", metrics.get('total_races', 0))
-                                        with col2:
-                                            st.metric("Winner Accuracy", f"{metrics.get('winner_accuracy', 0):.1%}")
-                                        with col3:
-                                            st.metric("Podium Accuracy", f"{metrics.get('podium_accuracy', 0):.1%}")
-                                    
-                                    # Bet performance
-                                    if 'pmu_summary' in eval_data:
-                                        st.markdown("**Bet Type Performance:**")
-                                        pmu_summary = eval_data['pmu_summary']
-                                        
-                                        bet_df = []
-                                        for bet_type, rate in pmu_summary.items():
-                                            if rate > 0:
-                                                bet_df.append({
-                                                    'Bet Type': bet_type.replace('_rate', '').replace('_', ' ').title(),
-                                                    'Win Rate': f"{rate:.1%}"
-                                                })
-                                        
-                                        if bet_df:
-                                            st.dataframe(pd.DataFrame(bet_df), hide_index=True)
-                                
-                            else:
-                                st.error(f"❌ Failed to generate AI advice: {result['message']}")
-                                if 'error' in result:
-                                    st.error(f"Error details: {result['error']}")
-                
-                with tab2:
-                    st.markdown("### 🌟 Quinté+ Specialized Betting Strategy")
-                    st.markdown("Get **3 refined betting recommendations** specifically optimized for quinté races")
-                    
-                    # Info box about quinte focus
-                    st.info("🎯 **Quinté+ Focus**: This analysis specifically targets quinté races and provides 3 structured betting recommendations: Conservative, Balanced, and Aggressive strategies based on historical quinte performance.")
-                    
-                    # Configuration options
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        quinte_lm_studio_url = st.text_input(
-                            "LM Studio URL:", 
-                            value="http://localhost:1234", 
-                            help="Leave empty to use configuration default",
-                            key="quinte_lm_url"
-                        )
-                    with col2:
-                        quinte_verbose_ai = st.checkbox("Enable verbose AI output", value=False, key="quinte_verbose")
-                    
-                    # Generate quinte advice button
-                    if st.button("🌟 Generate Quinté+ Betting Strategy", key="quinte_ai_advice"):
-                        with st.spinner("Analyzing quinté performance and generating 3 refined betting recommendations..."):
-                            # Use empty string if default URL is used
-                            url_param = quinte_lm_studio_url if quinte_lm_studio_url != "http://localhost:1234" else None
-                            
-                            result = st.session_state.helper.get_ai_quinte_advice(
-                                lm_studio_url=url_param,
-                                verbose=quinte_verbose_ai
-                            )
-                            
-                            if result["success"]:
-                                st.success("✅ Quinté+ betting strategy generated successfully!")
-                                
-                                # Display the AI advice
-                                st.markdown("### 🎯 3 Refined Quinté+ Betting Recommendations")
-                                st.markdown(result["ai_advice"])
-                                
-                                # Show evaluation data used
-                                with st.expander("📊 Quinté+ Performance Data Used"):
-                                    eval_data = result["evaluation_data"]
-                                    
-                                    # Summary metrics
-                                    if 'summary_metrics' in eval_data:
-                                        st.markdown("**Overall Performance Summary:**")
-                                        metrics = eval_data['summary_metrics']
-                                        
-                                        col1, col2, col3 = st.columns(3)
-                                        with col1:
-                                            st.metric("Total Races", metrics.get('total_races', 0))
-                                        with col2:
-                                            st.metric("Winner Accuracy", f"{metrics.get('winner_accuracy', 0):.1%}")
-                                        with col3:
-                                            st.metric("Podium Accuracy", f"{metrics.get('podium_accuracy', 0):.1%}")
-                                    
-                                    # Quinte specific analysis
-                                    if 'quinte_analysis' in eval_data:
-                                        st.markdown("**Quinté+ Specific Analysis:**")
-                                        quinte_data = eval_data['quinte_analysis']
-                                        
-                                        # Display key quinte metrics
-                                        if 'total_quinte_races' in quinte_data:
-                                            st.metric("Total Quinté+ Races", quinte_data['total_quinte_races'])
-                                        
-                                        # Show betting scenarios performance
-                                        if 'betting_scenarios' in quinte_data:
-                                            st.markdown("**Horse Selection Strategies:**")
-                                            scenarios = quinte_data['betting_scenarios']
-                                            
-                                            scenario_df = []
-                                            for scenario, data in scenarios.items():
-                                                scenario_df.append({
-                                                    'Strategy': scenario.replace('_', ' ').title(),
-                                                    'Wins': data.get('wins', 0),
-                                                    'Total': data.get('total', 0),
-                                                    'Win Rate': f"{data.get('win_rate', 0):.1%}"
-                                                })
-                                            
-                                            if scenario_df:
-                                                st.dataframe(pd.DataFrame(scenario_df), hide_index=True)
-                                    
-                                    # PMU summary focused on quinte
-                                    if 'pmu_summary' in eval_data:
-                                        st.markdown("**Quinté+ Bet Type Performance:**")
-                                        pmu_summary = eval_data['pmu_summary']
-                                        
-                                        quinte_bet_df = []
-                                        quinte_bets = [
-                                            ('quinte_exact_rate', 'Quinté+ Exact'),
-                                            ('quinte_desordre_rate', 'Quinté+ Désordre'),
-                                            ('bonus4_rate', 'Bonus 4'),
-                                            ('bonus3_rate', 'Bonus 3'),
-                                            ('multi4_rate', 'Multi 4')
-                                        ]
-                                        
-                                        for bet_key, bet_name in quinte_bets:
-                                            if bet_key in pmu_summary and pmu_summary[bet_key] > 0:
-                                                quinte_bet_df.append({
-                                                    'Bet Type': bet_name,
-                                                    'Win Rate': f"{pmu_summary[bet_key]:.1%}"
-                                                })
-                                        
-                                        if quinte_bet_df:
-                                            st.dataframe(pd.DataFrame(quinte_bet_df), hide_index=True)
-                                        else:
-                                            st.info("No quinté bet wins recorded in current data")
-                                
-                            else:
-                                st.error(f"❌ Failed to generate quinté betting strategy: {result['message']}")
-                                if 'error' in result:
-                                    st.error(f"Error details: {result['error']}")
-                
-                with tab3:
-                    st.markdown("### 🏇 Race-Specific AI Analysis")
-                    st.markdown("Get detailed AI advice for specific races including odds analysis and betting recommendations")
-                    
-                    # Get available races
-                    daily_races = st.session_state.helper.get_daily_races()
-                    
-                    if daily_races:
-                        # Filter races with predictions
-                        races_with_predictions = [race for race in daily_races if race.get('has_predictions', 0) == 1]
-                        
-                        if races_with_predictions:
-                            # Race selection
-                            race_options = []
-                            for race in races_with_predictions:
-                                race_name = f"{race['hippo']} - R{race.get('prix', 'N/A')} - {race.get('prixnom', 'Unknown')}"
-                                if race.get('quinte', 0) == 1:
-                                    race_name = f"🌟 {race_name}"
-                                race_options.append(race_name)
-                            
-                            selected_race_idx = st.selectbox(
-                                "Select a race for AI analysis:",
-                                range(len(race_options)),
-                                format_func=lambda x: race_options[x]
-                            )
-                            
-                            selected_race = races_with_predictions[selected_race_idx]
-                            
-                            # Configuration for race analysis
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                race_lm_studio_url = st.text_input(
-                                    "LM Studio URL:", 
-                                    value="http://localhost:1234", 
-                                    help="Leave empty to use configuration default",
-                                    key="race_lm_url"
-                                )
-                            with col2:
-                                race_verbose_ai = st.checkbox("Enable verbose AI output", value=False, key="race_verbose")
-                            
-                            # Generate race advice button
-                            if st.button("🧠 Generate Race Analysis", key="race_ai_advice"):
-                                with st.spinner(f"Analyzing race {selected_race['comp']} and generating advice..."):
-                                    # Use empty string if default URL is used
-                                    url_param = race_lm_studio_url if race_lm_studio_url != "http://localhost:1234" else None
-                                    
-                                    result = st.session_state.helper.get_ai_race_advice(
-                                        race_comp=selected_race['comp'],
-                                        lm_studio_url=url_param,
-                                        verbose=race_verbose_ai
-                                    )
-                                    
-                                    if result["success"]:
-                                        st.success(f"✅ AI race analysis generated for {selected_race['comp']}!")
-                                        
-                                        # Display the AI advice
-                                        st.markdown("### 🎯 AI Race Analysis & Recommendations")
-                                        st.markdown(result["ai_advice"])
-                                        
-                                        # Show race data and predictions used
-                                        with st.expander("📊 Race Data & Predictions Used"):
-                                            race_data = result["race_data"]
-                                            predictions = result["predictions"]
-                                            
-                                            # Race information
-                                            st.markdown("**Race Information:**")
-                                            col1, col2, col3 = st.columns(3)
-                                            with col1:
-                                                st.metric("Date", race_data.get('jour', 'N/A'))
-                                            with col2:
-                                                st.metric("Track", race_data.get('hippo', 'N/A'))
-                                            with col3:
-                                                st.metric("Race", f"R{race_data.get('prix', 'N/A')}")
-                                            
-                                            # Predictions
-                                            if predictions and 'predictions' in predictions:
-                                                st.markdown("**Top Predictions:**")
-                                                pred_data = predictions['predictions']
-                                                
-                                                # Create DataFrame from predictions
-                                                pred_df = []
-                                                for pred in pred_data[:8]:  # Show top 8
-                                                    pred_df.append({
-                                                        'Horse': pred.get('numero', 'N/A'),
-                                                        'Predicted Rank': pred.get('predicted_rank', pred.get('predicted_position', 'N/A')),
-                                                        'Confidence': f"{pred.get('confidence', pred.get('predicted_prob', 0)):.2%}" if isinstance(pred.get('confidence', pred.get('predicted_prob', 0)), (int, float)) else 'N/A'
-                                                    })
-                                                
-                                                if pred_df:
-                                                    st.dataframe(pd.DataFrame(pred_df), hide_index=True)
-                                    
-                                    else:
-                                        st.error(f"❌ Failed to generate race analysis: {result['message']}")
-                                        if 'error' in result:
-                                            st.error(f"Error details: {result['error']}")
-                        else:
-                            st.warning("No races with predictions found. Please run predictions first.")
-                            st.info("Go to '🎲 Execute Prediction' to generate predictions for today's races.")
-                    else:
-                        st.warning("No races available for analysis.")
-                        st.info("Go to '🎲 Execute Prediction' to sync and predict today's races.")
-                
-                st.markdown('</div>', unsafe_allow_html=True)
-
             elif operation == "⚖️ Model Weight Analysis":
                 st.markdown('''
                 <div class="config-panel">
@@ -1852,6 +1679,238 @@ def main():
                             else:
                                 st.error(f"❌ Training failed: {results.get('message', 'Unknown error')}")
 
+            elif operation == "🏆 Quinté Incremental Training":
+
+                st.markdown('<div class="config-panel">', unsafe_allow_html=True)
+
+                st.markdown("### 🏆 Quinté Incremental Training")
+
+                st.info("Specialized incremental training for quinté predictions - learns from failures and improves quinté accuracy")
+
+                # Training parameters
+                left, right = st.columns(2)
+
+                with left:
+                    quinte_date_from = st.date_input(
+                        "Start Date:",
+                        value=(datetime.now() - timedelta(days=60)).date(),
+                        key="quinte_incr_date_from"
+                    )
+
+                    focus_on_failures = st.checkbox(
+                        "Focus on Failures",
+                        value=True,
+                        help="Weight training samples by failure severity (quinté misses get 10x weight)"
+                    )
+
+                with right:
+                    quinte_date_to = st.date_input(
+                        "End Date:",
+                        value=datetime.now().date(),
+                        key="quinte_incr_date_to"
+                    )
+
+                # Advanced options
+                with st.expander("🔧 Advanced Options"):
+                    quinte_limit_races = st.number_input(
+                        "Limit Races (0 = no limit):",
+                        min_value=0,
+                        value=0,
+                        help="Maximum number of quinté races to process",
+                        key="quinte_limit"
+                    )
+
+                # Fetch quinté races with results
+                try:
+                    from utils.env_setup import AppConfig
+                    import sqlite3
+
+                    config = AppConfig()
+                    db_path = config.get_active_db_path()
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+
+                    # Query quinté races with predictions and results
+                    cursor.execute("""
+                        SELECT COUNT(*)
+                        FROM daily_race
+                        WHERE quinte = 1
+                        AND actual_results IS NOT NULL
+                        AND actual_results != 'pending'
+                        AND prediction_results IS NOT NULL
+                        AND jour >= ? AND jour <= ?
+                    """, (quinte_date_from.strftime('%Y-%m-%d'), quinte_date_to.strftime('%Y-%m-%d')))
+
+                    quinte_races_count = cursor.fetchone()[0]
+                    conn.close()
+
+                    if quinte_races_count > 0:
+                        st.success(f"Found {quinte_races_count} quinté races with predictions and results")
+
+                        # Show quinté race stats
+                        with st.expander("📋 Quinté Races Ready for Training"):
+                            st.info(f"Total quinté races available: **{quinte_races_count}**")
+                            if quinte_limit_races > 0 and quinte_limit_races < quinte_races_count:
+                                st.warning(f"Will process only the first **{quinte_limit_races}** races")
+                    else:
+                        st.warning("No quinté races with both predictions and results found for the selected date range")
+
+                except Exception as e:
+                    st.error(f"Error fetching quinté races: {str(e)}")
+                    quinte_races_count = 0
+
+                # Training execution
+                if st.button("🚀 Start Quinté Incremental Training", key="quinte_incr_btn"):
+
+                    if quinte_races_count > 0:
+
+                        # Create progress bar and status text
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+
+                        execute_quinte_incremental_training(
+                            quinte_date_from.strftime('%Y-%m-%d'),
+                            quinte_date_to.strftime('%Y-%m-%d'),
+                            quinte_limit_races if quinte_limit_races > 0 else None,
+                            focus_on_failures,
+                            progress_bar,
+                            status_text
+                        )
+
+                        # Display results if stored in session state
+                        if 'quinte_incremental_results' in st.session_state:
+                            results = st.session_state.quinte_incremental_results
+
+                            if results.get('success'):
+                                st.success("✅ Quinté incremental training completed!")
+
+                                # Display training metrics
+                                training_results = results.get('training_results', {})
+
+                                if training_results:
+                                    st.markdown("### 📊 Quinté Training Results")
+
+                                    # Baseline vs Improved metrics
+                                    baseline = training_results.get('baseline_metrics', {})
+                                    improved = training_results.get('improved_metrics', {})
+
+                                    if baseline and improved:
+                                        st.markdown("### 🎯 Performance Improvement")
+
+                                        col1, col2, col3 = st.columns(3)
+
+                                        with col1:
+                                            baseline_desordre = baseline.get('quinte_desordre_rate', 0) * 100
+                                            improved_desordre = improved.get('quinte_desordre_rate', 0) * 100
+                                            delta_desordre = improved_desordre - baseline_desordre
+
+                                            st.metric(
+                                                "Quinté Désordre Rate",
+                                                f"{improved_desordre:.1f}%",
+                                                delta=f"{delta_desordre:+.1f}%",
+                                                help="Exact 5 horses in any order"
+                                            )
+
+                                        with col2:
+                                            baseline_bonus4 = baseline.get('bonus_4_rate', 0) * 100
+                                            improved_bonus4 = improved.get('bonus_4_rate', 0) * 100
+                                            delta_bonus4 = improved_bonus4 - baseline_bonus4
+
+                                            st.metric(
+                                                "Bonus 4 Rate",
+                                                f"{improved_bonus4:.1f}%",
+                                                delta=f"{delta_bonus4:+.1f}%",
+                                                help="4 of top 5 horses correct"
+                                            )
+
+                                        with col3:
+                                            baseline_bonus3 = baseline.get('bonus_3_rate', 0) * 100
+                                            improved_bonus3 = improved.get('bonus_3_rate', 0) * 100
+                                            delta_bonus3 = improved_bonus3 - baseline_bonus3
+
+                                            st.metric(
+                                                "Bonus 3 Rate",
+                                                f"{improved_bonus3:.1f}%",
+                                                delta=f"{delta_bonus3:+.1f}%",
+                                                help="3 of top 5 horses correct"
+                                            )
+
+                                        # MAE metric
+                                        col4, col5 = st.columns(2)
+                                        with col4:
+                                            baseline_mae = baseline.get('avg_mae', 0)
+                                            st.metric("Baseline MAE", f"{baseline_mae:.2f}")
+                                        with col5:
+                                            improved_mae = improved.get('avg_mae', 0)
+                                            mae_improvement = baseline_mae - improved_mae
+                                            st.metric("Improved MAE", f"{improved_mae:.2f}", delta=f"{-mae_improvement:+.2f}")
+
+                                    # Failure patterns analysis
+                                    if 'failure_patterns' in training_results:
+                                        patterns = training_results['failure_patterns']
+
+                                        st.markdown("### 📉 Failure Pattern Analysis")
+
+                                        with st.expander("🔍 View Detailed Patterns"):
+                                            col1, col2 = st.columns(2)
+
+                                            with col1:
+                                                st.markdown("**Pattern Distribution:**")
+                                                missed_fav = patterns.get('missed_favorites_pct', 0)
+                                                missed_long = patterns.get('missed_longshots_pct', 0)
+                                                st.metric("Missed Favorites", f"{missed_fav:.1f}%")
+                                                st.metric("Missed Longshots", f"{missed_long:.1f}%")
+
+                                            with col2:
+                                                st.markdown("**Common Issues:**")
+                                                high_mae = patterns.get('high_mae_races', 0)
+                                                st.metric("High MAE Races", high_mae)
+
+                                    # Corrections applied
+                                    if 'corrections_applied' in training_results:
+                                        corrections = training_results['corrections_applied']
+
+                                        if corrections:
+                                            st.markdown("### 🔧 Corrections Applied")
+
+                                            for correction in corrections:
+                                                category = correction.get('category', 'Unknown')
+                                                suggestion = correction.get('suggestion', '')
+                                                priority = correction.get('priority', 'medium')
+
+                                                priority_emoji = {'high': '🔴', 'medium': '🟡', 'low': '🟢'}.get(priority, '⚪')
+
+                                                st.info(f"{priority_emoji} **{category}**: {suggestion}")
+
+                                    # Model saved
+                                    model_saved = training_results.get('model_saved', '')
+                                    if model_saved:
+                                        st.markdown("### 💾 Model Saved")
+                                        model_name = model_saved.split('/')[-1] if '/' in model_saved else model_saved
+                                        st.success(f"✅ New quinté model saved: **{model_name}**")
+
+                                    # Execution summary
+                                    races_processed = training_results.get('races_processed', 0)
+                                    execution_time = training_results.get('execution_time', 0)
+
+                                    st.markdown("### ⏱️ Execution Summary")
+                                    col1, col2 = st.columns(2)
+                                    with col1:
+                                        st.metric("Quinté Races Processed", races_processed)
+                                    with col2:
+                                        st.metric("Execution Time", f"{execution_time:.1f}s")
+
+                            else:
+                                st.error(f"❌ Quinté training failed: {results.get('message', 'Unknown error')}")
+                                if 'error' in results:
+                                    with st.expander("🔍 View Error Details"):
+                                        st.code(results['error'])
+
+                    else:
+                        st.warning("⚠️ No quinté races available for training")
+
+                st.markdown('</div>', unsafe_allow_html=True)
+
     with col2:
         # Status and output panel
         st.markdown('''
@@ -1874,6 +1933,35 @@ def main():
             st.metric("Last Training", last_training)
         with col_status2:
             st.metric("Model Version", model_version)
+
+        # Training Thread Status
+        if hasattr(st.session_state, 'helper'):
+            thread_status = st.session_state.helper.get_training_status()
+
+            if thread_status.get('is_training', False):
+                st.markdown("### 🔄 Training Status")
+
+                # Show training progress if available
+                if hasattr(st.session_state, 'training_progress'):
+                    progress_val = st.session_state.get('training_progress', 0)
+                    st.progress(progress_val / 100)
+                    st.caption(st.session_state.get('training_status', 'Training in progress...'))
+
+                # Show thread info in an expander
+                with st.expander("📊 Thread Details", expanded=False):
+                    col_t1, col_t2 = st.columns(2)
+                    with col_t1:
+                        st.metric("Process ID", thread_status.get('process_id', 'N/A'))
+                        st.metric("Thread Name", thread_status.get('thread_name', 'N/A'))
+                    with col_t2:
+                        st.metric("Thread ID", thread_status.get('thread_id', 'N/A'))
+                        thread_alive = thread_status.get('thread_alive', False)
+                        alive_status = "✅ Running" if thread_alive else "❌ Stopped"
+                        st.metric("Thread Status", alive_status)
+            else:
+                # Show idle status
+                st.markdown("### ⏸️ Training Status")
+                st.info("No training in progress")
         
         # Alternative Models Status
         st.markdown("### 🤖 Model Status")

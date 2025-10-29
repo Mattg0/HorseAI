@@ -1,0 +1,11 @@
+2025-10-18 09:12:43,654 - RaceFetcher - ERROR - ❌ API request failed for /jour: HTTPSConnectionPool(host='aspiturf.com', port=443): Max retries exceeded with url: /api/api/jour?uid=EhBCnKDamDfLkYJJjhWLf47xT7j1&jour=2025-10-17 (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x3132651d0>: Failed to resolve 'aspiturf.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-10-18 09:12:43,655 - RaceFetcher - ERROR - Error fetching races for 2025-10-17
+2025-10-18 09:12:43,655 - RaceFetcher - ERROR - Error in fetch_and_store_daily_races: Failed to fetch races for 2025-10-17
+2025-10-18 09:12:43,658 - RaceFetcher - ERROR - Traceback (most recent call last):
+  File "/Users/mattg0/Docs/HorseAIv2/core/connectors/api_daily_sync.py", line 673, in fetch_and_store_daily_races
+    api_data = self.fetch_races(date)
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mattg0/Docs/HorseAIv2/core/connectors/api_daily_sync.py", line 286, in fetch_races
+    raise Exception(f"Failed to fetch races for {date}")
+Exception: Failed to fetch races for 2025-10-17
+

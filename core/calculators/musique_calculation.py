@@ -19,6 +19,9 @@ class MusiqueFeatureExtractor:
             'T': 'Trot'
         }
 
+        # Reverse mapping for normalization (full name -> code)
+        self.race_type_to_code = {v: k for k, v in self.race_types.items()}
+
         # DNF markers
         self.dnf_markers = {'D', 'DA', 'DI', 'DP', 'RET', 'NP', 'ABS'}
 
@@ -91,17 +94,59 @@ class MusiqueFeatureExtractor:
 
         return stats
 
+    def _normalize_race_type(self, race_type: Optional[str]) -> Optional[str]:
+        """
+        Normalize race type to single letter code.
+
+        Args:
+            race_type: Either a code ('H', 'P', 'A') or full name ('Haies', 'Plat', 'Attelé')
+
+        Returns:
+            Single letter code or None
+
+        Raises:
+            ValueError: If race_type is provided but not recognized
+        """
+        if not race_type or pd.isna(race_type):
+            return None
+
+        race_type_str = str(race_type).strip()
+
+        # Already a code
+        if len(race_type_str) == 1 and race_type_str.upper() in self.race_types:
+            return race_type_str.upper()
+
+        # Convert full name to code (exact match first)
+        if race_type_str in self.race_type_to_code:
+            return self.race_type_to_code[race_type_str]
+
+        # Try case-insensitive match
+        race_type_lower = race_type_str.lower()
+        for full_name, code in self.race_type_to_code.items():
+            if full_name.lower() == race_type_lower:
+                return code
+
+        # FAIL-FAST: Unknown race type
+        raise ValueError(
+            f"Unknown race type: '{race_type_str}'. "
+            f"Expected codes: {list(self.race_types.keys())} "
+            f"or full names: {list(self.race_type_to_code.keys())} (case-insensitive)"
+        )
+
     def extract_features(self, musique: str, current_race_type: Optional[str] = None) -> Dict:
         """
         Extract features from musique string with race type analysis.
 
         Args:
             musique: Performance history string
-            current_race_type: Type of the current race (optional)
+            current_race_type: Type of the current race (can be code like 'H' or full name like 'Haies')
 
         Returns:
             Dictionary containing extracted features with by_type containing stats for current race type
         """
+        # Normalize race type to code
+        current_race_type = self._normalize_race_type(current_race_type)
+
         if not musique or pd.isna(musique):
             features = {
                 'global': self.default_stats.copy(),
@@ -138,16 +183,27 @@ class MusiqueFeatureExtractor:
 
         # Calculate type-specific stats for current_race_type if provided
         type_stats = self.default_stats.copy()
-        if current_race_type and current_race_type in positions_by_type:
-            positions = positions_by_type[current_race_type]
+        if current_race_type:
+            # FAIL-FAST: Validate race type was normalized correctly
+            if current_race_type not in self.race_types:
+                raise ValueError(
+                    f"Invalid race type '{current_race_type}'. "
+                    f"Expected normalized codes: {list(self.race_types.keys())}. "
+                    f"This indicates the race type was not normalized before calling extract_features()."
+                )
 
-            # Count DNFs for this race type
-            type_dnf_count = sum(1 for perf in reversed(performances)
-                                 if any(perf.strip().upper().startswith(dnf) for dnf in self.dnf_markers) and
-                                 perf.strip().upper().find(current_race_type) != -1)
+            # Calculate stats only if we have data for this race type
+            if current_race_type in positions_by_type:
+                positions = positions_by_type[current_race_type]
 
-            type_total_races = len(positions) + type_dnf_count
-            type_stats = self._calculate_stats(positions, type_total_races, type_dnf_count)
+                # Count DNFs for this race type
+                type_dnf_count = sum(1 for perf in reversed(performances)
+                                     if any(perf.strip().upper().startswith(dnf) for dnf in self.dnf_markers) and
+                                     perf.strip().upper().find(current_race_type) != -1)
+
+                type_total_races = len(positions) + type_dnf_count
+                type_stats = self._calculate_stats(positions, type_total_races, type_dnf_count)
+            # else: No races of this type in musique, keep default stats (legitimate case)
 
         # Calculate weighted stats
         weighted_stats = self._calculate_weighted_stats(

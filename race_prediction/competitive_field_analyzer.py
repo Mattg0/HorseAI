@@ -295,15 +295,39 @@ class CompetitiveFieldAnalyzer:
             adjustment_details[model_name] = adjustments
 
         # Step 4: Create comprehensive analysis output
-        competitive_analysis = self._create_realistic_competitive_analysis(
+        competitive_analysis_summary = self._create_realistic_competitive_analysis(
             race_data, earnings_analysis, track_analysis, form_analysis,
             connection_analysis, distance_analysis, competitive_scores
         )
 
+        # Create per-horse competitive analysis list with adjustments
+        competitive_analysis = []
+        for idx in range(len(race_data)):
+            horse_data = {
+                'competitive_score': competitive_scores.get(idx, {}).get('composite_score', 0.0),
+                'adjustment': 0.0  # Will be calculated from predictions
+            }
+
+            # Calculate adjustment from base vs enhanced predictions
+            if 'ensemble' in base_predictions and 'ensemble' in enhanced_predictions:
+                base_pred = base_predictions['ensemble'][idx]
+                enhanced_pred = enhanced_predictions['ensemble'][idx]
+                horse_data['adjustment'] = enhanced_pred - base_pred
+            elif 'tabnet' in base_predictions and 'tabnet' in enhanced_predictions:
+                base_pred = base_predictions['tabnet'][idx]
+                enhanced_pred = enhanced_predictions['tabnet'][idx]
+                horse_data['adjustment'] = enhanced_pred - base_pred
+
+            # Add detailed competitive info
+            if idx in competitive_scores:
+                horse_data['competitive_details'] = competitive_scores[idx]
+
+            competitive_analysis.append(horse_data)
+
         # Step 5: Generate audit trail
         audit_trail = self._generate_audit_trail(
             race_data, base_predictions, enhanced_predictions,
-            competitive_analysis, adjustment_details, race_metadata
+            competitive_analysis_summary, adjustment_details, race_metadata
         )
 
         # Add historical race counts to the final output
@@ -323,7 +347,8 @@ class CompetitiveFieldAnalyzer:
 
         return {
             'enhanced_predictions': enhanced_predictions,
-            'competitive_analysis': competitive_analysis,
+            'competitive_analysis': competitive_analysis,  # Now a list with per-horse data including adjustment
+            'competitive_analysis_summary': competitive_analysis_summary,  # Keep detailed summary
             'adjustment_summary': self._create_adjustment_summary(adjustment_details),
             'audit_trail': audit_trail,
             'historical_race_counts': historical_race_counts

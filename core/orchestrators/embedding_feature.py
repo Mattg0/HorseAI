@@ -1126,20 +1126,30 @@ class FeatureEmbeddingOrchestrator:
 
         return embedded_df
 
-    def prepare_complete_dataset(self, df, use_cache=True):
+    def prepare_complete_dataset(self, df, use_cache=True, use_temporal=False):
         """
         Prepare complete dataset with all features for both RF and LSTM models.
 
         Args:
             df: DataFrame with race and participant data
             use_cache: Whether to use cached results
+            use_temporal: If True, use temporal calculator for career stats (prevents data leakage)
 
         Returns:
             DataFrame with all possible features (embeddings, static, sequence info)
         """
-        # Apply all feature engineering and embeddings
-        complete_df = self.prepare_features(df)
-        complete_df = self.apply_embeddings(complete_df)
+        # Step 1: Apply temporal calculations FIRST if enabled (prevents data leakage)
+        if use_temporal:
+            self.log_info("Applying temporal feature calculations (no data leakage mode)")
+            from core.calculators.temporal_feature_calculator import TemporalFeatureCalculator
+
+            temporal_calc = TemporalFeatureCalculator(self.sqlite_path, verbose=self.verbose)
+            df = temporal_calc.batch_calculate_all_horses(df)
+            self.log_info("Temporal calculations completed")
+
+        # Step 2: Apply all feature engineering and embeddings
+        complete_df = self.prepare_features(df, use_cache=use_cache)
+        complete_df = self.apply_embeddings(complete_df, use_cache=use_cache)
 
         return complete_df
 
@@ -2168,25 +2178,36 @@ class FeatureEmbeddingOrchestrator:
             self.log_info(f"Error loading batch: {e}")
             return pd.DataFrame()
     
-    def prepare_complete_dataset_batched(self, df: pd.DataFrame, use_cache=True) -> pd.DataFrame:
+    def prepare_complete_dataset_batched(self, df: pd.DataFrame, use_cache=True, use_temporal=False) -> pd.DataFrame:
         """
         Prepare complete dataset using batch processing for memory efficiency.
-        
+
         Args:
             df: DataFrame with race and participant data
             use_cache: Whether to use cached results
-            
+            use_temporal: If True, use temporal calculator for career stats (prevents data leakage)
+
         Returns:
             DataFrame with all processed features
         """
         # Initialize memory monitoring
         monitor = self._init_memory_monitor()
         monitor.log_memory("PREP_START", "Starting dataset preparation")
-        
+
+        # Step 1: Apply temporal calculations FIRST if enabled (before batching)
+        if use_temporal:
+            self.log_info("Applying temporal feature calculations (no data leakage mode)")
+            from core.calculators.temporal_feature_calculator import TemporalFeatureCalculator
+
+            temporal_calc = TemporalFeatureCalculator(self.sqlite_path)
+            df = temporal_calc.batch_calculate_all_horses(df)
+            self.log_info("Temporal calculations completed")
+            monitor.log_memory("TEMPORAL_DONE", "Temporal calculations done")
+
         # Check if we should use batch processing
         if not self.should_use_batch_processing(len(df)):
             self.log_info("Using standard dataset preparation (below batch threshold)")
-            return self.prepare_complete_dataset(df, use_cache)
+            return self.prepare_complete_dataset(df, use_cache=use_cache, use_temporal=False)  # Already applied temporal
         
         self.log_info(f"Using batch processing for dataset preparation")
         

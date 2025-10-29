@@ -106,7 +106,7 @@ class HorseRaceModel:
         
         if self.orchestrator.should_use_batch_processing(total_records):
             self.log_info(f"Using memory-efficient batch processing for {total_records:,} records")
-            
+
             # Load historical data with batch processing
             df_historical = self.orchestrator.load_historical_races_batched(
                 limit=limit,
@@ -114,17 +114,18 @@ class HorseRaceModel:
                 date_filter=date_filter,
                 use_cache=True
             )
-            
-            # Prepare complete dataset with batch processing
-            self.log_info("Preparing complete feature set with batch processing...")
+
+            # Prepare complete dataset with batch processing + temporal calculations
+            self.log_info("Preparing complete feature set with batch processing and temporal calculations (no leakage)...")
             self.complete_df = self.orchestrator.prepare_complete_dataset_batched(
                 df_historical,
-                use_cache=True
+                use_cache=True,
+                use_temporal=True  # CRITICAL: Prevents data leakage in career stats
             )
-            
+
         else:
             self.log_info("Using standard processing for smaller dataset")
-            
+
             # Load historical data (standard way)
             df_historical = self.orchestrator.load_historical_races(
                 limit=limit,
@@ -132,14 +133,32 @@ class HorseRaceModel:
                 date_filter=date_filter,
                 use_cache=True
             )
-            
-            # Prepare complete dataset (standard way)
-            self.log_info("Preparing complete feature set...")
+
+            # Prepare complete dataset (standard way) + temporal calculations
+            self.log_info("Preparing complete feature set with temporal calculations (no leakage)...")
             self.complete_df = self.orchestrator.prepare_complete_dataset(
                 df_historical,
-                use_cache=True
+                use_cache=True,
+                use_temporal=True  # CRITICAL: Prevents data leakage in career stats
             )
         
+        # Apply feature cleanup to remove leaking features
+        self.log_info("Applying feature cleanup to remove data leakage...")
+        from core.data_cleaning.feature_cleanup import FeatureCleaner
+        cleaner = FeatureCleaner()
+
+        # Store original columns for comparison
+        original_columns = len(self.complete_df.columns)
+
+        # Clean features (removes leaking career stats and useless features)
+        self.complete_df = cleaner.clean_features(self.complete_df)
+
+        # Apply transformations (log transforms for skewed features)
+        self.complete_df = cleaner.apply_transformations(self.complete_df)
+
+        cleaned_columns = len(self.complete_df.columns)
+        self.log_info(f"Feature cleanup complete: {original_columns} → {cleaned_columns} features ({original_columns - cleaned_columns} removed)")
+
         # Log memory usage summary if available
         memory_summary = self.orchestrator.get_memory_summary()
         if memory_summary:

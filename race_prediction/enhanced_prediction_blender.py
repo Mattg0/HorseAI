@@ -185,14 +185,18 @@ class EnhancedPredictionBlender:
                         enhanced_blended += enhanced_preds * weights[model_name]
 
                 # Enhanced blend info
+                # Note: competitive_analysis is a list, competitive_analysis_summary is a dict
+                competitive_summary = competitive_results.get('competitive_analysis_summary', {})
+
                 enhanced_blend_info = {
                     **base_blend_info,
                     'competitive_analysis_applied': True,
-                    'competitive_summary': competitive_results['adjustment_summary'],
-                    'competitive_scores': competitive_results['competitive_analysis'].get('competitive_scores', {}),
-                    'field_statistics': competitive_results['competitive_analysis'].get('field_statistics', {}),
-                    'top_contenders': competitive_results['competitive_analysis'].get('top_contenders', []),
-                    'performance_expectations': competitive_results['audit_trail'].get('performance_expectations', {})
+                    'competitive_summary': competitive_results.get('adjustment_summary', {}),
+                    'competitive_scores': competitive_summary.get('competitive_scores', {}),
+                    'field_statistics': competitive_summary.get('field_statistics', {}),
+                    'top_contenders': competitive_summary.get('top_contenders', []),
+                    'performance_expectations': competitive_results.get('audit_trail', {}).get('performance_expectations', {}),
+                    'competitive_analysis_list': competitive_results.get('competitive_analysis', [])  # Per-horse list
                 }
 
                 if self.verbose:

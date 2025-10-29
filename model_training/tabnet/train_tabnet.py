@@ -107,9 +107,14 @@ class TabNetTrainer:
 
         self.log_info(f"Loaded {len(df_historical)} records from {df_historical['comp'].nunique() if 'comp' in df_historical.columns else 'unknown'} races")
 
-        # Step 1: Apply FeatureCalculator for musique preprocessing
-        self.log_info("Applying FeatureCalculator for musique preprocessing...")
-        df_with_features = FeatureCalculator.calculate_all_features(df_historical)
+        # Step 1: Apply FeatureCalculator with temporal calculations (leakage fix)
+        self.log_info("Applying FeatureCalculator with temporal calculations...")
+        db_path = get_sqlite_dbpath(self.db_type)
+        df_with_features = FeatureCalculator.calculate_all_features(
+            df_historical,
+            use_temporal=True,
+            db_path=db_path
+        )
 
         # Step 2: Use orchestrator's TabNet feature preparation
         self.log_info("Preparing TabNet-specific features...")
@@ -150,9 +155,60 @@ class TabNetTrainer:
         # Debug: Print available columns
         self.log_info(f"Available columns in complete_df: {list(self.complete_df.columns)}")
         self.log_info(f"Looking for target column 'final_position': {'final_position' in self.complete_df.columns}")
-        
+
+        # Apply ONLY transformations (NO cleanup - we want to keep ALL 90 features)
+        from core.data_cleaning.feature_cleanup import FeatureCleaner
+        cleaner = FeatureCleaner()
+
         # Separate features and target
         X = self.complete_df[available_features].copy()
+
+        # SKIP clean_features() - we want ALL features including bytype, global, etc.
+        # These are critical for model performance (che_bytype_dnf_rate is 20% importance!)
+        # X = cleaner.clean_features(X)  # ← DISABLED
+
+        # Only apply transformations (recence_log, cotedirect_log)
+        X = cleaner.apply_transformations(X)
+
+        # Update feature_columns to match the ACTUAL features after transformations
+        self.feature_columns = list(X.columns)
+        self.log_info(f"✓ Feature columns after transformations: {len(self.feature_columns)} features (keeping ALL features)")
+
+        # FAIL-FAST: Validate we have the expected ~90 features (89 after recence/cotedirect transform)
+        expected_min_features = 85  # Should be ~89, but allow some variation
+        if len(self.feature_columns) < expected_min_features:
+            error_msg = f"""
+❌ FEATURE COUNT TOO LOW!
+
+Created: {len(self.feature_columns)} features
+Expected: ~89 features (minimum {expected_min_features})
+
+This suggests the feature calculation is not creating all required features.
+Check that:
+1. FeatureCalculator.calculate_all_features() is creating musique features (che_*, joc_*)
+2. QuinteFeatureCalculator is adding quinté-specific features
+3. clean_features() is NOT being called (it removes important features)
+
+Current features:
+{self.feature_columns}
+"""
+            self.log_info(error_msg)
+            raise ValueError(f"Feature count too low: {len(self.feature_columns)} < {expected_min_features}")
+
+        # Verify critical features are present
+        critical_features = ['che_bytype_dnf_rate', 'che_global_avg_pos', 'joc_bytype_avg_pos']
+        missing_critical = [f for f in critical_features if f not in self.feature_columns]
+        if missing_critical:
+            error_msg = f"""
+❌ CRITICAL FEATURES MISSING!
+
+Missing: {missing_critical}
+
+These features are essential for model performance. Check feature calculation pipeline.
+"""
+            self.log_info(error_msg)
+            raise ValueError(f"Critical features missing: {missing_critical}")
+
         y = self.complete_df['final_position'].copy() if 'final_position' in self.complete_df.columns else None
 
         if y is None:
@@ -163,7 +219,7 @@ class TabNetTrainer:
                     self.log_info(f"Using alternative target column '{alt_target}' instead of 'final_position'")
                     y = self.complete_df[alt_target].copy()
                     break
-            
+
             if y is None:
                 raise ValueError(f"No target column found in dataset. Available columns: {list(self.complete_df.columns)}")
 
@@ -174,7 +230,9 @@ class TabNetTrainer:
 
         self.log_info(f"Feature matrix shape: {X.shape}")
         self.log_info(f"Target vector shape: {y.shape}")
-        self.log_info(f"Selected features: {len(available_features)}")
+        self.log_info(f"Selected features (pre-transformations): {len(available_features)}")
+        self.log_info(f"Final features (post-transformations): {len(self.feature_columns)}")
+        self.log_info(f"✅ All validation checks passed!")
 
         return X, y
 

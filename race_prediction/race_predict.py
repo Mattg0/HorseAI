@@ -42,7 +42,8 @@ class RacePredictor:
     """
 
     def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False,
-                 enable_prediction_storage: bool = True):
+                 enable_prediction_storage: bool = True, enable_feature_export: bool = False,
+                 feature_export_min_races: int = 5):
         """
         Initialize the optimized race predictor.
 
@@ -51,10 +52,17 @@ class RacePredictor:
             db_name: Database name from config (defaults to active_db)
             verbose: Whether to print verbose output
             enable_prediction_storage: Whether to enable comprehensive prediction storage
+            enable_feature_export: Whether to export X features for analysis
+            feature_export_min_races: Minimum races to accumulate before exporting (default: 5)
         """
         # Initialize config
         self.config = AppConfig()
         self.verbose = verbose
+
+        # Feature export settings
+        self.enable_feature_export = enable_feature_export
+        self.feature_export_min_races = feature_export_min_races
+        self.feature_buffer = []  # Buffer to accumulate features from multiple races
 
         # Set database
         if db_name is None:
@@ -260,18 +268,39 @@ class RacePredictor:
             if self.verbose:
                 print("  ⚠️  Removed 'final_position' column from prediction data")
 
-        # Step 3: Apply FeatureCalculator FIRST (matching training pipeline exactly)
-        # Training uses: FeatureCalculator.calculate_all_features(df_historical)
-        # This includes musique preprocessing and confidence-weighted earnings calculations
+        # Step 3: Apply FeatureCalculator WITH TEMPORAL MODE (matching training pipeline exactly)
+        # Training uses: FeatureCalculator.calculate_all_features(df_historical, use_temporal=True)
+        # CRITICAL: use_temporal=True prevents data leakage in career statistics
         if self.verbose:
-            print("  🔧 Applying FeatureCalculator (same as training)...")
+            print("  🔧 Applying FeatureCalculator with temporal calculations (no leakage)...")
 
         prep_start = time.time()
-        df_with_features = FeatureCalculator.calculate_all_features(race_df)
+        # CRITICAL FIX: Use temporal calculations to prevent data leakage
+        df_with_features = FeatureCalculator.calculate_all_features(
+            race_df,
+            use_temporal=True,  # SAME AS TRAINING - prevents data leakage
+            db_path=self.db_path
+        )
         prep_time = time.time() - prep_start
 
         if self.verbose:
-            print(f"  ✅ FeatureCalculator applied: {prep_time:.2f}s")
+            print(f"  ✅ FeatureCalculator applied (temporal mode): {prep_time:.2f}s")
+
+        # Step 3.5: Apply feature cleanup (same as training)
+        if self.verbose:
+            print("  🔧 Applying feature cleanup (removing leaking features)...")
+
+        from core.data_cleaning.feature_cleanup import FeatureCleaner
+        cleaner = FeatureCleaner()
+
+        # Clean features (removes leaking career stats)
+        df_with_features = cleaner.clean_features(df_with_features)
+
+        # Apply transformations (log transforms)
+        df_with_features = cleaner.apply_transformations(df_with_features)
+
+        if self.verbose:
+            print(f"  ✅ Feature cleanup applied: {len(df_with_features.columns)} features")
 
         # Step 4: Use orchestrator's TabNet preparation (matching training pipeline exactly)
         # Training uses: orchestrator.prepare_tabnet_features(df_with_features)
@@ -862,6 +891,85 @@ class RacePredictor:
         
         return predictions
 
+    def _capture_features_for_export(self, race_df: pd.DataFrame, X_tabnet: pd.DataFrame,
+                                     race_metadata: dict):
+        """
+        Capture TabNet features from current race for later export.
+
+        Args:
+            race_df: Original race data
+            X_tabnet: TabNet feature matrix (unscaled)
+            race_metadata: Race metadata (comp, hippo, etc.)
+        """
+        if not self.enable_feature_export:
+            return
+
+        race_id = race_metadata.get('comp', 'unknown')
+
+        # Prepare feature record with metadata (TabNet features only)
+        feature_record = {
+            'race_id': race_id,
+            'hippo': race_metadata.get('hippo', ''),
+            'date': race_metadata.get('date', ''),
+            'partants': len(race_df),
+            'X_features': X_tabnet.to_dict('records') if X_tabnet is not None else [],
+            'feature_names': list(X_tabnet.columns) if X_tabnet is not None else [],
+            'feature_count': len(X_tabnet.columns) if X_tabnet is not None else 0
+        }
+
+        self.feature_buffer.append(feature_record)
+
+        if self.verbose:
+            feature_count = feature_record['feature_count']
+            print(f"📊 Captured {feature_count} TabNet features for race {race_id} ({len(self.feature_buffer)}/{self.feature_export_min_races})")
+
+        # Export if we've reached the minimum
+        if len(self.feature_buffer) >= self.feature_export_min_races:
+            self._export_features()
+
+    def _export_features(self):
+        """Export accumulated features to JSON file."""
+        if not self.feature_buffer:
+            return
+
+        try:
+            output_file = 'X_general_features.json'
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+            export_data = {
+                'export_timestamp': timestamp,
+                'total_races': len(self.feature_buffer),
+                'total_horses': sum(record['partants'] for record in self.feature_buffer),
+                'races': self.feature_buffer
+            }
+
+            with open(output_file, 'w') as f:
+                json.dump(export_data, f, indent=2, default=str)
+
+            if self.verbose:
+                print(f"✅ Exported {len(self.feature_buffer)} races features to {output_file}")
+
+            # Clear buffer after export
+            self.feature_buffer = []
+
+        except Exception as e:
+            if self.verbose:
+                print(f"⚠️ Error exporting features: {e}")
+
+    def get_feature_buffer_status(self) -> dict:
+        """Get current status of feature buffer."""
+        return {
+            'enabled': self.enable_feature_export,
+            'buffered_races': len(self.feature_buffer),
+            'min_races': self.feature_export_min_races,
+            'ready_to_export': len(self.feature_buffer) >= self.feature_export_min_races
+        }
+
+    def force_export_features(self):
+        """Force export of features even if minimum not reached."""
+        if self.feature_buffer:
+            self._export_features()
+
     def predict_race(self, race_df: pd.DataFrame) -> pd.DataFrame:
         """
         Predict race outcome using the optimized hybrid model.
@@ -940,15 +1048,24 @@ class RacePredictor:
                     print(f"✅ {model}: {type(preds)} shape {preds.shape}")
                 # Don't show None models to avoid confusion
 
-        # Step 7: Prepare race metadata and apply dynamic weights
+        # Step 6.5: Capture features for export (if enabled)
         race_metadata = {
             'distance': race_df.get('dist', [0]).iloc[0] if 'dist' in race_df.columns else 1600,
             'dist': race_df.get('dist', [0]).iloc[0] if 'dist' in race_df.columns else 1600,
             'typec': race_df.get('typec', ['P']).iloc[0] if 'typec' in race_df.columns else 'P',
             'field_size': len(race_df),
             'hippo': race_df.get('hippo', ['']).iloc[0] if 'hippo' in race_df.columns else '',
-            'comp': race_df.get('comp', ['']).iloc[0] if 'comp' in race_df.columns else ''
+            'comp': race_df.get('comp', ['']).iloc[0] if 'comp' in race_df.columns else '',
+            'date': race_df.get('jour', ['']).iloc[0] if 'jour' in race_df.columns else ''
         }
+
+        # Capture features for analysis (accumulates 5+ races before export)
+        if self.enable_feature_export:
+            # Get TabNet features before scaling (TabNet is the primary model)
+            X_tabnet_unscaled, _ = self.prepare_tabnet_features(race_df)
+            self._capture_features_for_export(race_df, X_tabnet_unscaled, race_metadata)
+
+        # Step 7: Prepare race metadata and apply dynamic weights
 
         # Apply dynamic weights based on race characteristics
         if self.verbose:
@@ -1137,7 +1254,7 @@ class RacePredictor:
         try:
             # Get races to re-blend
             if race_id:
-                # Specific race only
+                # Specific race only (now includes quinté races)
                 race_query = """
                     SELECT DISTINCT comp, typec, partant, dist
                     FROM daily_race
@@ -1145,7 +1262,7 @@ class RacePredictor:
                 """
                 races = pd.read_sql_query(race_query, conn, params=(race_id,))
             elif all_races:
-                # All races that have predictions
+                # All races that have predictions (now includes quinté races)
                 race_query = """
                     SELECT DISTINCT dr.comp, dr.typec, dr.partant, dr.dist
                     FROM daily_race dr
@@ -1153,7 +1270,7 @@ class RacePredictor:
                 """
                 races = pd.read_sql_query(race_query, conn)
             elif date:
-                # Specific date
+                # Specific date (now includes quinté races)
                 race_query = """
                     SELECT DISTINCT comp, typec, partant, dist
                     FROM daily_race
@@ -1161,7 +1278,7 @@ class RacePredictor:
                 """
                 races = pd.read_sql_query(race_query, conn, params=(date,))
             else:
-                # Default to all races with predictions
+                # Default to all races with predictions (now includes quinté races)
                 race_query = """
                     SELECT DISTINCT dr.comp, dr.typec, dr.partant, dr.dist
                     FROM daily_race dr
@@ -1201,7 +1318,7 @@ class RacePredictor:
                     print(f"\nRace {race_comp}: typec={race_row['typec']}, partant={race_row['partant']}, dist={race_row['dist']}")
                     print(f"  Dynamic weights: RF={rf_weight:.2f}, TabNet={tabnet_weight:.2f}")
 
-                # Get existing predictions for this race
+                # Get existing predictions for this race (now includes quinté)
                 pred_query = """
                     SELECT id, horse_id, rf_prediction, tabnet_prediction,
                            ensemble_weight_rf, ensemble_weight_tabnet
@@ -1258,7 +1375,7 @@ class RacePredictor:
                 # Update prediction_results in daily_race using participants mapping
                 import json
 
-                # Get updated predictions ordered by final_prediction
+                # Get updated predictions ordered by final_prediction (now includes quinté)
                 cursor.execute("""
                     SELECT
                         json_extract(p.value, '$.numero') as numero,

@@ -1,0 +1,2 @@
+analysis_date,total_expected_features,available_features,missing_features,feature_match_ratio,zero_value_features,constant_value_features,extreme_value_features,total_quality_issues,musique_available,phase1_available,phase2_available,basic_available,prediction_readiness,quality_rating
+2025-10-07 15:24:03,57,57,0,100.00%,4,2,3,9,12/12,10/10,8/8,27/27,READY,GOOD
