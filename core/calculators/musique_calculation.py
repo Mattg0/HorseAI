@@ -16,7 +16,8 @@ class MusiqueFeatureExtractor:
             'P': 'Plat',
             'H': 'Haies',
             'S': 'Steeple-Chase',
-            'T': 'Trot'
+            'T': 'Trot',
+            'C': 'Cross-Country'
         }
 
         # Reverse mapping for normalization (full name -> code)

@@ -71,21 +71,27 @@ class ModelFeatureSelector:
         
         # RF/TabNet features (raw domain features only - NO EMBEDDINGS)
         self.domain_features = [
-            # Raw musique-derived performance features (horse)
+            # Raw musique-derived performance features (horse) - COMPLETE SET
             'che_global_avg_pos', 'che_global_recent_perf', 'che_global_trend',
             'che_global_consistency', 'che_global_pct_top3', 'che_global_nb_courses',
+            'che_global_total_races', 'che_global_dnf_rate',
             'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency',
-            'che_weighted_trend', 'che_weighted_pct_top3',
+            'che_weighted_trend', 'che_weighted_pct_top3', 'che_weighted_nb_courses',
+            'che_weighted_total_races', 'che_weighted_dnf_rate',
             'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_trend',
             'che_bytype_consistency', 'che_bytype_pct_top3', 'che_bytype_nb_courses',
-            
-            # Jockey raw performance features
+            'che_bytype_dnf_rate',
+
+            # Jockey raw performance features - COMPLETE SET
             'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_trend',
             'joc_global_consistency', 'joc_global_pct_top3', 'joc_global_nb_courses',
+            'joc_global_total_races', 'joc_global_dnf_rate',
             'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency',
-            'joc_weighted_trend', 'joc_weighted_pct_top3',
+            'joc_weighted_trend', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses',
+            'joc_weighted_total_races', 'joc_weighted_dnf_rate',
             'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_trend',
             'joc_bytype_consistency', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses',
+            'joc_bytype_dnf_rate',
             
             # Raw couple statistics (not embeddings)
             'nbCourseCouple', 'nbVictCouple', 'nbPlaceCouple', 'TxVictCouple',
@@ -122,9 +128,9 @@ class ModelFeatureSelector:
             'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes',
             'equipment_optimization_score',
             
-            # Core racing features
-            'recence', 'age', 'cotedirect', 'coteprob',
-            'handicapDistance', 'handicapPoids', 'poidmont',
+            # Core racing features (include both original and log-transformed versions)
+            'recence', 'recence_log', 'age', 'cotedirect', 'cotedirect_log', 'coteprob',
+            'handicapDistance', 'handicapPoids', 'poidmont', 'numero',
             
             # Race context features (available in database)
             'temperature', 'forceVent', 'natpis', 'typec', 'meteo', 'corde',
@@ -143,7 +149,13 @@ class ModelFeatureSelector:
             # Competition context (3 features)
             'field_size_change', 'distance_comfort', 'competition_level_shift',
             # Feature interactions (3 features)
-            'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence'
+            'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence',
+
+            # Categorical features (from quinte calculator)
+            'field_size_category', 'purse_level_category', 'handicap_division',
+            'post_position_bias', 'post_position_track_bias',
+            'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF',
+            'weather_clear', 'weather_rain', 'weather_cloudy'
         ]
         
         # Tabnet-specific features (subset of domain features optimized for TabNet)
@@ -172,9 +184,9 @@ class ModelFeatureSelector:
             'blinkers_first_time', 'blinkers_high_impact_change', 'equipment_momentum_score',
             'major_shoeing_change', 'barefoot_to_shod', 'equipment_optimization_score',
             
-            # Core racing features
-            'recence', 'age', 'cotedirect', 'handicapDistance', 'temperature',
-            'natpis', 'typec', 'dist', 'coteprob',
+            # Core racing features (include both original and log-transformed versions)
+            'recence', 'recence_log', 'age', 'cotedirect', 'cotedirect_log', 'handicapDistance',
+            'temperature', 'natpis', 'typec', 'dist', 'coteprob', 'numero',
             
             # Phase 2: High-impact derived features for TabNet
             'class_drop_pct', 'purse_ratio', 'moving_up_in_class',

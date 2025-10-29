@@ -35,26 +35,49 @@ def extract_rf_features():
     print(f"Loading RF model from: {rf_model_file}")
     rf_model = joblib.load(rf_model_file)
 
-    # Try to get feature names
+    # Try multiple methods to get feature names (in order of preference)
     rf_features = None
-    if hasattr(rf_model, 'feature_names_in_'):
-        rf_features = list(rf_model.feature_names_in_)
-        print(f"✅ Found {len(rf_features)} RF features from model.feature_names_in_")
-    elif hasattr(rf_model, 'n_features_in_'):
-        print(f"⚠️  RF model has {rf_model.n_features_in_} features but no feature names")
-        rf_features = [f"feature_{i}" for i in range(rf_model.n_features_in_)]
 
-    # Check for metadata file
+    # Method 1: Check for feature_columns.json (NEW: most reliable)
+    feature_columns_file = Path(rf_path) / 'feature_columns.json'
+    if feature_columns_file.exists():
+        print(f"✅ Found feature_columns.json: {feature_columns_file}")
+        with open(feature_columns_file, 'r') as f:
+            rf_features = json.load(f)
+            print(f"✅ Loaded {len(rf_features)} RF features from feature_columns.json")
+            return rf_features
+
+    # Method 2: Check for metadata.json (legacy)
     metadata_file = Path(rf_path) / 'metadata.json'
     if metadata_file.exists():
-        print(f"✅ Found metadata file: {metadata_file}")
+        print(f"✅ Found metadata.json: {metadata_file}")
         with open(metadata_file, 'r') as f:
             metadata = json.load(f)
             if 'feature_columns' in metadata:
                 rf_features = metadata['feature_columns']
-                print(f"✅ Loaded {len(rf_features)} features from metadata")
+                print(f"✅ Loaded {len(rf_features)} RF features from metadata.json")
+                return rf_features
 
-    return rf_features
+    # Method 3: Try to get from sklearn model's feature_names_in_ attribute
+    if hasattr(rf_model, 'feature_names_in_'):
+        rf_features = list(rf_model.feature_names_in_)
+        print(f"✅ Found {len(rf_features)} RF features from model.feature_names_in_")
+        return rf_features
+
+    # Method 4: Try to get from base_regressor (for wrapped models like CalibratedRegressor)
+    if hasattr(rf_model, 'base_regressor') and hasattr(rf_model.base_regressor, 'feature_names_in_'):
+        rf_features = list(rf_model.base_regressor.feature_names_in_)
+        print(f"✅ Found {len(rf_features)} RF features from model.base_regressor.feature_names_in_")
+        return rf_features
+
+    # Method 5: Fallback - just get feature count
+    if hasattr(rf_model, 'n_features_in_'):
+        print(f"⚠️  RF model has {rf_model.n_features_in_} features but no feature names")
+        rf_features = [f"feature_{i}" for i in range(rf_model.n_features_in_)]
+        return rf_features
+
+    print("❌ Could not extract RF feature names")
+    return None
 
 
 def extract_tabnet_features():
@@ -73,24 +96,41 @@ def extract_tabnet_features():
 
     print(f"TabNet model path: {tabnet_path}")
 
-    # Check for metadata file (TabNet stores features here)
-    metadata_file = Path(tabnet_path) / 'metadata.json'
-    if not metadata_file.exists():
-        print(f"❌ TabNet metadata file not found: {metadata_file}")
-        return None
-
-    print(f"Loading TabNet metadata from: {metadata_file}")
-    with open(metadata_file, 'r') as f:
-        metadata = json.load(f)
-
+    # Try multiple methods to get feature names (in order of preference)
     tabnet_features = None
-    if 'feature_columns' in metadata:
-        tabnet_features = metadata['feature_columns']
-        print(f"✅ Found {len(tabnet_features)} TabNet features")
-    else:
-        print("⚠️  No feature_columns in TabNet metadata")
 
-    return tabnet_features
+    # Method 1: Check for tabnet_feature_columns.json (NEW: most reliable)
+    tabnet_feature_file = Path(tabnet_path) / 'tabnet_feature_columns.json'
+    if tabnet_feature_file.exists():
+        print(f"✅ Found tabnet_feature_columns.json: {tabnet_feature_file}")
+        with open(tabnet_feature_file, 'r') as f:
+            tabnet_features = json.load(f)
+            print(f"✅ Loaded {len(tabnet_features)} TabNet features from tabnet_feature_columns.json")
+            return tabnet_features
+
+    # Method 2: Check for metadata.json (legacy)
+    metadata_file = Path(tabnet_path) / 'metadata.json'
+    if metadata_file.exists():
+        print(f"✅ Found metadata.json: {metadata_file}")
+        with open(metadata_file, 'r') as f:
+            metadata = json.load(f)
+            if 'feature_columns' in metadata:
+                tabnet_features = metadata['feature_columns']
+                print(f"✅ Loaded {len(tabnet_features)} TabNet features from metadata.json")
+                return tabnet_features
+
+    # Method 3: Check for feature_columns.json (same as RF)
+    feature_columns_file = Path(tabnet_path) / 'feature_columns.json'
+    if feature_columns_file.exists():
+        print(f"✅ Found feature_columns.json: {feature_columns_file}")
+        with open(feature_columns_file, 'r') as f:
+            tabnet_features = json.load(f)
+            print(f"✅ Loaded {len(tabnet_features)} TabNet features from feature_columns.json")
+            return tabnet_features
+
+    print("❌ Could not find TabNet feature information")
+    print("   Checked: tabnet_feature_columns.json, metadata.json, feature_columns.json")
+    return None
 
 
 def main():

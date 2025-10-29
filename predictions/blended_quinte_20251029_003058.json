@@ -1,0 +1,4682 @@
+[
+  {
+    "comp": "1592537",
+    "jour": "2025-10-05",
+    "hippo": "ParisLongchamp",
+    "prix": "Qatar Prix de l'Arc de Triomphe",
+    "top5": "16-9-15-13-18",
+    "top5_list": [
+      16,
+      9,
+      15,
+      13,
+      18
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 10.035179138183594,
+        "general_pred": 7.87894646193453,
+        "blended_pred": 8.310192997184343
+      },
+      {
+        "rank": 2,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 10.830619812011719,
+        "general_pred": 17.643539563347314,
+        "blended_pred": 16.280955613080195
+      },
+      {
+        "rank": 3,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 5.285525798797607,
+        "general_pred": 88.1611870250566,
+        "blended_pred": 71.5860547798048
+      },
+      {
+        "rank": 4,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 7.697535037994385,
+        "general_pred": 112.94669939477616,
+        "blended_pred": 91.8968665234198
+      },
+      {
+        "rank": 5,
+        "numero": 18,
+        "nom": "",
+        "quinte_pred": 11.810001373291016,
+        "general_pred": 112.79685825413446,
+        "blended_pred": 92.59948687796577
+      },
+      {
+        "rank": 6,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 4.433940410614014,
+        "general_pred": 114.8449972134735,
+        "blended_pred": 92.76278585290162
+      },
+      {
+        "rank": 7,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 12.581375122070312,
+        "general_pred": 126.01745773218651,
+        "blended_pred": 103.33024121016328
+      },
+      {
+        "rank": 8,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 9.937577247619629,
+        "general_pred": 126.9777830628143,
+        "blended_pred": 103.56974189977537
+      },
+      {
+        "rank": 9,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 14.168039321899414,
+        "general_pred": 127.37936419742296,
+        "blended_pred": 104.73709922231826
+      },
+      {
+        "rank": 10,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 6.93924617767334,
+        "general_pred": 149.433644674411,
+        "blended_pred": 120.93476497506347
+      },
+      {
+        "rank": 11,
+        "numero": 17,
+        "nom": "",
+        "quinte_pred": 9.161053657531738,
+        "general_pred": 152.99235968338814,
+        "blended_pred": 124.22609847821687
+      },
+      {
+        "rank": 12,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 12.873543739318848,
+        "general_pred": 159.78598246462016,
+        "blended_pred": 130.40349471955992
+      },
+      {
+        "rank": 13,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 27.623157501220703,
+        "general_pred": 160.15870474083835,
+        "blended_pred": 133.65159529291483
+      },
+      {
+        "rank": 14,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 10.547603607177734,
+        "general_pred": 167.93545340591683,
+        "blended_pred": 136.45788344616903
+      },
+      {
+        "rank": 15,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 11.498291015625,
+        "general_pred": 210.82636599657013,
+        "blended_pred": 170.96075100038112
+      },
+      {
+        "rank": 16,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 10.0504150390625,
+        "general_pred": 217.84289336622808,
+        "blended_pred": 176.28439770079498
+      },
+      {
+        "rank": 17,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 15.134729385375977,
+        "general_pred": 217.95346648099832,
+        "blended_pred": 177.38971906187388
+      },
+      {
+        "rank": 18,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 12.41068172454834,
+        "general_pred": 223.78336435162683,
+        "blended_pred": 181.50882782621113
+      }
+    ]
+  },
+  {
+    "comp": "1606667",
+    "jour": "2025-09-23",
+    "hippo": "Auteuil",
+    "prix": "Prix Calabrais",
+    "top5": "6-15-11-13-10",
+    "top5_list": [
+      6,
+      15,
+      11,
+      13,
+      10
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 11.881963729858398,
+        "general_pred": 21.239088625283763,
+        "blended_pred": 19.36766364619869
+      },
+      {
+        "rank": 2,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 11.873550415039062,
+        "general_pred": 38.28492928217763,
+        "blended_pred": 33.002653508749916
+      },
+      {
+        "rank": 3,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 7.126715183258057,
+        "general_pred": 44.532892143435596,
+        "blended_pred": 37.05165675140009
+      },
+      {
+        "rank": 4,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 10.579362869262695,
+        "general_pred": 45.77571444224162,
+        "blended_pred": 38.73644412764584
+      },
+      {
+        "rank": 5,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 10.641093254089355,
+        "general_pred": 46.11118262170219,
+        "blended_pred": 39.017164748179624
+      },
+      {
+        "rank": 6,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 13.472298622131348,
+        "general_pred": 46.8152887721661,
+        "blended_pred": 40.146690742159144
+      },
+      {
+        "rank": 7,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 3.9469804763793945,
+        "general_pred": 53.426313634072585,
+        "blended_pred": 43.53044700253395
+      },
+      {
+        "rank": 8,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 11.49892807006836,
+        "general_pred": 58.27341072295631,
+        "blended_pred": 48.91851419237872
+      },
+      {
+        "rank": 9,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 5.520144462585449,
+        "general_pred": 61.451334421258224,
+        "blended_pred": 50.26509642952367
+      },
+      {
+        "rank": 10,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 8.662242889404297,
+        "general_pred": 61.83610174005682,
+        "blended_pred": 51.20132996992632
+      },
+      {
+        "rank": 11,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 9.211822509765625,
+        "general_pred": 62.544008210834704,
+        "blended_pred": 51.877571070620895
+      },
+      {
+        "rank": 12,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 8.955157279968262,
+        "general_pred": 63.397078279194076,
+        "blended_pred": 52.50869407934892
+      },
+      {
+        "rank": 13,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 10.534586906433105,
+        "general_pred": 64.07505887790417,
+        "blended_pred": 53.36696448360996
+      },
+      {
+        "rank": 14,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 4.812551975250244,
+        "general_pred": 70.36198897688357,
+        "blended_pred": 57.2521015765569
+      },
+      {
+        "rank": 15,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 8.963269233703613,
+        "general_pred": 81.7091213828639,
+        "blended_pred": 67.15995095303184
+      },
+      {
+        "rank": 16,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 9.562274932861328,
+        "general_pred": 83.27101302473513,
+        "blended_pred": 68.52926540636038
+      }
+    ]
+  },
+  {
+    "comp": "1606698",
+    "jour": "2025-09-25",
+    "hippo": "Chantilly",
+    "prix": "Prix de la Chambre du Duc",
+    "top5": "10-9-11-6-7",
+    "top5_list": [
+      10,
+      9,
+      11,
+      6,
+      7
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 10.427057266235352,
+        "general_pred": 10.652586234105776,
+        "blended_pred": 10.607480440531692
+      },
+      {
+        "rank": 2,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 10.959195137023926,
+        "general_pred": 25.57729223528479,
+        "blended_pred": 22.65367281563262
+      },
+      {
+        "rank": 3,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 10.854510307312012,
+        "general_pred": 30.983343691201735,
+        "blended_pred": 26.957577014423794
+      },
+      {
+        "rank": 4,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 10.47869873046875,
+        "general_pred": 46.668820555597286,
+        "blended_pred": 39.43079619057158
+      },
+      {
+        "rank": 5,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 9.956464767456055,
+        "general_pred": 49.40059534360285,
+        "blended_pred": 41.511769228373495
+      },
+      {
+        "rank": 6,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 12.405677795410156,
+        "general_pred": 56.00695754425435,
+        "blended_pred": 47.286701594485514
+      },
+      {
+        "rank": 7,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 9.64731502532959,
+        "general_pred": 62.771057379735666,
+        "blended_pred": 52.14630890885446
+      },
+      {
+        "rank": 8,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 9.31649398803711,
+        "general_pred": 68.92332171854548,
+        "blended_pred": 57.001956172443805
+      },
+      {
+        "rank": 9,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 9.994508743286133,
+        "general_pred": 82.73893469133948,
+        "blended_pred": 68.19004950172882
+      },
+      {
+        "rank": 10,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 11.196918487548828,
+        "general_pred": 100.44602828176399,
+        "blended_pred": 82.59620632292096
+      },
+      {
+        "rank": 11,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 10.533761978149414,
+        "general_pred": 103.66785997525675,
+        "blended_pred": 85.04104037583528
+      },
+      {
+        "rank": 12,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 13.823583602905273,
+        "general_pred": 105.97429100283958,
+        "blended_pred": 87.54414952285272
+      },
+      {
+        "rank": 13,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 83.66249084472656,
+        "general_pred": 120.6552618469855,
+        "blended_pred": 113.25670764653371
+      },
+      {
+        "rank": 14,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 38.093467712402344,
+        "general_pred": 136.74398462755926,
+        "blended_pred": 117.01388124452788
+      },
+      {
+        "rank": 15,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 11.824995040893555,
+        "general_pred": 144.8255031822468,
+        "blended_pred": 118.22540155397616
+      },
+      {
+        "rank": 16,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 113.42124938964844,
+        "general_pred": 166.2700404575893,
+        "blended_pred": 155.70028224400113
+      }
+    ]
+  },
+  {
+    "comp": "1606724",
+    "jour": "2025-09-27",
+    "hippo": "Auteuil",
+    "prix": "Prix Grandlieu",
+    "top5": "12-16-14-6-15",
+    "top5_list": [
+      12,
+      16,
+      14,
+      6,
+      15
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 10.212821960449219,
+        "general_pred": 44.05962854672785,
+        "blended_pred": 37.29026722947213
+      },
+      {
+        "rank": 2,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 10.672372817993164,
+        "general_pred": 57.1941217273669,
+        "blended_pred": 47.88977194549215
+      },
+      {
+        "rank": 3,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 9.61587905883789,
+        "general_pred": 63.482758677978765,
+        "blended_pred": 52.709382754150596
+      },
+      {
+        "rank": 4,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 23.010726928710938,
+        "general_pred": 68.24937762674861,
+        "blended_pred": 59.20164748714108
+      },
+      {
+        "rank": 5,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 20.740610122680664,
+        "general_pred": 74.90846525493421,
+        "blended_pred": 64.0748942284835
+      },
+      {
+        "rank": 6,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 10.415094375610352,
+        "general_pred": 80.30819116879816,
+        "blended_pred": 66.3295718101606
+      },
+      {
+        "rank": 7,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 15.342110633850098,
+        "general_pred": 84.7989803538603,
+        "blended_pred": 70.90760640985826
+      },
+      {
+        "rank": 8,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 6.569841384887695,
+        "general_pred": 89.58193137428978,
+        "blended_pred": 72.97951337640936
+      },
+      {
+        "rank": 9,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 50.413963317871094,
+        "general_pred": 83.90288696289062,
+        "blended_pred": 77.20510223388672
+      },
+      {
+        "rank": 10,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 11.99390983581543,
+        "general_pred": 95.34191376537021,
+        "blended_pred": 78.67231297945926
+      },
+      {
+        "rank": 11,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 9.19567584991455,
+        "general_pred": 98.49891742907073,
+        "blended_pred": 80.6382691132395
+      },
+      {
+        "rank": 12,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 14.906171798706055,
+        "general_pred": 112.44239154989788,
+        "blended_pred": 92.93514759965952
+      },
+      {
+        "rank": 13,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 34.998992919921875,
+        "general_pred": 120.57505912377458,
+        "blended_pred": 103.45984588300404
+      },
+      {
+        "rank": 14,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 72.52848815917969,
+        "general_pred": 143.86105074595258,
+        "blended_pred": 129.594538228598
+      },
+      {
+        "rank": 15,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 32.79358673095703,
+        "general_pred": 154.77522675365148,
+        "blended_pred": 130.3788987491126
+      },
+      {
+        "rank": 16,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 16.576751708984375,
+        "general_pred": 166.68812734146564,
+        "blended_pred": 136.66585221496942
+      }
+    ]
+  },
+  {
+    "comp": "1606844",
+    "jour": "2025-09-30",
+    "hippo": "Chantilly",
+    "prix": "Prix de la Galerie des Batailles",
+    "top5": "9-1-5-16-13",
+    "top5_list": [
+      9,
+      1,
+      5,
+      16,
+      13
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 10.470193862915039,
+        "general_pred": -0.9998485728206807,
+        "blended_pred": 1.2941599143264635
+      },
+      {
+        "rank": 2,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 10.397550582885742,
+        "general_pred": 10.400988207365337,
+        "blended_pred": 10.40030068246942
+      },
+      {
+        "rank": 3,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 9.243854522705078,
+        "general_pred": 11.321140620220138,
+        "blended_pred": 10.905683400717127
+      },
+      {
+        "rank": 4,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 9.922744750976562,
+        "general_pred": 29.03272730161066,
+        "blended_pred": 25.21073079148384
+      },
+      {
+        "rank": 5,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 10.11278247833252,
+        "general_pred": 30.03634058286066,
+        "blended_pred": 26.051628961955032
+      },
+      {
+        "rank": 6,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 10.761260986328125,
+        "general_pred": 31.474273050267456,
+        "blended_pred": 27.33167063747959
+      },
+      {
+        "rank": 7,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 9.202377319335938,
+        "general_pred": 32.22702655252986,
+        "blended_pred": 27.622096705891074
+      },
+      {
+        "rank": 8,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 11.583284378051758,
+        "general_pred": 50.38315872891803,
+        "blended_pred": 42.62318385874478
+      },
+      {
+        "rank": 9,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 12.185625076293945,
+        "general_pred": 50.526130318477236,
+        "blended_pred": 42.858029270040575
+      },
+      {
+        "rank": 10,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 13.057083129882812,
+        "general_pred": 58.04761367933686,
+        "blended_pred": 49.04950756944605
+      },
+      {
+        "rank": 11,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 13.378378868103027,
+        "general_pred": 60.54837051527437,
+        "blended_pred": 51.114372185840104
+      },
+      {
+        "rank": 12,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 14.578784942626953,
+        "general_pred": 60.581747750060195,
+        "blended_pred": 51.381155188573544
+      },
+      {
+        "rank": 13,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 9.702630996704102,
+        "general_pred": 62.469301179584704,
+        "blended_pred": 51.91596714300859
+      },
+      {
+        "rank": 14,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 10.476011276245117,
+        "general_pred": 66.47938878220353,
+        "blended_pred": 55.27871328101185
+      },
+      {
+        "rank": 15,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 11.826325416564941,
+        "general_pred": 67.76669543628961,
+        "blended_pred": 56.57862143234468
+      },
+      {
+        "rank": 16,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 25.411033630371094,
+        "general_pred": 89.06498431620174,
+        "blended_pred": 76.33419417903562
+      }
+    ]
+  },
+  {
+    "comp": "1606886",
+    "jour": "2025-10-02",
+    "hippo": "Compi\u00e8gne",
+    "prix": "Prix de Beaune",
+    "top5": "15-1-7-11-5",
+    "top5_list": [
+      15,
+      1,
+      7,
+      11,
+      5
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 6.972615718841553,
+        "general_pred": 9.810029890401859,
+        "blended_pred": 9.242547056089798
+      },
+      {
+        "rank": 2,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 4.155922889709473,
+        "general_pred": 10.786387434554971,
+        "blended_pred": 9.460294525585871
+      },
+      {
+        "rank": 3,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 11.280593872070312,
+        "general_pred": 10.786387434554971,
+        "blended_pred": 10.88522872205804
+      },
+      {
+        "rank": 4,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 5.5026116371154785,
+        "general_pred": 20.25,
+        "blended_pred": 17.300522327423096
+      },
+      {
+        "rank": 5,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 6.30490779876709,
+        "general_pred": 22.75609756097561,
+        "blended_pred": 19.465859608533908
+      },
+      {
+        "rank": 6,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 11.38438606262207,
+        "general_pred": 43.81481481481482,
+        "blended_pred": 37.32872906437627
+      },
+      {
+        "rank": 7,
+        "numero": 18,
+        "nom": "",
+        "quinte_pred": 10.463379859924316,
+        "general_pred": 46.5,
+        "blended_pred": 39.29267597198486
+      },
+      {
+        "rank": 8,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 4.605886459350586,
+        "general_pred": 55.84012539184953,
+        "blended_pred": 45.59327760534975
+      },
+      {
+        "rank": 9,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 6.400151252746582,
+        "general_pred": 55.67816091954023,
+        "blended_pred": 45.822558986181505
+      },
+      {
+        "rank": 10,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 9.753925323486328,
+        "general_pred": 55.147260273972606,
+        "blended_pred": 46.06859328387535
+      },
+      {
+        "rank": 11,
+        "numero": 17,
+        "nom": "",
+        "quinte_pred": 10.334268569946289,
+        "general_pred": 55.147260273972606,
+        "blended_pred": 46.18466193316735
+      },
+      {
+        "rank": 12,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 8.24500846862793,
+        "general_pred": 55.67816091954023,
+        "blended_pred": 46.191530429357776
+      },
+      {
+        "rank": 13,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 9.08301830291748,
+        "general_pred": 56.02453987730061,
+        "blended_pred": 46.63623556242399
+      },
+      {
+        "rank": 14,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 9.49168586730957,
+        "general_pred": 56.05921052631579,
+        "blended_pred": 46.74570559451455
+      },
+      {
+        "rank": 15,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 11.19660758972168,
+        "general_pred": 56.02453987730061,
+        "blended_pred": 47.05895341978483
+      },
+      {
+        "rank": 16,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 12.2748384475708,
+        "general_pred": 57.257194899817854,
+        "blended_pred": 48.26072360936845
+      },
+      {
+        "rank": 17,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 9.833102226257324,
+        "general_pred": 59.205313632387856,
+        "blended_pred": 49.330871351161754
+      },
+      {
+        "rank": 18,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 40.38083267211914,
+        "general_pred": 55.67816091954023,
+        "blended_pred": 52.618695270056016
+      }
+    ]
+  },
+  {
+    "comp": "1606916",
+    "jour": "2025-10-04",
+    "hippo": "ParisLongchamp",
+    "prix": "Qatar Prix de La Place de La Concorde",
+    "top5": "14-4-17-16-13",
+    "top5_list": [
+      14,
+      4,
+      17,
+      16,
+      13
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 10.085145950317383,
+        "general_pred": 9.810029890401859,
+        "blended_pred": 9.865053102384964
+      },
+      {
+        "rank": 2,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 9.335752487182617,
+        "general_pred": 10.42208904109589,
+        "blended_pred": 10.204821730313238
+      },
+      {
+        "rank": 3,
+        "numero": 17,
+        "nom": "",
+        "quinte_pred": 10.634260177612305,
+        "general_pred": 10.117513611615244,
+        "blended_pred": 10.220862924814657
+      },
+      {
+        "rank": 4,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 9.926390647888184,
+        "general_pred": 10.42208904109589,
+        "blended_pred": 10.32294936245435
+      },
+      {
+        "rank": 5,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 9.484319686889648,
+        "general_pred": 10.786387434554971,
+        "blended_pred": 10.525973885021907
+      },
+      {
+        "rank": 6,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 11.26864242553711,
+        "general_pred": 11.538152610441767,
+        "blended_pred": 11.484250573460836
+      },
+      {
+        "rank": 7,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 11.188932418823242,
+        "general_pred": 13.99193548387097,
+        "blended_pred": 13.431334870861424
+      },
+      {
+        "rank": 8,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 46.447723388671875,
+        "general_pred": 10.117513611615244,
+        "blended_pred": 17.38355556702657
+      },
+      {
+        "rank": 9,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 49.557491302490234,
+        "general_pred": 10.42208904109589,
+        "blended_pred": 18.24916949337476
+      },
+      {
+        "rank": 10,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 11.059165000915527,
+        "general_pred": 24.07894736842105,
+        "blended_pred": 21.474990894919948
+      },
+      {
+        "rank": 11,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 12.703548431396484,
+        "general_pred": 25.339285714285715,
+        "blended_pred": 22.81213825770787
+      },
+      {
+        "rank": 12,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 12.232070922851562,
+        "general_pred": 57.05447070914697,
+        "blended_pred": 48.089990751887896
+      },
+      {
+        "rank": 13,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 13.21494197845459,
+        "general_pred": 57.05447070914697,
+        "blended_pred": 48.2865649630085
+      },
+      {
+        "rank": 14,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 12.29574203491211,
+        "general_pred": 57.42160148975791,
+        "blended_pred": 48.39642959878876
+      },
+      {
+        "rank": 15,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 13.854686737060547,
+        "general_pred": 58.5496632996633,
+        "blended_pred": 49.610667987142754
+      },
+      {
+        "rank": 16,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 13.447681427001953,
+        "general_pred": 58.818798642985435,
+        "blended_pred": 49.74457519978874
+      },
+      {
+        "rank": 17,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 27.37802505493164,
+        "general_pred": 56.23102310231023,
+        "blended_pred": 50.460423492834515
+      },
+      {
+        "rank": 18,
+        "numero": 18,
+        "nom": "",
+        "quinte_pred": 106.16246795654297,
+        "general_pred": 58.288081107814044,
+        "blended_pred": 67.86295847755983
+      }
+    ]
+  },
+  {
+    "comp": "1607004",
+    "jour": "2025-10-07",
+    "hippo": "Auteuil",
+    "prix": "Prix Guillaume de Pracomtal",
+    "top5": "7-14-5-11-12",
+    "top5_list": [
+      7,
+      14,
+      5,
+      11,
+      12
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 10.843315124511719,
+        "general_pred": 9.489267725320385,
+        "blended_pred": 9.760077205158652
+      },
+      {
+        "rank": 2,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 9.701908111572266,
+        "general_pred": 34.84770188765093,
+        "blended_pred": 29.8185431324352
+      },
+      {
+        "rank": 3,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 11.532684326171875,
+        "general_pred": 40.93268770884318,
+        "blended_pred": 35.052687032308924
+      },
+      {
+        "rank": 4,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 10.957391738891602,
+        "general_pred": 43.629238506098794,
+        "blended_pred": 37.09486915265736
+      },
+      {
+        "rank": 5,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 8.665010452270508,
+        "general_pred": 45.69177335544324,
+        "blended_pred": 38.28642077480869
+      },
+      {
+        "rank": 6,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 8.611062049865723,
+        "general_pred": 46.11688250956111,
+        "blended_pred": 38.615718417622034
+      },
+      {
+        "rank": 7,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 9.235700607299805,
+        "general_pred": 48.0964693015533,
+        "blended_pred": 40.3243155627026
+      },
+      {
+        "rank": 8,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 11.088821411132812,
+        "general_pred": 50.791368247584295,
+        "blended_pred": 42.850858880294
+      },
+      {
+        "rank": 9,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 9.286520004272461,
+        "general_pred": 51.91544892162021,
+        "blended_pred": 43.38966313815066
+      },
+      {
+        "rank": 10,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 5.259119510650635,
+        "general_pred": 53.57847563091077,
+        "blended_pred": 43.91460440685874
+      },
+      {
+        "rank": 11,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 5.067099571228027,
+        "general_pred": 71.1949301059043,
+        "blended_pred": 57.96936399896905
+      },
+      {
+        "rank": 12,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 9.384566307067871,
+        "general_pred": 73.42483659224077,
+        "blended_pred": 60.61678253520619
+      },
+      {
+        "rank": 13,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 9.465232849121094,
+        "general_pred": 73.7987224519066,
+        "blended_pred": 60.932024531349505
+      },
+      {
+        "rank": 14,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 7.410517692565918,
+        "general_pred": 76.56701929552801,
+        "blended_pred": 62.7357189749356
+      },
+      {
+        "rank": 15,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 10.333934783935547,
+        "general_pred": 76.61201874583897,
+        "blended_pred": 63.35640195345829
+      },
+      {
+        "rank": 16,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 10.03066635131836,
+        "general_pred": 83.5778703227796,
+        "blended_pred": 68.86842952848735
+      }
+    ]
+  },
+  {
+    "comp": "1607033",
+    "jour": "2025-10-09",
+    "hippo": "Saint-Cloud",
+    "prix": "Prix de Versailles",
+    "top5": "13-7-2-14-11",
+    "top5_list": [
+      13,
+      7,
+      2,
+      14,
+      11
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 10.903064727783203,
+        "general_pred": 8.187122152438338,
+        "blended_pred": 8.730310667507311
+      },
+      {
+        "rank": 2,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 9.116988182067871,
+        "general_pred": 9.497458248588185,
+        "blended_pred": 9.421364235284123
+      },
+      {
+        "rank": 3,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 11.213218688964844,
+        "general_pred": 10.006850240817245,
+        "blended_pred": 10.248123930446766
+      },
+      {
+        "rank": 4,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 13.041601181030273,
+        "general_pred": 26.567624751604637,
+        "blended_pred": 23.862420037489766
+      },
+      {
+        "rank": 5,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 11.530806541442871,
+        "general_pred": 27.712835059798145,
+        "blended_pred": 24.476429356127092
+      },
+      {
+        "rank": 6,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 9.70268440246582,
+        "general_pred": 34.724187276950055,
+        "blended_pred": 29.71988670205321
+      },
+      {
+        "rank": 7,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 10.206544876098633,
+        "general_pred": 48.25285758072149,
+        "blended_pred": 40.64359503979692
+      },
+      {
+        "rank": 8,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 13.241178512573242,
+        "general_pred": 50.05614556459292,
+        "blended_pred": 42.69315215418899
+      },
+      {
+        "rank": 9,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 11.726350784301758,
+        "general_pred": 52.03790994272767,
+        "blended_pred": 43.975598111042494
+      },
+      {
+        "rank": 10,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 10.971405029296875,
+        "general_pred": 53.4762065608327,
+        "blended_pred": 44.97524625452554
+      },
+      {
+        "rank": 11,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 12.309259414672852,
+        "general_pred": 59.07931901098977,
+        "blended_pred": 49.725307091726386
+      },
+      {
+        "rank": 12,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 10.625532150268555,
+        "general_pred": 60.949902706596,
+        "blended_pred": 50.88502859533052
+      },
+      {
+        "rank": 13,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 10.286336898803711,
+        "general_pred": 83.71502841763697,
+        "blended_pred": 69.02929011387033
+      },
+      {
+        "rank": 14,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 10.648448944091797,
+        "general_pred": 87.22313160513472,
+        "blended_pred": 71.90819507292613
+      },
+      {
+        "rank": 15,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 12.568178176879883,
+        "general_pred": 96.60699619358758,
+        "blended_pred": 79.79923259024605
+      },
+      {
+        "rank": 16,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 12.17514419555664,
+        "general_pred": 97.79249730685342,
+        "blended_pred": 80.66902668459407
+      }
+    ]
+  },
+  {
+    "comp": "1607093",
+    "jour": "2025-10-12",
+    "hippo": "Auteuil",
+    "prix": "Prix Jack Barbe",
+    "top5": "15-7-9-18-5",
+    "top5_list": [
+      15,
+      7,
+      9,
+      18,
+      5
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 10.786568641662598,
+        "general_pred": 10.69311163895487,
+        "blended_pred": 10.711803039496417
+      },
+      {
+        "rank": 2,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 11.087711334228516,
+        "general_pred": 10.69311163895487,
+        "blended_pred": 10.7720315780096
+      },
+      {
+        "rank": 3,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 8.041902542114258,
+        "general_pred": 18.142857142857142,
+        "blended_pred": 16.122666222708567
+      },
+      {
+        "rank": 4,
+        "numero": 18,
+        "nom": "",
+        "quinte_pred": 36.90773391723633,
+        "general_pred": 13.99193548387097,
+        "blended_pred": 18.575095170544042
+      },
+      {
+        "rank": 5,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 6.759125709533691,
+        "general_pred": 33.68421052631579,
+        "blended_pred": 28.299193562959367
+      },
+      {
+        "rank": 6,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 10.409605026245117,
+        "general_pred": 43.81481481481482,
+        "blended_pred": 37.13377285710088
+      },
+      {
+        "rank": 7,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 7.137399196624756,
+        "general_pred": 50.541666666666664,
+        "blended_pred": 41.86081317265829
+      },
+      {
+        "rank": 8,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 9.51978874206543,
+        "general_pred": 55.84012539184953,
+        "blended_pred": 46.57605806189272
+      },
+      {
+        "rank": 9,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 10.815576553344727,
+        "general_pred": 56.02453987730061,
+        "blended_pred": 46.98274721250944
+      },
+      {
+        "rank": 10,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 6.1182122230529785,
+        "general_pred": 57.257194899817854,
+        "blended_pred": 47.02939836446488
+      },
+      {
+        "rank": 11,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 12.057510375976562,
+        "general_pred": 56.31379962192817,
+        "blended_pred": 47.46254177273785
+      },
+      {
+        "rank": 12,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 9.991514205932617,
+        "general_pred": 57.77671541057368,
+        "blended_pred": 48.21967516964547
+      },
+      {
+        "rank": 13,
+        "numero": 17,
+        "nom": "",
+        "quinte_pred": 8.555780410766602,
+        "general_pred": 59.205313632387856,
+        "blended_pred": 49.07540698806361
+      },
+      {
+        "rank": 14,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 12.777963638305664,
+        "general_pred": 58.37990995187083,
+        "blended_pred": 49.2595206891578
+      },
+      {
+        "rank": 15,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 14.116693496704102,
+        "general_pred": 58.06168384879725,
+        "blended_pred": 49.27268577837863
+      },
+      {
+        "rank": 16,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 16.838558197021484,
+        "general_pred": 59.205313632387856,
+        "blended_pred": 50.73196254531459
+      },
+      {
+        "rank": 17,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 71.64468383789062,
+        "general_pred": 53.41025641025641,
+        "blended_pred": 57.05714189578326
+      },
+      {
+        "rank": 18,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 79.75294494628906,
+        "general_pred": 57.56682825484764,
+        "blended_pred": 62.00405159313593
+      }
+    ]
+  },
+  {
+    "comp": "1607168",
+    "jour": "2025-10-13",
+    "hippo": "Marseille-Bor\u00e9ly",
+    "prix": "Prix H\u00f4tel Villa M Marseille (Prix Jules Morgan)",
+    "top5": "7-14-9-2-12",
+    "top5_list": [
+      7,
+      14,
+      9,
+      2,
+      12
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 9.096718788146973,
+        "general_pred": 26.610756727205036,
+        "blended_pred": 23.107949139393423
+      },
+      {
+        "rank": 2,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 11.12481689453125,
+        "general_pred": 81.02666713169643,
+        "blended_pred": 67.0462970842634
+      },
+      {
+        "rank": 3,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 19.56330680847168,
+        "general_pred": 91.25523810135691,
+        "blended_pred": 76.91685184277986
+      },
+      {
+        "rank": 4,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 10.176496505737305,
+        "general_pred": 111.39100960509418,
+        "blended_pred": 91.14810698522281
+      },
+      {
+        "rank": 5,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 12.096399307250977,
+        "general_pred": 126.17058602168643,
+        "blended_pred": 103.35574867879934
+      },
+      {
+        "rank": 6,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 26.035457611083984,
+        "general_pred": 132.74574348294004,
+        "blended_pred": 111.40368630856884
+      },
+      {
+        "rank": 7,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 10.956655502319336,
+        "general_pred": 148.14505771451198,
+        "blended_pred": 120.70737727207346
+      },
+      {
+        "rank": 8,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 9.259699821472168,
+        "general_pred": 161.23255543325973,
+        "blended_pred": 130.83798431090224
+      },
+      {
+        "rank": 9,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 9.707165718078613,
+        "general_pred": 180.88574837462542,
+        "blended_pred": 146.65003184331604
+      },
+      {
+        "rank": 10,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 99.57795715332031,
+        "general_pred": 163.5820499233929,
+        "blended_pred": 150.78123136937842
+      },
+      {
+        "rank": 11,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 28.752098083496094,
+        "general_pred": 181.87595833556293,
+        "blended_pred": 151.25118628514957
+      },
+      {
+        "rank": 12,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 19.505691528320312,
+        "general_pred": 222.9888649680398,
+        "blended_pred": 182.2922302800959
+      },
+      {
+        "rank": 13,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 68.55406951904297,
+        "general_pred": 238.80952358066102,
+        "blended_pred": 204.75843276833743
+      },
+      {
+        "rank": 14,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 95.47713470458984,
+        "general_pred": 242.9189208984375,
+        "blended_pred": 213.430563659668
+      },
+      {
+        "rank": 15,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 117.50225067138672,
+        "general_pred": 364.0306601989952,
+        "blended_pred": 314.7249782934735
+      },
+      {
+        "rank": 16,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 7.690546989440918,
+        "general_pred": 508.6926634196994,
+        "blended_pred": 408.4922401336477
+      }
+    ]
+  },
+  {
+    "comp": "1607184",
+    "jour": "2025-10-14",
+    "hippo": "Chantilly",
+    "prix": "Prix de la Vierge de Lorette",
+    "top5": "13-6-3-10-4",
+    "top5_list": [
+      13,
+      6,
+      3,
+      10,
+      4
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 9.804291725158691,
+        "general_pred": 22.655340827001282,
+        "blended_pred": 20.085131006632764
+      },
+      {
+        "rank": 2,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 14.123008728027344,
+        "general_pred": 30.334342914157443,
+        "blended_pred": 27.092076076931427
+      },
+      {
+        "rank": 3,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 24.442977905273438,
+        "general_pred": 32.66965927616243,
+        "blended_pred": 31.02432300198463
+      },
+      {
+        "rank": 4,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 10.946487426757812,
+        "general_pred": 63.66152605329241,
+        "blended_pred": 53.11851832798549
+      },
+      {
+        "rank": 5,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 11.019524574279785,
+        "general_pred": 76.76580235642227,
+        "blended_pred": 63.61654679999377
+      },
+      {
+        "rank": 6,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 8.51848030090332,
+        "general_pred": 84.2635768345424,
+        "blended_pred": 69.11455752781458
+      },
+      {
+        "rank": 7,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 9.921445846557617,
+        "general_pred": 91.76808002759421,
+        "blended_pred": 75.39875319138689
+      },
+      {
+        "rank": 8,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 10.557502746582031,
+        "general_pred": 95.3545047490004,
+        "blended_pred": 78.39510434851672
+      },
+      {
+        "rank": 9,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 17.33808708190918,
+        "general_pred": 109.30078873172883,
+        "blended_pred": 90.90824840176491
+      },
+      {
+        "rank": 10,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 37.468711853027344,
+        "general_pred": 110.35931180759168,
+        "blended_pred": 95.78119181667883
+      },
+      {
+        "rank": 11,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 22.318750381469727,
+        "general_pred": 116.58115234375,
+        "blended_pred": 97.72867195129396
+      },
+      {
+        "rank": 12,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 59.451995849609375,
+        "general_pred": 142.60272252243792,
+        "blended_pred": 125.97257718787222
+      },
+      {
+        "rank": 13,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 96.8568115234375,
+        "general_pred": 133.27284273814007,
+        "blended_pred": 125.98963649519956
+      },
+      {
+        "rank": 14,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 84.15154266357422,
+        "general_pred": 139.3615090110085,
+        "blended_pred": 128.31951574152166
+      },
+      {
+        "rank": 15,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 105.36991882324219,
+        "general_pred": 166.48174547330365,
+        "blended_pred": 154.25938014329137
+      },
+      {
+        "rank": 16,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 10.938834190368652,
+        "general_pred": 209.02101250361318,
+        "blended_pred": 169.4045768409643
+      }
+    ]
+  },
+  {
+    "comp": "1607203",
+    "jour": "2025-10-16",
+    "hippo": "Saint-Cloud",
+    "prix": "Prix des Landes",
+    "top5": "6-13-15-16-2",
+    "top5_list": [
+      6,
+      13,
+      15,
+      16,
+      2
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 11.397283554077148,
+        "general_pred": 16.749737972683377,
+        "blended_pred": 15.679247088962132
+      },
+      {
+        "rank": 2,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 12.684736251831055,
+        "general_pred": 37.56716266234228,
+        "blended_pred": 32.59067738024004
+      },
+      {
+        "rank": 3,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 10.809014320373535,
+        "general_pred": 47.064212221475174,
+        "blended_pred": 39.81317264125485
+      },
+      {
+        "rank": 4,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 12.0584716796875,
+        "general_pred": 53.98235553942229,
+        "blended_pred": 45.597578767475326
+      },
+      {
+        "rank": 5,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 10.217288970947266,
+        "general_pred": 62.296576282203524,
+        "blended_pred": 51.88071881995227
+      },
+      {
+        "rank": 6,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 9.048176765441895,
+        "general_pred": 63.39774659442418,
+        "blended_pred": 52.52783262862773
+      },
+      {
+        "rank": 7,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 7.423985481262207,
+        "general_pred": 66.4180543845611,
+        "blended_pred": 54.619240603901325
+      },
+      {
+        "rank": 8,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 11.47024154663086,
+        "general_pred": 74.71548570767861,
+        "blended_pred": 62.066436875469066
+      },
+      {
+        "rank": 9,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 12.438786506652832,
+        "general_pred": 74.74641838740224,
+        "blended_pred": 62.28489201125237
+      },
+      {
+        "rank": 10,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 9.900915145874023,
+        "general_pred": 89.89634353058247,
+        "blended_pred": 73.8972578536408
+      },
+      {
+        "rank": 11,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 12.773473739624023,
+        "general_pred": 90.22896259595359,
+        "blended_pred": 74.73786482468768
+      },
+      {
+        "rank": 12,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 13.319990158081055,
+        "general_pred": 102.46553363260799,
+        "blended_pred": 84.63642493770261
+      },
+      {
+        "rank": 13,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 11.184865951538086,
+        "general_pred": 105.04154698532852,
+        "blended_pred": 86.27021077857044
+      },
+      {
+        "rank": 14,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 80.93666076660156,
+        "general_pred": 123.53329634993045,
+        "blended_pred": 115.01396923326467
+      },
+      {
+        "rank": 15,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 15.493619918823242,
+        "general_pred": 139.9224946461986,
+        "blended_pred": 115.03671970072352
+      },
+      {
+        "rank": 16,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 32.54150390625,
+        "general_pred": 137.7029353529643,
+        "blended_pred": 116.67064906362144
+      }
+    ]
+  },
+  {
+    "comp": "1607224",
+    "jour": "2025-10-18",
+    "hippo": "Auteuil",
+    "prix": "Prix \u00abLe Parisien\u00bb (Prix Prince d'Ecouen)",
+    "top5": "4-1-13-7-9",
+    "top5_list": [
+      4,
+      1,
+      13,
+      7,
+      9
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 9.175540924072266,
+        "general_pred": 45.663813088156964,
+        "blended_pred": 38.36615865534002
+      },
+      {
+        "rank": 2,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 10.047967910766602,
+        "general_pred": 73.34782489977385,
+        "blended_pred": 60.687853501972405
+      },
+      {
+        "rank": 3,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 9.901069641113281,
+        "general_pred": 81.18714907563691,
+        "blended_pred": 66.92993318873218
+      },
+      {
+        "rank": 4,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 43.72930908203125,
+        "general_pred": 76.61356165392645,
+        "blended_pred": 70.03671113954742
+      },
+      {
+        "rank": 5,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 17.22476577758789,
+        "general_pred": 89.49151225645849,
+        "blended_pred": 75.03816296068437
+      },
+      {
+        "rank": 6,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 12.95991325378418,
+        "general_pred": 92.60315783863336,
+        "blended_pred": 76.67450892166353
+      },
+      {
+        "rank": 7,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 38.708866119384766,
+        "general_pred": 92.55557059643785,
+        "blended_pred": 81.78622970102722
+      },
+      {
+        "rank": 8,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 57.24409866333008,
+        "general_pred": 89.70582843648977,
+        "blended_pred": 83.21348248185782
+      },
+      {
+        "rank": 9,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 9.328272819519043,
+        "general_pred": 110.48577714399859,
+        "blended_pred": 90.25427627910268
+      },
+      {
+        "rank": 10,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 24.673126220703125,
+        "general_pred": 106.79377250268082,
+        "blended_pred": 90.36964324628528
+      },
+      {
+        "rank": 11,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 57.3087272644043,
+        "general_pred": 138.40758623187054,
+        "blended_pred": 122.1878144383773
+      },
+      {
+        "rank": 12,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 38.71320343017578,
+        "general_pred": 159.24710039202677,
+        "blended_pred": 135.14032099965658
+      },
+      {
+        "rank": 13,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 22.523605346679688,
+        "general_pred": 163.7125234750601,
+        "blended_pred": 135.47473984938404
+      },
+      {
+        "rank": 14,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 123.53329467773438,
+        "general_pred": 182.80143107594913,
+        "blended_pred": 170.94780379630618
+      }
+    ]
+  },
+  {
+    "comp": "1607280",
+    "jour": "2025-10-19",
+    "hippo": "ParisLongchamp",
+    "prix": "Prix \u00abLe Parisien\u00bb (Prix Rieussec)",
+    "top5": "6-14-11-4-9",
+    "top5_list": [
+      6,
+      14,
+      11,
+      4,
+      9
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 12.379575729370117,
+        "general_pred": 22.387088868676162,
+        "blended_pred": 20.385586240814952
+      },
+      {
+        "rank": 2,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 9.921491622924805,
+        "general_pred": 42.770869514637425,
+        "blended_pred": 36.20099393629491
+      },
+      {
+        "rank": 3,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 10.440851211547852,
+        "general_pred": 43.44406287010679,
+        "blended_pred": 36.84342053839501
+      },
+      {
+        "rank": 4,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 11.5010347366333,
+        "general_pred": 43.715905081273085,
+        "blended_pred": 37.272931012345126
+      },
+      {
+        "rank": 5,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 65.23298645019531,
+        "general_pred": 1421.3741545450623,
+        "blended_pred": 1150.1459209260888
+      },
+      {
+        "rank": 6,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 14.087644577026367,
+        "general_pred": 1440.5132500911966,
+        "blended_pred": 1155.2281289883626
+      },
+      {
+        "rank": 7,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 11.716255187988281,
+        "general_pred": 1470.0668492759148,
+        "blended_pred": 1178.3967304583296
+      },
+      {
+        "rank": 8,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 23.101058959960938,
+        "general_pred": 1469.784451362782,
+        "blended_pred": 1180.4477728822178
+      },
+      {
+        "rank": 9,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 10.956655502319336,
+        "general_pred": 1474.316953125,
+        "blended_pred": 1181.644893600464
+      },
+      {
+        "rank": 10,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 9.980121612548828,
+        "general_pred": 1483.0412362132354,
+        "blended_pred": 1188.4290132930983
+      },
+      {
+        "rank": 11,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 10.106147766113281,
+        "general_pred": 1487.8879265656483,
+        "blended_pred": 1192.3315708057412
+      },
+      {
+        "rank": 12,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 10.771883010864258,
+        "general_pred": 1490.8788999495969,
+        "blended_pred": 1194.8574965618502
+      },
+      {
+        "rank": 13,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 91.19805145263672,
+        "general_pred": 1472.7138360286965,
+        "blended_pred": 1196.4106791134845
+      },
+      {
+        "rank": 14,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 9.318891525268555,
+        "general_pred": 1498.4924116424118,
+        "blended_pred": 1200.6577076189833
+      },
+      {
+        "rank": 15,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 97.09996032714844,
+        "general_pred": 1496.8579190340909,
+        "blended_pred": 1216.9063272927024
+      },
+      {
+        "rank": 16,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 11.896907806396484,
+        "general_pred": 1520.2432022758153,
+        "blended_pred": 1218.5739433819317
+      }
+    ]
+  },
+  {
+    "comp": "1607304",
+    "jour": "2025-10-20",
+    "hippo": "Deauville",
+    "prix": "Prix de la For\u00eat de Lyons",
+    "top5": "5-3-8-12-7",
+    "top5_list": [
+      5,
+      3,
+      8,
+      12,
+      7
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 10.594337463378906,
+        "general_pred": 9.663056583333027,
+        "blended_pred": 9.849312759342203
+      },
+      {
+        "rank": 2,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 10.048674583435059,
+        "general_pred": 10.373234120403152,
+        "blended_pred": 10.308322213009534
+      },
+      {
+        "rank": 3,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 10.124208450317383,
+        "general_pred": 11.058820415254116,
+        "blended_pred": 10.87189802226677
+      },
+      {
+        "rank": 4,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 11.125470161437988,
+        "general_pred": 11.002439033254433,
+        "blended_pred": 11.027045258891146
+      },
+      {
+        "rank": 5,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 6.79801082611084,
+        "general_pred": 12.590611644926526,
+        "blended_pred": 11.43209148116339
+      },
+      {
+        "rank": 6,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 12.022738456726074,
+        "general_pred": 11.536954483480475,
+        "blended_pred": 11.634111278129595
+      },
+      {
+        "rank": 7,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 27.953657150268555,
+        "general_pred": 10.943799299769857,
+        "blended_pred": 14.345770869869598
+      },
+      {
+        "rank": 8,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 16.49422836303711,
+        "general_pred": 906.6502993657801,
+        "blended_pred": 728.6190851652316
+      },
+      {
+        "rank": 9,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 12.849969863891602,
+        "general_pred": 1441.1826340309633,
+        "blended_pred": 1155.516101197549
+      },
+      {
+        "rank": 10,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 13.116729736328125,
+        "general_pred": 1454.1429237217617,
+        "blended_pred": 1165.9376849246748
+      },
+      {
+        "rank": 11,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 119.31918334960938,
+        "general_pred": 1430.7965449327862,
+        "blended_pred": 1168.501072616151
+      },
+      {
+        "rank": 12,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 10.532224655151367,
+        "general_pred": 1459.1137918341187,
+        "blended_pred": 1169.3974783983251
+      },
+      {
+        "rank": 13,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 9.731149673461914,
+        "general_pred": 1461.8189744380481,
+        "blended_pred": 1171.401409485131
+      },
+      {
+        "rank": 14,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 13.425434112548828,
+        "general_pred": 1462.8628455967616,
+        "blended_pred": 1172.975363299919
+      },
+      {
+        "rank": 15,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 123.75586700439453,
+        "general_pred": 1453.849497721624,
+        "blended_pred": 1187.8307715781782
+      },
+      {
+        "rank": 16,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 10.46040153503418,
+        "general_pred": 1484.3655799717617,
+        "blended_pred": 1189.5845442844163
+      }
+    ]
+  },
+  {
+    "comp": "1607321",
+    "jour": "2025-10-21",
+    "hippo": "Clairefontaine",
+    "prix": "Prix Genybet (Prix des Equidays)",
+    "top5": "12-2-15-13-9",
+    "top5_list": [
+      12,
+      2,
+      15,
+      13,
+      9
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 11.748161315917969,
+        "general_pred": -854.9167190330617,
+        "blended_pred": -681.5837429632658
+      },
+      {
+        "rank": 2,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 8.191340446472168,
+        "general_pred": 22.65788461226451,
+        "blended_pred": 19.764575779106043
+      },
+      {
+        "rank": 3,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 11.838788032531738,
+        "general_pred": 21.95784919745637,
+        "blended_pred": 19.934036964471446
+      },
+      {
+        "rank": 4,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 9.480293273925781,
+        "general_pred": 24.911883301861522,
+        "blended_pred": 21.825565296274377
+      },
+      {
+        "rank": 5,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 11.047410011291504,
+        "general_pred": 26.003701951768665,
+        "blended_pred": 23.012443563673234
+      },
+      {
+        "rank": 6,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 12.159107208251953,
+        "general_pred": 35.761530397649395,
+        "blended_pred": 31.041045759769908
+      },
+      {
+        "rank": 7,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 11.373636245727539,
+        "general_pred": 2113.379845610119,
+        "blended_pred": 1692.978603737241
+      },
+      {
+        "rank": 8,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 10.233168601989746,
+        "general_pred": 2732.177686737805,
+        "blended_pred": 2187.788783110642
+      },
+      {
+        "rank": 9,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 11.981607437133789,
+        "general_pred": 2800.7104411332057,
+        "blended_pred": 2242.964674393991
+      },
+      {
+        "rank": 10,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 11.196322441101074,
+        "general_pred": 2835.686053139569,
+        "blended_pred": 2270.7881069998757
+      },
+      {
+        "rank": 11,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 11.628061294555664,
+        "general_pred": 2871.773200635544,
+        "blended_pred": 2299.7441727673463
+      },
+      {
+        "rank": 12,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 11.982635498046875,
+        "general_pred": 2905.6629801957056,
+        "blended_pred": 2326.926911256174
+      },
+      {
+        "rank": 13,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 10.685283660888672,
+        "general_pred": 2947.2716000145692,
+        "blended_pred": 2359.954336743833
+      },
+      {
+        "rank": 14,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 10.268787384033203,
+        "general_pred": 3006.9547437084343,
+        "blended_pred": 2407.6175524435544
+      },
+      {
+        "rank": 15,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 9.706747055053711,
+        "general_pred": 3017.8716747428803,
+        "blended_pred": 2416.238689205315
+      },
+      {
+        "rank": 16,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 9.066977500915527,
+        "general_pred": 3021.1756297264233,
+        "blended_pred": 2418.753899281322
+      }
+    ]
+  },
+  {
+    "comp": "1607344",
+    "jour": "2025-10-23",
+    "hippo": "Auteuil",
+    "prix": "Prix Montgomery",
+    "top5": "10-1-5-3-4",
+    "top5_list": [
+      10,
+      1,
+      5,
+      3,
+      4
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 10.625532150268555,
+        "general_pred": 23.93531608581543,
+        "blended_pred": 21.27335929870606
+      },
+      {
+        "rank": 2,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 7.44580602645874,
+        "general_pred": 26.252233505249023,
+        "blended_pred": 22.490948009490968
+      },
+      {
+        "rank": 3,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 5.498388290405273,
+        "general_pred": 28.186904907226562,
+        "blended_pred": 23.649201583862308
+      },
+      {
+        "rank": 4,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 6.983380317687988,
+        "general_pred": 28.89789390563965,
+        "blended_pred": 24.51499118804932
+      },
+      {
+        "rank": 5,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 6.744190216064453,
+        "general_pred": 30.556987762451172,
+        "blended_pred": 25.79442825317383
+      },
+      {
+        "rank": 6,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 8.564069747924805,
+        "general_pred": 31.379467010498047,
+        "blended_pred": 26.8163875579834
+      },
+      {
+        "rank": 7,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 17.20077133178711,
+        "general_pred": 31.10154151916504,
+        "blended_pred": 28.321387481689452
+      },
+      {
+        "rank": 8,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 35.63422775268555,
+        "general_pred": 29.008831024169922,
+        "blended_pred": 30.33391036987305
+      },
+      {
+        "rank": 9,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 29.87818145751953,
+        "general_pred": 283.2965087890625,
+        "blended_pred": 232.61284332275392
+      },
+      {
+        "rank": 10,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 7.037006378173828,
+        "general_pred": 559.3834228515625,
+        "blended_pred": 448.9141395568848
+      },
+      {
+        "rank": 11,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 9.560285568237305,
+        "general_pred": 3483.186279296875,
+        "blended_pred": 2788.4610805511475
+      },
+      {
+        "rank": 12,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 5.284280776977539,
+        "general_pred": 3545.185791015625,
+        "blended_pred": 2837.2054889678957
+      },
+      {
+        "rank": 13,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 39.323974609375,
+        "general_pred": 3873.591064453125,
+        "blended_pred": 3106.737646484375
+      }
+    ]
+  },
+  {
+    "comp": "1607383",
+    "jour": "2025-10-25",
+    "hippo": "Compi\u00e8gne",
+    "prix": "Prix C\u00e9r\u00e9aliste",
+    "top5": "10-9-2-5-14",
+    "top5_list": [
+      10,
+      9,
+      2,
+      5,
+      14
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 14.439464569091797,
+        "general_pred": 22.776726185191762,
+        "blended_pred": 21.10927386197177
+      },
+      {
+        "rank": 2,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 5.1239914894104,
+        "general_pred": 31.92482177734375,
+        "blended_pred": 26.56465571975708
+      },
+      {
+        "rank": 3,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 5.726461410522461,
+        "general_pred": 41.43391959398313,
+        "blended_pred": 34.292427957291
+      },
+      {
+        "rank": 4,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 8.910921096801758,
+        "general_pred": 41.28285605638547,
+        "blended_pred": 34.80846906446873
+      },
+      {
+        "rank": 5,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 4.9336981773376465,
+        "general_pred": 44.12028915817673,
+        "blended_pred": 36.28297096200892
+      },
+      {
+        "rank": 6,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 9.221551895141602,
+        "general_pred": 44.04098136156125,
+        "blended_pred": 37.07709546827732
+      },
+      {
+        "rank": 7,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 12.588968276977539,
+        "general_pred": 43.944454193115234,
+        "blended_pred": 37.673357009887695
+      },
+      {
+        "rank": 8,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 9.55097770690918,
+        "general_pred": 1465.8966333421613,
+        "blended_pred": 1174.627502215111
+      },
+      {
+        "rank": 9,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 6.006720066070557,
+        "general_pred": 1505.272146675282,
+        "blended_pred": 1205.41906135344
+      },
+      {
+        "rank": 10,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 7.643589019775391,
+        "general_pred": 1544.434031080163,
+        "blended_pred": 1237.0759426680856
+      },
+      {
+        "rank": 11,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 11.487654685974121,
+        "general_pred": 1551.9928315839695,
+        "blended_pred": 1243.8917962043704
+      },
+      {
+        "rank": 12,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 12.002450942993164,
+        "general_pred": 1568.9630402260639,
+        "blended_pred": 1257.5709223694498
+      },
+      {
+        "rank": 13,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 12.465618133544922,
+        "general_pred": 1585.489036106419,
+        "blended_pred": 1270.884352511844
+      },
+      {
+        "rank": 14,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 14.594015121459961,
+        "general_pred": 1594.6706968245967,
+        "blended_pred": 1278.6553604839694
+      },
+      {
+        "rank": 15,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 12.248883247375488,
+        "general_pred": 1603.255770596591,
+        "blended_pred": 1285.054393126748
+      }
+    ]
+  },
+  {
+    "comp": "1607426",
+    "jour": "2025-10-26",
+    "hippo": "Saint-Cloud",
+    "prix": "Prix de l'Elevage",
+    "top5": "14-4-3-2-1",
+    "top5_list": [
+      14,
+      4,
+      3,
+      2,
+      1
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 8.21413459777832,
+        "general_pred": 18.215477977079505,
+        "blended_pred": 16.215209301219268
+      },
+      {
+        "rank": 2,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 7.259073257446289,
+        "general_pred": 19.8197873743569,
+        "blended_pred": 17.30764455097478
+      },
+      {
+        "rank": 3,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 8.308804035186768,
+        "general_pred": 20.150985494474085,
+        "blended_pred": 17.78254920261662
+      },
+      {
+        "rank": 4,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 7.39053840637207,
+        "general_pred": 21.580588845645682,
+        "blended_pred": 18.74257875779096
+      },
+      {
+        "rank": 5,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 7.28904390335083,
+        "general_pred": 21.90699786857161,
+        "blended_pred": 18.983407075527456
+      },
+      {
+        "rank": 6,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 7.663816261291504,
+        "general_pred": 21.851697534368945,
+        "blended_pred": 19.01412127975346
+      },
+      {
+        "rank": 7,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 8.618736648559569,
+        "general_pred": 21.63342742919922,
+        "blended_pred": 19.03048927307129
+      },
+      {
+        "rank": 8,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 5.936053848266601,
+        "general_pred": 22.311951718537706,
+        "blended_pred": 19.036772144483486
+      },
+      {
+        "rank": 9,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 7.383322525024414,
+        "general_pred": 22.158209416423176,
+        "blended_pred": 19.203232038143426
+      },
+      {
+        "rank": 10,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 13.206548118591309,
+        "general_pred": 22.09801406268926,
+        "blended_pred": 20.31972087386967
+      },
+      {
+        "rank": 11,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 7.730961990356445,
+        "general_pred": 2841.3475953389834,
+        "blended_pred": 2274.624268669258
+      },
+      {
+        "rank": 12,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 8.930286884307861,
+        "general_pred": 2901.919932065218,
+        "blended_pred": 2323.322003029036
+      },
+      {
+        "rank": 13,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 7.915369749069214,
+        "general_pred": 2908.945606225775,
+        "blended_pred": 2328.7395589304338
+      },
+      {
+        "rank": 14,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 17.15950298309326,
+        "general_pred": 2933.4457133152177,
+        "blended_pred": 2350.1884712487927
+      },
+      {
+        "rank": 15,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 6.6248979568481445,
+        "general_pred": 3002.326056985294,
+        "blended_pred": 2403.185825179605
+      },
+      {
+        "rank": 16,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 7.033132934570312,
+        "general_pred": 3041.3675883152177,
+        "blended_pred": 2434.5006972390884
+      }
+    ]
+  },
+  {
+    "comp": "1610765",
+    "jour": "2025-09-24",
+    "hippo": "Lisieux",
+    "prix": "Grand National du Trot de Lisieux",
+    "top5": "1-7-14-9-13",
+    "top5_list": [
+      1,
+      7,
+      14,
+      9,
+      13
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 6.829514980316162,
+        "general_pred": 94.01424344821667,
+        "blended_pred": 76.57729775463658
+      },
+      {
+        "rank": 2,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 12.13068962097168,
+        "general_pred": 143.38354445831686,
+        "blended_pred": 117.13297349084783
+      },
+      {
+        "rank": 3,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 3.8808817863464355,
+        "general_pred": 146.25318381569602,
+        "blended_pred": 117.77872340982611
+      },
+      {
+        "rank": 4,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 8.734109878540039,
+        "general_pred": 164.1451416015625,
+        "blended_pred": 133.062935256958
+      },
+      {
+        "rank": 5,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 95.5211181640625,
+        "general_pred": 161.63101214823297,
+        "blended_pred": 148.40903335139888
+      },
+      {
+        "rank": 6,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 82.87997436523438,
+        "general_pred": 166.07491793345258,
+        "blended_pred": 149.43592921980894
+      },
+      {
+        "rank": 7,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 96.20365142822266,
+        "general_pred": 166.41950467868543,
+        "blended_pred": 152.37633402859288
+      },
+      {
+        "rank": 8,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 9.894848823547363,
+        "general_pred": 189.102392578125,
+        "blended_pred": 153.26088382720948
+      },
+      {
+        "rank": 9,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 3.737950086593628,
+        "general_pred": 198.35253936023247,
+        "blended_pred": 159.4296215055047
+      },
+      {
+        "rank": 10,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 104.30256652832031,
+        "general_pred": 202.5430881076389,
+        "blended_pred": 182.8949837917752
+      },
+      {
+        "rank": 11,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 106.11405944824219,
+        "general_pred": 220.33119901462294,
+        "blended_pred": 197.48777110134682
+      },
+      {
+        "rank": 12,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 102.87216186523438,
+        "general_pred": 222.16095975681043,
+        "blended_pred": 198.30320017849522
+      },
+      {
+        "rank": 13,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 73.89436340332031,
+        "general_pred": 249.67542754382623,
+        "blended_pred": 214.51921471572504
+      },
+      {
+        "rank": 14,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 64.88394165039062,
+        "general_pred": 269.3910622958729,
+        "blended_pred": 228.4896381667765
+      },
+      {
+        "rank": 15,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 74.64363861083984,
+        "general_pred": 274.1039773349354,
+        "blended_pred": 234.21190959011628
+      },
+      {
+        "rank": 16,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 144.599853515625,
+        "general_pred": 322.90379668445127,
+        "blended_pred": 287.243008050686
+      }
+    ]
+  },
+  {
+    "comp": "1611759",
+    "jour": "2025-09-26",
+    "hippo": "Paris-Vincennes",
+    "prix": "Prix Austria",
+    "top5": "5-8-1-13-9",
+    "top5_list": [
+      5,
+      8,
+      1,
+      13,
+      9
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 12.16832160949707,
+        "general_pred": 113.29123873423381,
+        "blended_pred": 93.06665530928647
+      },
+      {
+        "rank": 2,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 29.48058319091797,
+        "general_pred": 111.90144671854549,
+        "blended_pred": 95.41727401301999
+      },
+      {
+        "rank": 3,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 66.09561157226562,
+        "general_pred": 112.54115619120174,
+        "blended_pred": 103.25204726741453
+      },
+      {
+        "rank": 4,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 26.469097137451172,
+        "general_pred": 127.06666888651424,
+        "blended_pred": 106.94715453670163
+      },
+      {
+        "rank": 5,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 116.13520812988281,
+        "general_pred": 115.09151019510799,
+        "blended_pred": 115.30024978206296
+      },
+      {
+        "rank": 6,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 14.915822982788086,
+        "general_pred": 142.74920992564006,
+        "blended_pred": 117.18253253706966
+      },
+      {
+        "rank": 7,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 8.61910343170166,
+        "general_pred": 146.37991470829135,
+        "blended_pred": 118.82775245297341
+      },
+      {
+        "rank": 8,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 3.6923394203186035,
+        "general_pred": 155.3665508210472,
+        "blended_pred": 125.0317085409015
+      },
+      {
+        "rank": 9,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 37.93008041381836,
+        "general_pred": 149.79469296294863,
+        "blended_pred": 127.42177045312259
+      },
+      {
+        "rank": 10,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 103.96437072753906,
+        "general_pred": 168.48506607547884,
+        "blended_pred": 155.5809270058909
+      },
+      {
+        "rank": 11,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 141.57101440429688,
+        "general_pred": 163.58075956149793,
+        "blended_pred": 159.17881053005772
+      },
+      {
+        "rank": 12,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 21.576330184936523,
+        "general_pred": 200.23204974588924,
+        "blended_pred": 164.5009058336987
+      },
+      {
+        "rank": 13,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 100.03479766845703,
+        "general_pred": 185.3712746982167,
+        "blended_pred": 168.30397929226476
+      },
+      {
+        "rank": 14,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 129.55294799804688,
+        "general_pred": 212.25852217824837,
+        "blended_pred": 195.71740734220808
+      },
+      {
+        "rank": 15,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 101.25283813476562,
+        "general_pred": 243.81865018649793,
+        "blended_pred": 215.3054877761515
+      },
+      {
+        "rank": 16,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 41.900054931640625,
+        "general_pred": 324.5382521106351,
+        "blended_pred": 268.0106126748362
+      }
+    ]
+  },
+  {
+    "comp": "1611846",
+    "jour": "2025-09-28",
+    "hippo": "Paris-Vincennes",
+    "prix": "Grand Prix du Portugal (Prix d'Argel\u00e8s)",
+    "top5": "9-8-15-1-5",
+    "top5_list": [
+      9,
+      8,
+      15,
+      1,
+      5
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 53.481605529785156,
+        "general_pred": 85.5729409579823,
+        "blended_pred": 79.15467387234287
+      },
+      {
+        "rank": 2,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 35.28300476074219,
+        "general_pred": 91.2769737566021,
+        "blended_pred": 80.07817995743012
+      },
+      {
+        "rank": 3,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 107.93021392822266,
+        "general_pred": 91.06087430759167,
+        "blended_pred": 94.43474223171788
+      },
+      {
+        "rank": 4,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 95.66209411621094,
+        "general_pred": 119.34542871762629,
+        "blended_pred": 114.60876179734323
+      },
+      {
+        "rank": 5,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 10.746076583862305,
+        "general_pred": 170.6397605474741,
+        "blended_pred": 138.66102375475174
+      },
+      {
+        "rank": 6,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 37.26971435546875,
+        "general_pred": 171.37135638651424,
+        "blended_pred": 144.55102798030515
+      },
+      {
+        "rank": 7,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 70.15859985351562,
+        "general_pred": 164.46983642578124,
+        "blended_pred": 145.60758911132814
+      },
+      {
+        "rank": 8,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 8.21838092803955,
+        "general_pred": 209.44678531044408,
+        "blended_pred": 169.2011044339632
+      },
+      {
+        "rank": 9,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 19.826560974121094,
+        "general_pred": 212.89014300760797,
+        "blended_pred": 174.2774266009106
+      },
+      {
+        "rank": 10,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 87.19094848632812,
+        "general_pred": 198.98928851542047,
+        "blended_pred": 176.629620509602
+      },
+      {
+        "rank": 11,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 91.73860168457031,
+        "general_pred": 209.22103900370172,
+        "blended_pred": 185.72455153987545
+      },
+      {
+        "rank": 12,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 5.614624977111816,
+        "general_pred": 236.19570826480265,
+        "blended_pred": 190.0794916072645
+      },
+      {
+        "rank": 13,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 102.53384399414062,
+        "general_pred": 213.83268821022727,
+        "blended_pred": 191.57291936700994
+      },
+      {
+        "rank": 14,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 48.21135711669922,
+        "general_pred": 235.71164335056042,
+        "blended_pred": 198.2115861037882
+      },
+      {
+        "rank": 15,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 49.175804138183594,
+        "general_pred": 248.03753829152961,
+        "blended_pred": 208.26519146086042
+      },
+      {
+        "rank": 16,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 7.543783664703369,
+        "general_pred": 272.04253315172696,
+        "blended_pred": 219.14278325432224
+      }
+    ]
+  },
+  {
+    "comp": "1611878",
+    "jour": "2025-09-29",
+    "hippo": "Enghien",
+    "prix": "Prix de Saint-Chamond",
+    "top5": "1-11-7-9-12",
+    "top5_list": [
+      1,
+      11,
+      7,
+      9,
+      12
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 5.182651996612549,
+        "general_pred": 127.11906113327976,
+        "blended_pred": 102.73177930594633
+      },
+      {
+        "rank": 2,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 4.917957782745361,
+        "general_pred": 222.06262894751322,
+        "blended_pred": 178.63369471455965
+      },
+      {
+        "rank": 3,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 102.26997375488281,
+        "general_pred": 219.19453053091598,
+        "blended_pred": 195.80961917570937
+      },
+      {
+        "rank": 4,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 90.82107543945312,
+        "general_pred": 233.432912252536,
+        "blended_pred": 204.91054488991944
+      },
+      {
+        "rank": 5,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 3.851325035095215,
+        "general_pred": 264.815920065036,
+        "blended_pred": 212.62300105904785
+      },
+      {
+        "rank": 6,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 10.956180572509766,
+        "general_pred": 264.3062928082192,
+        "blended_pred": 213.63627036107732
+      },
+      {
+        "rank": 7,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 3.7869622707366943,
+        "general_pred": 323.59570240591603,
+        "blended_pred": 259.63395437888016
+      },
+      {
+        "rank": 8,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 73.85653686523438,
+        "general_pred": 320.8595592330259,
+        "blended_pred": 271.4589547594676
+      },
+      {
+        "rank": 9,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 4.335314750671387,
+        "general_pred": 360.51175362723217,
+        "blended_pred": 289.27646585192
+      },
+      {
+        "rank": 10,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 93.86524963378906,
+        "general_pred": 356.4182882290985,
+        "blended_pred": 303.90768051003664
+      },
+      {
+        "rank": 11,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 138.81591796875,
+        "general_pred": 360.90643136160713,
+        "blended_pred": 316.4883286830357
+      },
+      {
+        "rank": 12,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 107.66969299316406,
+        "general_pred": 385.9815128140179,
+        "blended_pred": 330.3191488498471
+      },
+      {
+        "rank": 13,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 10.505970001220703,
+        "general_pred": 422.11647147232304,
+        "blended_pred": 339.7943711781026
+      }
+    ]
+  },
+  {
+    "comp": "1612854",
+    "jour": "2025-10-03",
+    "hippo": "Paris-Vincennes",
+    "prix": "Prix Ludovica",
+    "top5": "15-10-13-4-16",
+    "top5_list": [
+      15,
+      10,
+      13,
+      4,
+      16
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 66.21504211425781,
+        "general_pred": 12.460148091470042,
+        "blended_pred": 23.211126896027597
+      },
+      {
+        "rank": 2,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 65.07139587402344,
+        "general_pred": 62.28453387674861,
+        "blended_pred": 62.841906276203574
+      },
+      {
+        "rank": 3,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 24.849809646606445,
+        "general_pred": 75.67066301618304,
+        "blended_pred": 65.50649234226772
+      },
+      {
+        "rank": 4,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 7.6489152908325195,
+        "general_pred": 117.93012338033537,
+        "blended_pred": 95.8738817624348
+      },
+      {
+        "rank": 5,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 100.88178253173828,
+        "general_pred": 94.96059354587292,
+        "blended_pred": 96.14483134304601
+      },
+      {
+        "rank": 6,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 8.580549240112305,
+        "general_pred": 120.662457460733,
+        "blended_pred": 98.24607581660885
+      },
+      {
+        "rank": 7,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 18.962432861328125,
+        "general_pred": 126.78630155368543,
+        "blended_pred": 105.22152781521399
+      },
+      {
+        "rank": 8,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 12.86657428741455,
+        "general_pred": 141.67822049899792,
+        "blended_pred": 115.91589125668125
+      },
+      {
+        "rank": 9,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 36.2867546081543,
+        "general_pred": 138.97818941782756,
+        "blended_pred": 118.43990245589292
+      },
+      {
+        "rank": 10,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 64.53797912597656,
+        "general_pred": 137.95866483493543,
+        "blended_pred": 123.27452769314367
+      },
+      {
+        "rank": 11,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 28.75947380065918,
+        "general_pred": 153.35281390604547,
+        "blended_pred": 128.43414588496822
+      },
+      {
+        "rank": 12,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 101.28519439697266,
+        "general_pred": 148.12704862399792,
+        "blended_pred": 138.75867777859287
+      },
+      {
+        "rank": 13,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 49.015113830566406,
+        "general_pred": 183.52433490213923,
+        "blended_pred": 156.62249068782467
+      },
+      {
+        "rank": 14,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 8.853033065795898,
+        "general_pred": 197.5673158591705,
+        "blended_pred": 159.8244593004956
+      },
+      {
+        "rank": 15,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 9.814922332763672,
+        "general_pred": 219.52280440657105,
+        "blended_pred": 177.58122799180958
+      },
+      {
+        "rank": 16,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 121.13224792480469,
+        "general_pred": 231.4333448840726,
+        "blended_pred": 209.37312549221903
+      }
+    ]
+  },
+  {
+    "comp": "1612996",
+    "jour": "2025-10-06",
+    "hippo": "Enghien",
+    "prix": "Prix du Pont des Arts",
+    "top5": "6-8-4-1-3",
+    "top5_list": [
+      6,
+      8,
+      4,
+      1,
+      3
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 6.498050212860107,
+        "general_pred": 79.24144245016164,
+        "blended_pred": 64.69276400270134
+      },
+      {
+        "rank": 2,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 20.269954681396484,
+        "general_pred": 80.66435885142131,
+        "blended_pred": 68.58547801741635
+      },
+      {
+        "rank": 3,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 30.63861656188965,
+        "general_pred": 93.77290934244792,
+        "blended_pred": 81.14605078633626
+      },
+      {
+        "rank": 4,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 8.478106498718262,
+        "general_pred": 124.3598623422476,
+        "blended_pred": 101.18351117354173
+      },
+      {
+        "rank": 5,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 4.900963306427002,
+        "general_pred": 138.75015653415417,
+        "blended_pred": 111.98031788860874
+      },
+      {
+        "rank": 6,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 10.267728805541992,
+        "general_pred": 140.81389789042046,
+        "blended_pred": 114.70466407344477
+      },
+      {
+        "rank": 7,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 14.694129943847656,
+        "general_pred": 141.59982694431042,
+        "blended_pred": 116.21868754421789
+      },
+      {
+        "rank": 8,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 41.981719970703125,
+        "general_pred": 137.20391253885796,
+        "blended_pred": 118.159474025227
+      },
+      {
+        "rank": 9,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 106.78669738769531,
+        "general_pred": 122.31432513651424,
+        "blended_pred": 119.20879958675047
+      },
+      {
+        "rank": 10,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 65.56615447998047,
+        "general_pred": 153.03577289042047,
+        "blended_pred": 135.54184920833248
+      },
+      {
+        "rank": 11,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 79.56571197509766,
+        "general_pred": 168.95884071751647,
+        "blended_pred": 151.0802149690327
+      },
+      {
+        "rank": 12,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 6.282204627990723,
+        "general_pred": 192.7172328404018,
+        "blended_pred": 155.4302271979196
+      },
+      {
+        "rank": 13,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 112.2391128540039,
+        "general_pred": 168.7098939841705,
+        "blended_pred": 157.41573775813717
+      },
+      {
+        "rank": 14,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 49.432518005371094,
+        "general_pred": 205.4686794704861,
+        "blended_pred": 174.2614471774631
+      }
+    ]
+  },
+  {
+    "comp": "1613016",
+    "jour": "2025-10-08",
+    "hippo": "Enghien",
+    "prix": "Prix Armand de Bellaigue",
+    "top5": "3-5-10-15-6",
+    "top5_list": [
+      3,
+      5,
+      10,
+      15,
+      6
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 9.499733924865723,
+        "general_pred": 27.216348593575614,
+        "blended_pred": 23.673025659833637
+      },
+      {
+        "rank": 2,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 4.846309661865234,
+        "general_pred": 61.887445253701735,
+        "blended_pred": 50.479218135334435
+      },
+      {
+        "rank": 3,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 14.0855131149292,
+        "general_pred": 66.10467257212444,
+        "blended_pred": 55.7008406806854
+      },
+      {
+        "rank": 4,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 11.92281723022461,
+        "general_pred": 79.75549945292049,
+        "blended_pred": 66.18896300838131
+      },
+      {
+        "rank": 5,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 15.049717903137207,
+        "general_pred": 87.0669189453125,
+        "blended_pred": 72.66347873687744
+      },
+      {
+        "rank": 6,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 4.445911407470703,
+        "general_pred": 102.44958280368543,
+        "blended_pred": 82.84884852444249
+      },
+      {
+        "rank": 7,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 8.502450942993164,
+        "general_pred": 106.77287154348274,
+        "blended_pred": 87.11878742338483
+      },
+      {
+        "rank": 8,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 10.595847129821777,
+        "general_pred": 108.5877685546875,
+        "blended_pred": 88.98938426971436
+      },
+      {
+        "rank": 9,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 9.232538223266602,
+        "general_pred": 109.0525869516226,
+        "blended_pred": 89.0885772059514
+      },
+      {
+        "rank": 10,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 12.04238510131836,
+        "general_pred": 110.950787538858,
+        "blended_pred": 91.16910705135008
+      },
+      {
+        "rank": 11,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 6.442198276519775,
+        "general_pred": 113.44801918431332,
+        "blended_pred": 92.04685500275463
+      },
+      {
+        "rank": 12,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 7.854242324829102,
+        "general_pred": 128.32329545454544,
+        "blended_pred": 104.22948482860218
+      },
+      {
+        "rank": 13,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 7.719632148742676,
+        "general_pred": 133.90197562573474,
+        "blended_pred": 108.66550693033633
+      },
+      {
+        "rank": 14,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 10.680171012878418,
+        "general_pred": 133.80479694234916,
+        "blended_pred": 109.17987175645501
+      },
+      {
+        "rank": 15,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 20.052597045898438,
+        "general_pred": 162.44037494120172,
+        "blended_pred": 133.9628193621411
+      },
+      {
+        "rank": 16,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 7.951374530792236,
+        "general_pred": 178.20428466796875,
+        "blended_pred": 144.15370264053345
+      }
+    ]
+  },
+  {
+    "comp": "1614086",
+    "jour": "2025-10-10",
+    "hippo": "Paris-Vincennes",
+    "prix": "Prix H\u00e9ra",
+    "top5": "6-7-1-4-11",
+    "top5_list": [
+      6,
+      7,
+      1,
+      4,
+      11
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 13.242053985595703,
+        "general_pred": 123.07395654965754,
+        "blended_pred": 101.10757603684517
+      },
+      {
+        "rank": 2,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 11.76746940612793,
+        "general_pred": 123.47751249118542,
+        "blended_pred": 101.13550387417393
+      },
+      {
+        "rank": 3,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 86.4434585571289,
+        "general_pred": 109.46625760837293,
+        "blended_pred": 104.86169779812413
+      },
+      {
+        "rank": 4,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 10.533265113830566,
+        "general_pred": 134.30505179760974,
+        "blended_pred": 109.5506944608539
+      },
+      {
+        "rank": 5,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 4.0831451416015625,
+        "general_pred": 137.27994723032756,
+        "blended_pred": 110.64058681258237
+      },
+      {
+        "rank": 6,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 5.263103485107422,
+        "general_pred": 144.25074734157985,
+        "blended_pred": 116.45321857028537
+      },
+      {
+        "rank": 7,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 3.8190650939941406,
+        "general_pred": 147.03502364485232,
+        "blended_pred": 118.39183193468068
+      },
+      {
+        "rank": 8,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 3.8902711868286133,
+        "general_pred": 192.02047961597714,
+        "blended_pred": 154.39443793014743
+      },
+      {
+        "rank": 9,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 119.04121398925781,
+        "general_pred": 164.61109403415418,
+        "blended_pred": 155.4971180251749
+      },
+      {
+        "rank": 10,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 46.51538848876953,
+        "general_pred": 198.71199635774894,
+        "blended_pred": 168.27267478395308
+      },
+      {
+        "rank": 11,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 7.670438766479492,
+        "general_pred": 209.65329757063355,
+        "blended_pred": 169.25672580980276
+      },
+      {
+        "rank": 12,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 132.31985473632812,
+        "general_pred": 201.64560546875,
+        "blended_pred": 187.78045532226565
+      },
+      {
+        "rank": 13,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 7.4056715965271,
+        "general_pred": 239.961480898233,
+        "blended_pred": 193.45031903789183
+      },
+      {
+        "rank": 14,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 115.61851501464844,
+        "general_pred": 254.94285296854548,
+        "blended_pred": 227.07798537776608
+      }
+    ]
+  },
+  {
+    "comp": "1614096",
+    "jour": "2025-10-11",
+    "hippo": "Caen",
+    "prix": "Prix d'Automne (Prix de la Ville de Caen)",
+    "top5": "1-8-3-6-16",
+    "top5_list": [
+      1,
+      8,
+      3,
+      6,
+      16
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 30.951271057128906,
+        "general_pred": 58.94754674956475,
+        "blended_pred": 53.348291611077585
+      },
+      {
+        "rank": 2,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 15.576638221740723,
+        "general_pred": 150.5739513228696,
+        "blended_pred": 123.57448870264382
+      },
+      {
+        "rank": 3,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 84.24519348144531,
+        "general_pred": 135.8424553356035,
+        "blended_pred": 125.52300296477185
+      },
+      {
+        "rank": 4,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 3.7476086616516113,
+        "general_pred": 172.20077113925475,
+        "blended_pred": 138.51013864373414
+      },
+      {
+        "rank": 5,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 12.729312896728516,
+        "general_pred": 181.72970180331725,
+        "blended_pred": 147.92962402199953
+      },
+      {
+        "rank": 6,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 4.462637424468994,
+        "general_pred": 193.6411115373884,
+        "blended_pred": 155.80541671480455
+      },
+      {
+        "rank": 7,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 12.371573448181152,
+        "general_pred": 211.48838100253602,
+        "blended_pred": 171.66501949166505
+      },
+      {
+        "rank": 8,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 33.7589111328125,
+        "general_pred": 244.00261008522727,
+        "blended_pred": 201.95387029474435
+      },
+      {
+        "rank": 9,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 19.734054565429688,
+        "general_pred": 261.0155050259735,
+        "blended_pred": 212.7592149338647
+      },
+      {
+        "rank": 10,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 14.010690689086914,
+        "general_pred": 331.6501354049009,
+        "blended_pred": 268.1222464617381
+      },
+      {
+        "rank": 11,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 103.31629943847656,
+        "general_pred": 309.68579029654103,
+        "blended_pred": 268.41189212492816
+      },
+      {
+        "rank": 12,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 4.252623081207275,
+        "general_pred": 342.485793111911,
+        "blended_pred": 274.83915910577025
+      },
+      {
+        "rank": 13,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 105.53591918945312,
+        "general_pred": 357.172557874666,
+        "blended_pred": 306.8452301376234
+      },
+      {
+        "rank": 14,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 9.861135482788086,
+        "general_pred": 426.91990751378677,
+        "blended_pred": 343.5081531075871
+      },
+      {
+        "rank": 15,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 14.939420700073242,
+        "general_pred": 445.294823499666,
+        "blended_pred": 359.22374293974747
+      },
+      {
+        "rank": 16,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 10.528246879577637,
+        "general_pred": 467.51635670279103,
+        "blended_pred": 376.11873473814836
+      }
+    ]
+  },
+  {
+    "comp": "1614234",
+    "jour": "2025-10-15",
+    "hippo": "Feurs",
+    "prix": "Grand National du Trot",
+    "top5": "12-4-14-1-8",
+    "top5_list": [
+      12,
+      4,
+      14,
+      1,
+      8
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 9.728282928466797,
+        "general_pred": 91.6057001287287,
+        "blended_pred": 75.23021668867632
+      },
+      {
+        "rank": 2,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 5.654065132141113,
+        "general_pred": 178.18399442477917,
+        "blended_pred": 143.67800856625158
+      },
+      {
+        "rank": 3,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 66.2548828125,
+        "general_pred": 172.51883883189006,
+        "blended_pred": 151.26604762801205
+      },
+      {
+        "rank": 4,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 8.099130630493164,
+        "general_pred": 196.66475608132103,
+        "blended_pred": 158.95163099115547
+      },
+      {
+        "rank": 5,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 136.384765625,
+        "general_pred": 166.1814609022026,
+        "blended_pred": 160.2221218467621
+      },
+      {
+        "rank": 6,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 3.759788990020752,
+        "general_pred": 203.88860560825893,
+        "blended_pred": 163.8628422846113
+      },
+      {
+        "rank": 7,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 9.220531463623047,
+        "general_pred": 220.51015267721039,
+        "blended_pred": 178.25222843449293
+      },
+      {
+        "rank": 8,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 7.788275718688965,
+        "general_pred": 235.72744307668586,
+        "blended_pred": 190.1396096050865
+      },
+      {
+        "rank": 9,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 10.8098726272583,
+        "general_pred": 236.7889919704861,
+        "blended_pred": 191.59316810184055
+      },
+      {
+        "rank": 10,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 37.25304412841797,
+        "general_pred": 249.18125628885798,
+        "blended_pred": 206.79561385677
+      },
+      {
+        "rank": 11,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 62.87181091308594,
+        "general_pred": 242.902887148233,
+        "blended_pred": 206.8966719012036
+      },
+      {
+        "rank": 12,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 3.769874095916748,
+        "general_pred": 266.07598170230267,
+        "blended_pred": 213.6147601810255
+      },
+      {
+        "rank": 13,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 77.72647857666016,
+        "general_pred": 253.7400697654205,
+        "blended_pred": 218.53735152766842
+      },
+      {
+        "rank": 14,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 8.97761344909668,
+        "general_pred": 282.0606897865853,
+        "blended_pred": 227.44407451908762
+      },
+      {
+        "rank": 15,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 96.68038940429688,
+        "general_pred": 274.99844021267364,
+        "blended_pred": 239.33483005099828
+      },
+      {
+        "rank": 16,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 110.66983032226562,
+        "general_pred": 296.96406878885796,
+        "blended_pred": 259.7052210955395
+      }
+    ]
+  },
+  {
+    "comp": "1615258",
+    "jour": "2025-10-17",
+    "hippo": "Paris-Vincennes",
+    "prix": "Prix Gudrun",
+    "top5": "2-8-11-9-7",
+    "top5_list": [
+      2,
+      8,
+      11,
+      9,
+      7
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 11.234905242919922,
+        "general_pred": 50.39265274540071,
+        "blended_pred": 42.56110324490455
+      },
+      {
+        "rank": 2,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 8.22465705871582,
+        "general_pred": 55.10997957896037,
+        "blended_pred": 45.73291507491147
+      },
+      {
+        "rank": 3,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 20.562652587890625,
+        "general_pred": 73.08258692075128,
+        "blended_pred": 62.57860005417915
+      },
+      {
+        "rank": 4,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 5.2867913246154785,
+        "general_pred": 81.56757587633635,
+        "blended_pred": 66.31141896599217
+      },
+      {
+        "rank": 5,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 11.109284400939941,
+        "general_pred": 84.771100038858,
+        "blended_pred": 70.03873691127438
+      },
+      {
+        "rank": 6,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 8.734752655029297,
+        "general_pred": 91.67850594869475,
+        "blended_pred": 75.08975528996167
+      },
+      {
+        "rank": 7,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 13.3861083984375,
+        "general_pred": 91.9160564382277,
+        "blended_pred": 76.21006683026967
+      },
+      {
+        "rank": 8,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 4.904050827026367,
+        "general_pred": 99.25228049538353,
+        "blended_pred": 80.38263456171211
+      },
+      {
+        "rank": 9,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 9.144071578979492,
+        "general_pred": 98.97832980685764,
+        "blended_pred": 81.01147816128201
+      },
+      {
+        "rank": 10,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 6.6259002685546875,
+        "general_pred": 100.2928384189198,
+        "blended_pred": 81.55945078884679
+      },
+      {
+        "rank": 11,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 22.948835372924805,
+        "general_pred": 108.98406760475854,
+        "blended_pred": 91.77702115839179
+      },
+      {
+        "rank": 12,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 3.540572166442871,
+        "general_pred": 117.35887235446668,
+        "blended_pred": 94.59521231686192
+      },
+      {
+        "rank": 13,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 7.326203346252441,
+        "general_pred": 125.93827090614721,
+        "blended_pred": 102.21585739416827
+      },
+      {
+        "rank": 14,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 10.9965238571167,
+        "general_pred": 130.07116052964156,
+        "blended_pred": 106.2562331951366
+      }
+    ]
+  },
+  {
+    "comp": "1615378",
+    "jour": "2025-10-22",
+    "hippo": "Beaumont-de-Lomagne",
+    "prix": "Grand Prix Baron d'Ardeuil AOC Buzet",
+    "top5": "10-14-12-8-7",
+    "top5_list": [
+      10,
+      14,
+      12,
+      8,
+      7
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 14.890007972717285,
+        "general_pred": 44.79062172494284,
+        "blended_pred": 38.810498974497726
+      },
+      {
+        "rank": 2,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 53.992347717285156,
+        "general_pred": 40.7552156670149,
+        "blended_pred": 43.402642077068954
+      },
+      {
+        "rank": 3,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 101.72817993164062,
+        "general_pred": 40.90010048470847,
+        "blended_pred": 53.065716374094904
+      },
+      {
+        "rank": 4,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 90.57513427734375,
+        "general_pred": 44.32720133463542,
+        "blended_pred": 53.57678792317709
+      },
+      {
+        "rank": 5,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 93.07560729980469,
+        "general_pred": 43.82326188520952,
+        "blended_pred": 53.67373096812855
+      },
+      {
+        "rank": 6,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 100.31494140625,
+        "general_pred": 2740.097811912594,
+        "blended_pred": 2212.141237811325
+      },
+      {
+        "rank": 7,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 38.679908752441406,
+        "general_pred": 2909.1285156250005,
+        "blended_pred": 2335.038794250489
+      },
+      {
+        "rank": 8,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 45.51806640625,
+        "general_pred": 2965.968588033537,
+        "blended_pred": 2381.87848370808
+      },
+      {
+        "rank": 9,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 48.527137756347656,
+        "general_pred": 2976.8308695652177,
+        "blended_pred": 2391.170123203444
+      },
+      {
+        "rank": 10,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 9.636665344238281,
+        "general_pred": 3008.365160472973,
+        "blended_pred": 2408.619461447226
+      },
+      {
+        "rank": 11,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 3.71254825592041,
+        "general_pred": 3038.2076171875,
+        "blended_pred": 2431.3086034011844
+      },
+      {
+        "rank": 12,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 12.420994758605957,
+        "general_pred": 3051.4352568655304,
+        "blended_pred": 2443.632404444146
+      },
+      {
+        "rank": 13,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 8.004560470581055,
+        "general_pred": 3061.0096201795213,
+        "blended_pred": 2450.4086082377335
+      },
+      {
+        "rank": 14,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 11.469308853149414,
+        "general_pred": 3111.1351664402177,
+        "blended_pred": 2491.2019949228043
+      }
+    ]
+  },
+  {
+    "comp": "1617031",
+    "jour": "2025-10-24",
+    "hippo": "Paris-Vincennes",
+    "prix": "Prix Orionis",
+    "top5": "12-7-13-4-6",
+    "top5_list": [
+      12,
+      7,
+      13,
+      4,
+      6
+    ],
+    "predictions": [
+      {
+        "rank": 1,
+        "numero": 12,
+        "nom": "",
+        "quinte_pred": 41.702301025390625,
+        "general_pred": 53.50341748689351,
+        "blended_pred": 51.14319419459294
+      },
+      {
+        "rank": 2,
+        "numero": 7,
+        "nom": "",
+        "quinte_pred": 64.7126235961914,
+        "general_pred": 1414.2859147371962,
+        "blended_pred": 1144.3712565089952
+      },
+      {
+        "rank": 3,
+        "numero": 13,
+        "nom": "",
+        "quinte_pred": 10.869382858276367,
+        "general_pred": 1436.7930078125,
+        "blended_pred": 1151.6082828216554
+      },
+      {
+        "rank": 4,
+        "numero": 4,
+        "nom": "",
+        "quinte_pred": 42.590972900390625,
+        "general_pred": 1438.5446013426017,
+        "blended_pred": 1159.3538756541595
+      },
+      {
+        "rank": 5,
+        "numero": 6,
+        "nom": "",
+        "quinte_pred": 16.188232421875,
+        "general_pred": 1445.1760335084523,
+        "blended_pred": 1159.378473291137
+      },
+      {
+        "rank": 6,
+        "numero": 2,
+        "nom": "",
+        "quinte_pred": 45.0672721862793,
+        "general_pred": 1450.6090592684461,
+        "blended_pred": 1169.5007018520128
+      },
+      {
+        "rank": 7,
+        "numero": 1,
+        "nom": "",
+        "quinte_pred": 6.266935348510742,
+        "general_pred": 1463.0315022584523,
+        "blended_pred": 1171.678588876464
+      },
+      {
+        "rank": 8,
+        "numero": 3,
+        "nom": "",
+        "quinte_pred": 36.082374572753906,
+        "general_pred": 1457.0195340045752,
+        "blended_pred": 1172.8321021182112
+      },
+      {
+        "rank": 9,
+        "numero": 16,
+        "nom": "",
+        "quinte_pred": 10.963086128234863,
+        "general_pred": 1478.485269394127,
+        "blended_pred": 1184.9808327409487
+      },
+      {
+        "rank": 10,
+        "numero": 11,
+        "nom": "",
+        "quinte_pred": 53.418792724609375,
+        "general_pred": 1470.8354029605264,
+        "blended_pred": 1187.352080913343
+      },
+      {
+        "rank": 11,
+        "numero": 5,
+        "nom": "",
+        "quinte_pred": 77.37586975097656,
+        "general_pred": 1482.0643671816438,
+        "blended_pred": 1201.1266676955104
+      },
+      {
+        "rank": 12,
+        "numero": 9,
+        "nom": "",
+        "quinte_pred": 8.66337776184082,
+        "general_pred": 1504.5936086374566,
+        "blended_pred": 1205.4075624623335
+      },
+      {
+        "rank": 13,
+        "numero": 8,
+        "nom": "",
+        "quinte_pred": 63.07762145996094,
+        "general_pred": 1494.2116724917764,
+        "blended_pred": 1207.9848622854133
+      },
+      {
+        "rank": 14,
+        "numero": 15,
+        "nom": "",
+        "quinte_pred": 97.05485534667969,
+        "general_pred": 1493.6535016741072,
+        "blended_pred": 1214.3337724086218
+      },
+      {
+        "rank": 15,
+        "numero": 14,
+        "nom": "",
+        "quinte_pred": 100.77460479736328,
+        "general_pred": 1513.4408937121166,
+        "blended_pred": 1230.907635929166
+      },
+      {
+        "rank": 16,
+        "numero": 10,
+        "nom": "",
+        "quinte_pred": 40.47955322265625,
+        "general_pred": 1531.8111867624564,
+        "blended_pred": 1233.5448600544962
+      }
+    ]
+  }
+]

@@ -1138,14 +1138,24 @@ class FeatureEmbeddingOrchestrator:
         Returns:
             DataFrame with all possible features (embeddings, static, sequence info)
         """
-        # Step 1: Apply temporal calculations FIRST if enabled (prevents data leakage)
-        if use_temporal:
-            self.log_info("Applying temporal feature calculations (no data leakage mode)")
-            from core.calculators.temporal_feature_calculator import TemporalFeatureCalculator
+        # Step 0: Calculate standard racing features using FeatureCalculator
+        # This includes: cotedirect, recence, numero, and all derived features
+        # Only calculate if key features are missing
+        key_features = ['cotedirect', 'recence', 'numero', 'ratio_victoires', 'ratio_places']
+        missing_features = [f for f in key_features if f not in df.columns]
 
-            temporal_calc = TemporalFeatureCalculator(self.sqlite_path, verbose=self.verbose)
-            df = temporal_calc.batch_calculate_all_horses(df)
-            self.log_info("Temporal calculations completed")
+        if missing_features:
+            self.log_info(f"Calculating standard racing features using FeatureCalculator (missing {len(missing_features)} key features)...")
+            from core.calculators.static_feature_calculator import FeatureCalculator
+
+            df = FeatureCalculator.calculate_all_features(
+                df,
+                use_temporal=use_temporal,
+                db_path=self.sqlite_path if use_temporal else None
+            )
+            self.log_info(f"Standard features calculated: {len(df.columns)} columns")
+        else:
+            self.log_info("Standard features already present, skipping FeatureCalculator")
 
         # Step 2: Apply all feature engineering and embeddings
         complete_df = self.prepare_features(df, use_cache=use_cache)
@@ -2194,15 +2204,18 @@ class FeatureEmbeddingOrchestrator:
         monitor = self._init_memory_monitor()
         monitor.log_memory("PREP_START", "Starting dataset preparation")
 
-        # Step 1: Apply temporal calculations FIRST if enabled (before batching)
-        if use_temporal:
-            self.log_info("Applying temporal feature calculations (no data leakage mode)")
-            from core.calculators.temporal_feature_calculator import TemporalFeatureCalculator
+        # Step 0: Calculate standard racing features using FeatureCalculator
+        # This includes: cotedirect, recence, numero, and all derived features
+        self.log_info("Calculating standard racing features using FeatureCalculator...")
+        from core.calculators.static_feature_calculator import FeatureCalculator
 
-            temporal_calc = TemporalFeatureCalculator(self.sqlite_path)
-            df = temporal_calc.batch_calculate_all_horses(df)
-            self.log_info("Temporal calculations completed")
-            monitor.log_memory("TEMPORAL_DONE", "Temporal calculations done")
+        df = FeatureCalculator.calculate_all_features(
+            df,
+            use_temporal=use_temporal,
+            db_path=self.sqlite_path if use_temporal else None
+        )
+        self.log_info(f"Standard features calculated: {len(df.columns)} columns")
+        monitor.log_memory("FEATURES_DONE", "Standard features calculated")
 
         # Check if we should use batch processing
         if not self.should_use_batch_processing(len(df)):

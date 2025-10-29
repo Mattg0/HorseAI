@@ -535,11 +535,31 @@ class HorseRaceModel:
                 'embedding_dim': getattr(orchestrator, 'embedding_dim', 16)
             }
 
+        # Extract feature names from training results
+        rf_feature_columns = None
+        tabnet_feature_columns = None
+
+        if self.training_results:
+            # Extract RF feature names
+            rf_results = self.training_results.get('rf_results', {})
+            if 'feature_names' in rf_results:
+                rf_feature_columns = rf_results['feature_names']
+                print(f"  📋 Extracted {len(rf_feature_columns)} RF feature names from training results")
+
+            # Extract TabNet feature names
+            tabnet_results = self.training_results.get('tabnet_results', {})
+            if tabnet_results and tabnet_results.get('status') == 'success':
+                if 'feature_names' in tabnet_results:
+                    tabnet_feature_columns = tabnet_results['feature_names']
+                    print(f"  📋 Extracted {len(tabnet_feature_columns)} TabNet feature names from training results")
+
         # Get the model manager and save models
         model_manager = get_model_manager()
         saved_paths = model_manager.save_models(
             rf_model=self.rf_model,
-            feature_state=feature_state
+            feature_state=feature_state,
+            rf_feature_columns=rf_feature_columns,
+            tabnet_feature_columns=tabnet_feature_columns
         )
         
         # Save TabNet model separately (standalone)

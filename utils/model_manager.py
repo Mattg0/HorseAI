@@ -84,8 +84,19 @@ class ModelManager:
         return sorted(timestamp_dirs)[-1]
 
     def save_models(self, rf_model=None, lstm_model=None, feature_state=None, blend_weight=None,
-                    model_suffix='', is_quinte=False):
-        """Save models with simple date/db based path."""
+                    model_suffix='', is_quinte=False, rf_feature_columns=None, tabnet_feature_columns=None):
+        """Save models with simple date/db based path.
+
+        Args:
+            rf_model: Random Forest model to save
+            lstm_model: TabNet model to save (legacy param name)
+            feature_state: Feature engineering state
+            blend_weight: Optional blend weight
+            model_suffix: Optional suffix for model directory name
+            is_quinte: Whether this is a quinte model
+            rf_feature_columns: List of feature names used by RF model
+            tabnet_feature_columns: List of feature names used by TabNet model
+        """
         # Ensure models directory exists
         self.model_dir.mkdir(parents=True, exist_ok=True)
 
@@ -109,11 +120,27 @@ class ModelManager:
             joblib.dump(rf_model, rf_path)
             saved_files['rf_model'] = rf_path
 
+            # Save RF feature columns if provided
+            if rf_feature_columns:
+                feature_path = save_path / "feature_columns.json"
+                with open(feature_path, 'w') as f:
+                    json.dump(rf_feature_columns, f, indent=2)
+                saved_files['feature_columns'] = feature_path
+                print(f"  ✅ Saved {len(rf_feature_columns)} RF feature names to feature_columns.json")
+
         # Save TabNet model (no hybrid prefix)
         if lstm_model is not None:  # Note: parameter name lstm_model but used for TabNet
             tabnet_path = save_path / "tabnet_model.keras"
             lstm_model.save(tabnet_path)
             saved_files['tabnet_model'] = tabnet_path
+
+            # Save TabNet feature columns if provided
+            if tabnet_feature_columns:
+                tabnet_feature_path = save_path / "tabnet_feature_columns.json"
+                with open(tabnet_feature_path, 'w') as f:
+                    json.dump(tabnet_feature_columns, f, indent=2)
+                saved_files['tabnet_feature_columns'] = tabnet_feature_path
+                print(f"  ✅ Saved {len(tabnet_feature_columns)} TabNet feature names to tabnet_feature_columns.json")
 
         # Save feature engineering state if provided (no hybrid prefix)
         if feature_state is not None:
@@ -126,7 +153,8 @@ class ModelManager:
             'db_type': db_type,
             'created_at': datetime.now().isoformat(),
             'is_quinte': is_quinte,
-            'model_suffix': model_suffix
+            'model_suffix': model_suffix,
+            'feature_count': len(rf_feature_columns) if rf_feature_columns else None
         }
 
         # Add blend_weight if provided
