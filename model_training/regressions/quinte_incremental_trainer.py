@@ -430,11 +430,24 @@ class QuinteIncrementalTrainer:
         # Prepare features (same as original quinté training)
         # Assuming training_df already has the necessary features
 
-        # Get feature columns (exclude metadata and target)
-        exclude_cols = ['race_id', 'failure_weight', 'jour', 'actual_position', 'predicted_position', 'numero', 'cheval']
+        # Get feature columns (exclude metadata, target, and non-numeric columns)
+        exclude_cols = ['race_id', 'failure_weight', 'jour', 'actual_position', 'predicted_position', 'numero', 'cheval',
+                       'primary_advantage_type', 'idche']  # Exclude string/categorical columns
         feature_cols = [col for col in training_df.columns if col not in exclude_cols]
 
-        X = training_df[feature_cols]
+        X = training_df[feature_cols].copy()
+
+        # CRITICAL: Filter out any remaining non-numeric columns
+        # This prevents "could not convert string to float: 'none'" errors
+        non_numeric_cols = X.select_dtypes(exclude=['number']).columns.tolist()
+        if non_numeric_cols:
+            if self.verbose:
+                print(f"  Filtering out {len(non_numeric_cols)} non-numeric columns: {non_numeric_cols}")
+            X = X.select_dtypes(include=['number'])
+
+        # Fill missing values with 0
+        X = X.fillna(0)
+
         y = training_df['actual_position'] if 'actual_position' in training_df.columns else training_df['predicted_position']
 
         # Get sample weights

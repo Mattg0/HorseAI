@@ -300,7 +300,7 @@ class ModelManager:
         return models
 
     def save_quinte_models(self, rf_model=None, tabnet_model=None, tabnet_scaler=None,
-                          feature_columns=None, training_results=None):
+                          feature_columns=None, training_results=None, feature_selector=None):
         """
         Save quinté-specific models with all required components.
 
@@ -310,6 +310,7 @@ class ModelManager:
             tabnet_scaler: Fitted StandardScaler for TabNet
             feature_columns: List of feature column names
             training_results: Dict with training results and metadata
+            feature_selector: Optional TabNetFeatureSelector for feature selection
 
         Returns:
             Dict with paths to saved files
@@ -370,6 +371,16 @@ class ModelManager:
             tabnet_model.save_model(str(tabnet_model_path))
             # The actual saved file will be tabnet_model.zip
             saved_files['tabnet_model'] = str(tabnet_model_path) + ".zip"
+
+            # Save feature selector if provided (from automatic feature selection)
+            if feature_selector is not None:
+                try:
+                    feature_selector_path = tabnet_path / "feature_selector.json"
+                    feature_selector.save(str(feature_selector_path))
+                    saved_files['feature_selector'] = str(feature_selector_path)
+                    print(f"  ✅ Feature selector saved: {feature_selector_path}")
+                except Exception as e:
+                    print(f"  ⚠️  Warning: Could not save feature selector: {e}")
 
             # Save scaler
             if tabnet_scaler is not None:

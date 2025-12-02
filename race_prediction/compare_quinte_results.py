@@ -52,71 +52,107 @@ class QuinteResultComparator:
         if self.verbose:
             print(f"[QuinteCompare] {message}")
 
-    def find_latest_prediction_file(self, predictions_dir: str = 'predictions') -> Optional[str]:
+    def get_available_prediction_dates(self) -> List[str]:
         """
-        Find the most recent quinté prediction file.
-
-        Args:
-            predictions_dir: Directory containing prediction files
+        Get list of dates with predictions in quinte_predictions table.
 
         Returns:
-            Path to the latest prediction file, or None if not found
+            List of prediction dates (sorted descending)
         """
-        pred_path = Path(predictions_dir)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
 
-        if not pred_path.exists():
-            self.log_info(f"Predictions directory not found: {predictions_dir}")
-            return None
-
-        # Look for quinté prediction files (CSV or JSON)
-        csv_files = list(pred_path.glob("quinte_predictions_*.csv"))
-        json_files = list(pred_path.glob("quinte_predictions_*.json"))
-
-        all_files = csv_files + json_files
-
-        if not all_files:
-            self.log_info(f"No quinté prediction files found in {predictions_dir}")
-            return None
-
-        # Sort by modification time and get the latest
-        latest_file = max(all_files, key=lambda f: f.stat().st_mtime)
-
-        self.log_info(f"Found latest prediction file: {latest_file}")
-
-        return str(latest_file)
-
-    def load_predictions(self, prediction_file: str) -> pd.DataFrame:
+        query = """
+        SELECT DISTINCT race_date
+        FROM quinte_predictions
+        WHERE race_date IS NOT NULL
+        ORDER BY race_date DESC
         """
-        Load predictions from CSV or JSON file.
+        cursor.execute(query)
+        dates = [row[0] for row in cursor.fetchall()]
+        conn.close()
+
+        self.log_info(f"Found predictions for {len(dates)} dates")
+        return dates
+
+    def load_predictions(self, race_date: Optional[str] = None, race_comps: Optional[List[str]] = None) -> pd.DataFrame:
+        """
+        Load predictions from quinte_predictions table.
 
         Args:
-            prediction_file: Path to prediction file
+            race_date: Specific date to load predictions for (YYYY-MM-DD)
+            race_comps: Specific race IDs to load
 
         Returns:
             DataFrame with predictions
         """
-        file_path = Path(prediction_file)
+        self.log_info(f"Loading predictions from quinte_predictions table...")
 
-        if not file_path.exists():
-            raise FileNotFoundError(f"Prediction file not found: {prediction_file}")
+        conn = sqlite3.connect(self.db_path)
 
-        self.log_info(f"Loading predictions from {prediction_file}...")
-
-        if file_path.suffix == '.csv':
-            df = pd.read_csv(file_path)
-        elif file_path.suffix == '.json':
-            with open(file_path, 'r', encoding='utf-8') as f:
-                json_data = json.load(f)
-
-            # Flatten JSON structure
-            all_predictions = []
-            for race in json_data:
-                for pred in race['predictions']:
-                    all_predictions.append(pred)
-
-            df = pd.DataFrame(all_predictions)
+        if race_comps:
+            # Load specific races
+            race_comps_str = [str(rc) for rc in race_comps]
+            placeholders = ','.join('?' * len(race_comps_str))
+            query = f"""
+            SELECT
+                race_id as comp,
+                race_date as jour,
+                track as hippo,
+                race_name as prixnom,
+                horse_number as numero,
+                horse_id as idche,
+                final_prediction as predicted_position,
+                predicted_rank,
+                quinte_rf_prediction as rf_predicted_position,
+                quinte_tabnet_prediction as tabnet_predicted_position,
+                competitive_adjustment
+            FROM quinte_predictions
+            WHERE race_id IN ({placeholders})
+            ORDER BY race_id, predicted_rank
+            """
+            df = pd.read_sql_query(query, conn, params=race_comps_str)
+        elif race_date:
+            # Load specific date
+            query = """
+            SELECT
+                race_id as comp,
+                race_date as jour,
+                track as hippo,
+                race_name as prixnom,
+                horse_number as numero,
+                horse_id as idche,
+                final_prediction as predicted_position,
+                predicted_rank,
+                quinte_rf_prediction as rf_predicted_position,
+                quinte_tabnet_prediction as tabnet_predicted_position,
+                competitive_adjustment
+            FROM quinte_predictions
+            WHERE race_date = ?
+            ORDER BY race_id, predicted_rank
+            """
+            df = pd.read_sql_query(query, conn, params=(race_date,))
         else:
-            raise ValueError(f"Unsupported file format: {file_path.suffix}")
+            # Load all predictions
+            query = """
+            SELECT
+                race_id as comp,
+                race_date as jour,
+                track as hippo,
+                race_name as prixnom,
+                horse_number as numero,
+                horse_id as idche,
+                final_prediction as predicted_position,
+                predicted_rank,
+                quinte_rf_prediction as rf_predicted_position,
+                quinte_tabnet_prediction as tabnet_predicted_position,
+                competitive_adjustment
+            FROM quinte_predictions
+            ORDER BY race_date DESC, race_id, predicted_rank
+            """
+            df = pd.read_sql_query(query, conn)
+
+        conn.close()
 
         self.log_info(f"Loaded {len(df)} predictions for {df['comp'].nunique()} races")
 
@@ -685,14 +721,14 @@ class QuinteResultComparator:
             json.dump(metrics, f, indent=2, ensure_ascii=False, default=str)
         self.log_info(f"✓ Saved metrics to {metrics_file}")
 
-    def compare(self, prediction_file: Optional[str] = None, race_date: Optional[str] = None,
+    def compare(self, race_date: Optional[str] = None, race_comps: Optional[List[str]] = None,
                 output_dir: str = 'predictions') -> Dict:
         """
         Complete comparison workflow.
 
         Args:
-            prediction_file: Path to prediction file, or None to auto-find latest
-            race_date: Date to load actual results for (auto-detected if None)
+            race_date: Date to load predictions for (YYYY-MM-DD), or None for all
+            race_comps: Specific race IDs to compare, or None to use race_date
             output_dir: Directory to save comparison results
 
         Returns:
@@ -702,22 +738,17 @@ class QuinteResultComparator:
         self.log_info("STARTING QUINTÉ RESULT COMPARISON")
         self.log_info("=" * 60)
 
-        # Step 1: Find/load prediction file
-        if prediction_file is None:
-            prediction_file = self.find_latest_prediction_file(output_dir)
-            if prediction_file is None:
-                return {
-                    'status': 'no_predictions',
-                    'message': 'No prediction files found'
-                }
+        # Step 1: Load predictions from database
+        df_predictions = self.load_predictions(race_date=race_date, race_comps=race_comps)
 
-        # Step 2: Load predictions
-        df_predictions = self.load_predictions(prediction_file)
+        if len(df_predictions) == 0:
+            return {
+                'status': 'no_predictions',
+                'message': 'No predictions found in database'
+            }
 
-        # Step 3: Load actual results for ALL races in predictions
+        # Step 2: Load actual results for ALL races in predictions
         race_comps = df_predictions['comp'].unique().tolist()
-
-        # Don't use race_date filter - load results for all race_comps instead
         results_map = self.load_actual_results(race_comps=race_comps)
 
         # Step 4: Load general model predictions from daily_race
@@ -756,22 +787,26 @@ class QuinteResultComparator:
 def main():
     """Main entry point for result comparison script."""
     parser = argparse.ArgumentParser(
-        description='Compare quinté predictions with actual results',
+        description='Compare quinté predictions with actual results from database',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Auto-find latest prediction file and compare all races
+  # Compare all predictions in database
   python race_prediction/compare_quinte_results.py
 
-  # Compare specific prediction file
-  python race_prediction/compare_quinte_results.py --predictions predictions/file.csv
+  # Compare specific date
+  python race_prediction/compare_quinte_results.py --date 2025-11-03
+
+  # Compare specific race IDs
+  python race_prediction/compare_quinte_results.py --race-ids 1621325 1621326
 
   # With verbose output
-  python race_prediction/compare_quinte_results.py --verbose
+  python race_prediction/compare_quinte_results.py --date 2025-11-03 --verbose
         """
     )
-    parser.add_argument('--predictions', type=str, help='Path to predictions file (CSV or JSON). If not specified, uses latest file in output-dir')
-    parser.add_argument('--output-dir', type=str, default='predictions', help='Directory containing predictions and for saving comparison results')
+    parser.add_argument('--date', type=str, help='Race date to compare (YYYY-MM-DD). If not specified, compares all predictions.')
+    parser.add_argument('--race-ids', nargs='+', help='Specific race IDs to compare (space-separated)')
+    parser.add_argument('--output-dir', type=str, default='predictions', help='Directory for saving comparison results')
     parser.add_argument('--verbose', action='store_true', help='Verbose output')
 
     args = parser.parse_args()
@@ -779,14 +814,15 @@ Examples:
     # Run comparison
     comparator = QuinteResultComparator(verbose=args.verbose)
     result = comparator.compare(
-        prediction_file=args.predictions,  # None means auto-find latest
+        race_date=args.date,
+        race_comps=args.race_ids,
         output_dir=args.output_dir
     )
 
     if result['status'] == 'success':
         print("\n✓ Comparison complete!")
     elif result['status'] == 'no_predictions':
-        print("\n✗ No prediction files found. Run predict_quinte.py first.")
+        print("\n✗ No predictions found in database. Run predict_quinte.py first.")
     elif result['status'] == 'no_results':
         print("\n✗ No matching results found in database.")
     else:

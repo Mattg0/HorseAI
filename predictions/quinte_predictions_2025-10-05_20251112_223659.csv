@@ -1,0 +1,19 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,raw_rf_prediction,raw_tabnet_prediction,predicted_position_base,predicted_rank
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,7,1725716,4,D. O'Meara,0.0,4.2077203,7.023912,5.7578077,5.7578077,7.023912,6.011029,1
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,17,1730327,3,AP. O'Brien,3.5,4.4354925,5.232561,6.6123824,6.6123824,5.232561,6.336418,2
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,10,1654205,4,C. Ferland,6.7,5.0409737,6.3229003,7.4210134,7.4210134,6.3229003,7.201391,3
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,6,1723503,4,T. Sakaguchi,8.0,5.6198697,6.288393,8.463383,8.463383,6.288393,8.028385,4
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,15,1759442,3,T. Saito,9.7,6.762358,6.831112,9.562819,9.562819,6.831112,9.016478,5
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,3,1654418,4,JC. Rouget (s),106.0,6.805439,11.806727,12.515225,12.515225,11.806727,12.373526,6
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,4,1654324,4,A. Fabre,13.0,6.8780766,7.750086,10.344758,10.344758,7.750086,9.825824,7
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,13,1734424,3,A. Fabre,23.0,6.8892527,8.509512,10.174858,10.174858,8.509512,9.841789,8
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,12,1741620,3,JC. Rouget (s),48.0,7.13251,9.700296,10.311551,10.311551,9.700296,10.189301,9
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,9,1695821,4,AM. Balding,17.0,7.149987,7.6492486,10.855522,10.855522,7.6492486,10.214268,10
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,11,1741434,3,FH. Graffard,17.0,7.2545223,7.856559,10.12673,10.12673,7.856559,9.672696,11
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,5,1667455,4,AP. O'Brien,45.0,7.5534344,9.5704,11.095676,11.095676,9.5704,10.790621,12
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,8,1559787,5,FH. Graffard,20.0,7.663457,8.416416,10.6683235,10.6683235,8.416416,10.217942,13
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,1,1535382,6,M. Botti,38.0,8.158954,9.211769,12.266618,12.266618,9.211769,11.655648,14
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,2,1584656,5,JJ. Murphy,54.0,8.230673,9.8387375,11.258103,11.258103,9.8387375,10.974231,15
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,16,1759443,3,H. Tanaka,10.0,8.408967,7.1777287,12.220512,12.220512,7.1777287,11.211956,16
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,18,1720861,3,FH. Graffard,32.0,9.270103,9.059708,14.288829,14.288829,9.059708,13.243005,17
+1592537,2025-10-05,ParisLongchamp,1,5,Qatar Prix de l'Arc de Triomphe,14,1713366,3,Mme J. Harrington,95.0,10.471757,10.968388,14.71083,14.71083,10.968388,13.962342,18

@@ -1,0 +1,15 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,raw_rf_prediction,raw_tabnet_prediction,predicted_position_base,predicted_rank
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,2,1557632,6,M. Bézier,2.9,3.7858617,2.9052877,6.0341454,6.0341454,2.9052877,5.408374,1
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,1,1521761,6,A. Thomas,7.8,4.0031843,5.6984224,5.247368,5.247368,5.6984224,5.3375793,2
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,4,1521583,6,HE. Bondo,4.9,4.1919804,4.496642,5.862474,5.862474,4.496642,5.5893073,3
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,3,1463210,7,JM. Baudouin,7.7,4.774271,5.2798915,6.637145,6.637145,5.2798915,6.3656945,4
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,5,1571199,6,J. Untersteiner,8.8,4.9289026,6.037093,6.705564,6.705564,6.037093,6.57187,5
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,9,1515024,6,HE. Bondo,16.0,5.134381,6.9954796,8.947757,8.947757,6.9954796,8.5573015,6
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,13,1510772,6,M. Abrivard,18.0,6.0620513,6.6888733,9.152873,9.152873,6.6888733,8.660073,7
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,14,1513940,7,O. Raffin,21.0,6.717162,7.8191195,12.039309,12.039309,7.8191195,11.195271,8
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,6,1430643,7,F. Terry,48.0,6.95942,8.610055,9.446521,9.446521,8.610055,9.279227,9
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,12,1403264,8,PM. Manceau,144.0,7.199871,12.704697,13.187168,13.187168,12.704697,13.090674,10
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,8,1430819,7,C. Cuiller,52.0,7.796555,8.963266,11.6816025,11.6816025,8.963266,11.137936,11
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,10,1526420,6,F. Corbineau,39.0,7.837499,7.807612,11.110596,11.110596,7.807612,10.449999,12
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,11,1335733,10,JH. Treich,107.0,8.974911,10.964455,12.21707,12.21707,10.964455,11.966547,13
+1615378,2025-10-22,Beaumont-de-Lomagne,1,1,Grand Prix Baron d'Ardeuil AOC Buzet,7,1389154,8,N. Brossard,72.0,9.557511,9.908246,13.452123,13.452123,9.908246,12.743348,14

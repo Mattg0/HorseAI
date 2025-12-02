@@ -23,7 +23,10 @@ from core.orchestrators.prediction_orchestrator import PredictionOrchestrator
 from utils.predict_evaluator import PredictEvaluator
 from model_training.regressions.regression_enhancement import IncrementalTrainingPipeline
 from utils.ai_advisor import BettingAdvisor
-from race_prediction.race_predict import re_blend_predictions_with_dynamic_weights as reblend_predictions_func
+from race_prediction.race_predict import (
+    re_blend_predictions_with_dynamic_weights as reblend_predictions_func,
+    predict_races_fast
+)
 
 class PipelineHelper:
     """Helper class for config management and status calculations"""
@@ -381,70 +384,39 @@ class PipelineHelper:
             raise Exception(f"Error getting races for reprediction: {str(e)}")
 
     def execute_predictions(self, races_to_predict: List[str] = None, progress_callback=None,
-                            force_reprediction: bool = False) -> Dict[str, Any]:
-        """Execute predictions for specified races or all unpredicted races"""
+                            force_reprediction: bool = False, use_batch_mode: bool = True,
+                            n_jobs: int = -1, chunk_size: int = 50,
+                            max_memory_mb: float = 4096) -> Dict[str, Any]:
+        """
+        Execute predictions for specified races or all unpredicted races.
+
+        Args:
+            races_to_predict: List of specific race IDs to predict
+            progress_callback: Callback for progress updates
+            force_reprediction: Predict all races regardless of existing predictions
+            use_batch_mode: Use fast batch prediction (default: True, 8-16x faster!)
+            n_jobs: Number of parallel workers (-1 = all cores, only used if use_batch_mode=True)
+            chunk_size: Races per chunk for memory management (default: 50)
+            max_memory_mb: Maximum memory usage in MB before cleanup (default: 4GB)
+        """
         try:
             if progress_callback:
-                progress_callback(5, "Initializing prediction orchestrator...")
+                progress_callback(5, "Getting races to predict...")
 
-            # Initialize prediction orchestrator (verbose=False for clean logs)
-            # Errors will still be logged with full details in failure handlers
-            predictor = PredictionOrchestrator(verbose=False)
-            
-            # Get model information for diagnostics (only shown on failures)
-            model_info = predictor.get_model_info()
-            models_loaded = model_info.get('legacy_models', {}).get('models_loaded', {})
-            model_weights = model_info.get('legacy_models', {})
-
-            if progress_callback:
-                progress_callback(10, "Getting races to predict...")
-
-            # Get races to predict
+            # Determine which races to predict
             if races_to_predict:
-                # Predict specific races
-                total_races = len(races_to_predict)
-                predicted_count = 0
-
-                for i, comp in enumerate(races_to_predict):
-                    if progress_callback:
-                        progress = 10 + (i / total_races) * 80
-                        progress_callback(int(progress), f"Predicting race {comp}...")
-
-                    try:
-                        result = predictor.predict_race(comp)
-                        if result.get('status') == 'success':
-                            predicted_count += 1
-                        else:
-                            # Log failure with diagnostic info
-                            error_msg = result.get('message', 'Unknown error')
-                            print(f"❌ PREDICTION FAILED for race {comp}")
-                            print(f"   Error: {error_msg}")
-                            print(f"   Models: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}")
-                            print(f"   Weights: RF={model_weights.get('rf_weight', 0):.1f}, TabNet={model_weights.get('tabnet_weight', 0):.1f}")
-                    except Exception as e:
-                        # Log exception with full diagnostic info
-                        print(f"❌ EXCEPTION predicting race {comp}")
-                        print(f"   Error: {str(e)}")
-                        print(f"   Models: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}")
-                        print(f"   Weights: RF={model_weights.get('rf_weight', 0):.1f}, TabNet={model_weights.get('tabnet_weight', 0):.1f}")
-                        import traceback
-                        print(f"   Traceback: {traceback.format_exc()}")
-                        continue
+                race_ids = races_to_predict
+                message_type = "specified races"
             else:
                 # Predict races based on force_reprediction flag
                 if force_reprediction:
-                    # Get all races with processed data (ignore existing predictions)
                     races_to_process = self.get_races_for_reprediction()
                     message_type = "all processed races (force reprediction)"
                 else:
-                    # Get only unpredicted races
                     races_to_process = self.get_races_needing_prediction()
                     message_type = "unpredicted races"
 
-                total_races = len(races_to_process)
-                predicted_count = 0
-
-                if total_races == 0:
+                if not races_to_process:
                     if progress_callback:
                         progress_callback(100, f"No {message_type} found")
                     return {
@@ -454,51 +426,95 @@ class PipelineHelper:
                         "total_races": 0
                     }
 
-                for i, race in enumerate(races_to_process):
-                    comp = race['comp']
+                race_ids = [race['comp'] for race in races_to_process]
+
+            total_races = len(race_ids)
+
+            if progress_callback:
+                progress_callback(10, f"Predicting {total_races} {message_type}...")
+
+            # NEW: Use fast batch prediction mode for 1000+ races
+            if use_batch_mode:
+                try:
+                    # Use the new fast batch prediction with memory management!
+                    results = predict_races_fast(
+                        race_ids=race_ids,
+                        n_jobs=n_jobs,  # Use all cores for maximum speed
+                        chunk_size=chunk_size,  # Process in chunks to limit memory
+                        max_memory_mb=max_memory_mb,  # Maximum memory before cleanup
+                        db_name=self.get_active_db(),
+                        verbose=False,  # Keep quiet for UI
+                        progress_callback=progress_callback  # Pass through for dynamic updates!
+                    )
+
+                    predicted_count = len(results) if results else 0
+
+                    return {
+                        "success": True,
+                        "message": f"Fast batch predictions completed: {predicted_count}/{total_races} successful (used {n_jobs if n_jobs > 0 else 'all'} CPU cores, {chunk_size} races/chunk)",
+                        "predicted_count": predicted_count,
+                        "total_races": total_races,
+                        "mode": "batch",
+                        "workers": n_jobs,
+                        "chunk_size": chunk_size,
+                        "max_memory_mb": max_memory_mb
+                    }
+
+                except Exception as e:
+                    # Fallback to sequential mode on batch failure
+                    print(f"⚠️ Batch mode failed, falling back to sequential: {e}")
+                    use_batch_mode = False
+
+            # OLD: Sequential prediction mode (slower, for compatibility)
+            if not use_batch_mode:
+                if progress_callback:
+                    progress_callback(15, "Using sequential prediction mode...")
+
+                # Initialize prediction orchestrator
+                predictor = PredictionOrchestrator(verbose=False)
+
+                # Get model information for diagnostics
+                model_info = predictor.get_model_info()
+                models_loaded = model_info.get('legacy_models', {}).get('models_loaded', {})
+                model_weights = model_info.get('legacy_models', {})
+
+                predicted_count = 0
+
+                for i, comp in enumerate(race_ids):
                     if progress_callback:
-                        progress = 10 + (i / total_races) * 80
-                        progress_callback(int(progress), f"Predicting race {comp}...")
+                        progress = 15 + (i / total_races) * 80
+                        progress_callback(int(progress), f"Predicting race {i+1}/{total_races}...")
 
                     try:
                         result = predictor.predict_race(comp)
                         if result.get('status') == 'success':
                             predicted_count += 1
                         else:
-                            # Log failure with diagnostic info
                             error_msg = result.get('message', 'Unknown error')
-                            print(f"❌ PREDICTION FAILED for race {comp}")
-                            print(f"   Error: {error_msg}")
-                            print(f"   Models: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}")
-                            print(f"   Weights: RF={model_weights.get('rf_weight', 0):.1f}, TabNet={model_weights.get('tabnet_weight', 0):.1f}")
+                            print(f"❌ PREDICTION FAILED for race {comp}: {error_msg}")
                     except Exception as e:
-                        # Log exception with full diagnostic info
-                        print(f"❌ EXCEPTION predicting race {comp}")
-                        print(f"   Error: {str(e)}")
-                        print(f"   Models: RF={models_loaded.get('rf', False)}, TabNet={models_loaded.get('tabnet', False)}")
-                        print(f"   Weights: RF={model_weights.get('rf_weight', 0):.1f}, TabNet={model_weights.get('tabnet_weight', 0):.1f}")
-                        import traceback
-                        print(f"   Traceback: {traceback.format_exc()}")
+                        print(f"❌ EXCEPTION predicting race {comp}: {str(e)}")
                         continue
 
-                races_to_predict = [race['comp'] for race in races_to_process]
+                if progress_callback:
+                    progress_callback(100, f"Sequential predictions completed: {predicted_count}/{total_races} successful")
 
-            if progress_callback:
-                progress_callback(100, f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful")
-
-            return {
-                "success": True,
-                "message": f"Predictions completed: {predicted_count}/{len(races_to_predict)} successful",
-                "predicted_count": predicted_count,
-                "total_races": len(races_to_predict),
-                "model_info": model_info  # Include full model info in response
-            }
+                return {
+                    "success": True,
+                    "message": f"Sequential predictions completed: {predicted_count}/{total_races} successful",
+                    "predicted_count": predicted_count,
+                    "total_races": total_races,
+                    "mode": "sequential",
+                    "model_info": model_info
+                }
 
         except Exception as e:
+            import traceback
             return {
                 "success": False,
                 "error": str(e),
-                "message": f"Prediction failed: {str(e)}"
+                "message": f"Prediction failed: {str(e)}",
+                "traceback": traceback.format_exc()
             }
     def reblend_with_dynamic_weights(self, date: str = None, all_races: bool = True, progress_callback=None) -> Dict[str, Any]:
         """

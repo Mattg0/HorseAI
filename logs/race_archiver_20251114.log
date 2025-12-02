@@ -1,0 +1,803 @@
+2025-11-14 08:42:07,875 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251114.log
+2025-11-14 08:42:07,879 - RaceArchiver - INFO - Database structure verified
+2025-11-14 15:24:40,684 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-14 15:24:43,756 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-14 15:24:43,756 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 16 horses
+2025-11-14 15:24:43,756 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (16, 280)
+2025-11-14 15:24:43,756 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-14 15:24:43,756 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-14 15:24:43,756 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 16/16 non-null values (100.0%)
+2025-11-14 15:24:43,756 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 16/16 non-null values (100.0%)
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Paris-Vincennes', 'Paris-Vincennes', 'Paris-Vincennes']
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 16/16 non-null values (100.0%)
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [27, 45, 33]
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 16/16 non-null values (100.0%)
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [8, 4, 7]
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 16/16 non-null values (100.0%)
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [15, 14, 13]
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 16/16 non-null values (100.0%)
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [16070000, 15649000, 16341500]
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 16/16 non-null values (100.0%)
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [6, 6, 6]
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 16/16 non-null values (100.0%)
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [11.0, 7.0, 1.0]
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - comp: 1622859
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - hippo: Paris-Vincennes
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - dist: 2100
+2025-11-14 15:24:43,757 - race_prediction.competitive_field_analyzer - INFO - typec: Attelé
+2025-11-14 15:24:43,758 - race_prediction.competitive_field_analyzer - INFO - partant: 16
+2025-11-14 15:24:43,758 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-14 15:24:43,758 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-14 15:24:43,758 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Jipet de Crépin', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 27}
+2025-11-14 15:24:43,758 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'Jingle Lover', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 45}
+2025-11-14 15:24:43,758 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'Diabel', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 33}
+2025-11-14 15:24:43,758 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-14 15:24:43,758 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-14 15:24:43,758 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 16 horses: [1552286, 1548863, 1512124, 1530339, 1522565, 1563400, 1512004, 1505733, 1550283, 1557347, 1648147, 1544790, 1558514, 1530290, 1574330, 1505596]
+2025-11-14 15:24:43,760 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 16 horses: [1552286, 1548863, 1512124, 1530339, 1522565, 1563400, 1512004, 1505733, 1550283, 1557347, 1648147, 1544790, 1558514, 1530290, 1574330, 1505596]
+2025-11-14 15:25:08,015 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 24.26s, found 162 total records
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 162 total historical races
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1552286: 9 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1548863: 12 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1512124: 8 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530339: 14 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1522565: 14 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1563400: 15 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1512004: 11 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505733: 7 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1550283: 11 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1557347: 14 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1648147: 1 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1544790: 10 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1558514: 8 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530290: 9 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1574330: 10 historical races found
+2025-11-14 15:25:08,024 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505596: 9 historical races found
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - Retrieved 162 total historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1552286: 9 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1548863: 12 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1512124: 8 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530339: 14 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1522565: 14 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1563400: 15 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1512004: 11 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505733: 7 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1550283: 11 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1557347: 14 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1648147: 1 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1544790: 10 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1558514: 8 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530290: 9 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1574330: 10 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505596: 9 historical races
+2025-11-14 15:25:08,025 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-14 15:25:08,026 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-14 15:25:08,026 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 16/16 horses
+2025-11-14 15:25:08,026 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['595,185', '347,756', '495,197']
+2025-11-14 15:25:08,026 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=456,054, max=1,149,077
+2025-11-14 15:25:08,027 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-14 15:25:08,027 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/16
+2025-11-14 15:25:08,028 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-14 15:25:08,028 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: -1.614, recent perf: 5.56
+2025-11-14 15:25:08,028 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: -0.480
+2025-11-14 15:25:08,028 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 2/16
+2025-11-14 15:25:08,029 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-14 15:25:08,029 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/16
+2025-11-14 15:25:08,029 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/16
+2025-11-14 15:25:08,029 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-14 15:25:08,029 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 2100m
+2025-11-14 15:25:08,029 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 10/16
+2025-11-14 15:25:08,029 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-14 15:25:08,030 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-14 15:25:08,030 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 162
+2025-11-14 15:25:08,030 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 16/16
+2025-11-14 15:25:08,031 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 10.1
+2025-11-14 15:25:08,060 - race_prediction.quinte_prediction_storage - INFO - Stored 16 horses for Quinté race 1622859
+2025-11-14 20:06:02,203 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-14 20:06:04,963 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-14 20:06:04,963 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 16 horses
+2025-11-14 20:06:04,963 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (16, 280)
+2025-11-14 20:06:04,963 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-14 20:06:04,966 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-14 20:06:04,966 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 16/16 non-null values (100.0%)
+2025-11-14 20:06:04,966 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-14 20:06:04,966 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 16/16 non-null values (100.0%)
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Paris-Vincennes', 'Paris-Vincennes', 'Paris-Vincennes']
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 16/16 non-null values (100.0%)
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [27, 45, 33]
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 16/16 non-null values (100.0%)
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [8, 4, 7]
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 16/16 non-null values (100.0%)
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [15, 14, 13]
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 16/16 non-null values (100.0%)
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [16070000, 15649000, 16341500]
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 16/16 non-null values (100.0%)
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [6, 6, 6]
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 16/16 non-null values (100.0%)
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [11.0, 7.0, 1.0]
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - comp: 1622859
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - hippo: Paris-Vincennes
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - dist: 2100
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - typec: Attelé
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - partant: 16
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-14 20:06:04,967 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-14 20:06:04,968 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Jipet de Crépin', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 27}
+2025-11-14 20:06:04,968 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'Jingle Lover', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 45}
+2025-11-14 20:06:04,968 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'Diabel', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 33}
+2025-11-14 20:06:04,968 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-14 20:06:04,968 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-14 20:06:04,968 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 16 horses: [1552286, 1548863, 1512124, 1530339, 1522565, 1563400, 1512004, 1505733, 1550283, 1557347, 1648147, 1544790, 1558514, 1530290, 1574330, 1505596]
+2025-11-14 20:06:04,970 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 16 horses: [1552286, 1548863, 1512124, 1530339, 1522565, 1563400, 1512004, 1505733, 1550283, 1557347, 1648147, 1544790, 1558514, 1530290, 1574330, 1505596]
+2025-11-14 20:06:28,099 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 23.13s, found 162 total records
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 162 total historical races
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1552286: 9 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1548863: 12 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1512124: 8 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530339: 14 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1522565: 14 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1563400: 15 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1512004: 11 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505733: 7 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1550283: 11 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1557347: 14 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1648147: 1 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1544790: 10 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1558514: 8 historical races found
+2025-11-14 20:06:28,106 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530290: 9 historical races found
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1574330: 10 historical races found
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505596: 9 historical races found
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - Retrieved 162 total historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1552286: 9 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1548863: 12 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1512124: 8 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530339: 14 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1522565: 14 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1563400: 15 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1512004: 11 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505733: 7 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1550283: 11 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1557347: 14 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1648147: 1 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1544790: 10 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1558514: 8 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530290: 9 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1574330: 10 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505596: 9 historical races
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 16/16 horses
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['595,185', '347,756', '495,197']
+2025-11-14 20:06:28,107 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=456,054, max=1,149,077
+2025-11-14 20:06:28,108 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-14 20:06:28,108 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/16
+2025-11-14 20:06:28,109 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-14 20:06:28,109 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: -1.614, recent perf: 5.56
+2025-11-14 20:06:28,109 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: -0.480
+2025-11-14 20:06:28,109 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 2/16
+2025-11-14 20:06:28,109 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-14 20:06:28,109 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/16
+2025-11-14 20:06:28,109 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/16
+2025-11-14 20:06:28,110 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-14 20:06:28,110 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 2100m
+2025-11-14 20:06:28,110 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 10/16
+2025-11-14 20:06:28,110 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-14 20:06:28,111 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-14 20:06:28,111 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 162
+2025-11-14 20:06:28,111 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 16/16
+2025-11-14 20:06:28,111 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 10.1
+2025-11-14 20:06:28,130 - race_prediction.quinte_prediction_storage - INFO - Stored 16 horses for Quinté race 1622859
+2025-11-15 14:12:42,606 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 85.7% missing values', 'Feature che_by_type_recent_perf has 85.7% missing values', 'Feature che_by_type_consistency has 85.7% missing values', 'Feature che_by_type_trend has 85.7% missing values', 'Feature che_by_type_pct_top3 has 85.7% missing values', 'Feature che_by_type_nb_courses has 85.7% missing values', 'Feature che_by_type_total_races has 85.7% missing values', 'Feature che_by_type_dnf_rate has 85.7% missing values']
+2025-11-15 14:32:06,306 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-15 14:32:09,050 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-15 14:32:09,050 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 16 horses
+2025-11-15 14:32:09,050 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (16, 280)
+2025-11-15 14:32:09,050 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 16/16 non-null values (100.0%)
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 16/16 non-null values (100.0%)
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Auteuil', 'Auteuil', 'Auteuil']
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 16/16 non-null values (100.0%)
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [14, 19, 29]
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 16/16 non-null values (100.0%)
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [1, 4, 7]
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 16/16 non-null values (100.0%)
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [6, 14, 12]
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 16/16 non-null values (100.0%)
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [5932200, 28798300, 26178500]
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 16/16 non-null values (100.0%)
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [6, 8, 7]
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 16/16 non-null values (100.0%)
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [10.0, 7.0, 1.0]
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-15 14:32:09,051 - race_prediction.competitive_field_analyzer - INFO - comp: 1621556
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO - hippo: Auteuil
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO - dist: 4300
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO - typec: Haies
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO - partant: 16
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Jilaijone', 'recordG': 0.0, 'hippo': 'Auteuil', 'coursescheval': 14}
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'New President', 'recordG': 0.0, 'hippo': 'Auteuil', 'coursescheval': 19}
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'File au Poteau', 'recordG': 0.0, 'hippo': 'Auteuil', 'coursescheval': 29}
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-15 14:32:09,052 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 16 horses: [1537037, 1412451, 1478232, 1419196, 1536715, 1453045, 1649365, 1651880, 1478196, 1531945, 1559231, 1575110, 1646967, 1676002, 1647372, 1379485]
+2025-11-15 14:32:09,053 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 16 horses: [1537037, 1412451, 1478232, 1419196, 1536715, 1453045, 1649365, 1651880, 1478196, 1531945, 1559231, 1575110, 1646967, 1676002, 1647372, 1379485]
+2025-11-15 14:32:29,360 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 20.31s, found 113 total records
+2025-11-15 14:32:29,365 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 113 total historical races
+2025-11-15 14:32:29,365 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-15 14:32:29,365 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1537037: 3 historical races found
+2025-11-15 14:32:29,365 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1412451: 8 historical races found
+2025-11-15 14:32:29,365 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1478232: 8 historical races found
+2025-11-15 14:32:29,365 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1419196: 3 historical races found
+2025-11-15 14:32:29,365 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1536715: 12 historical races found
+2025-11-15 14:32:29,365 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1453045: 7 historical races found
+2025-11-15 14:32:29,365 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1649365: 5 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1651880: 7 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1478196: 10 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1531945: 5 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1559231: 9 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1575110: 4 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1646967: 7 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1676002: 9 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1647372: 7 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1379485: 9 historical races found
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - Retrieved 113 total historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1537037: 3 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1412451: 8 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1478232: 8 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1419196: 3 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1536715: 12 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1453045: 7 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1649365: 5 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1651880: 7 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1478196: 10 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1531945: 5 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1559231: 9 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1575110: 4 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1646967: 7 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1676002: 9 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1647372: 7 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1379485: 9 historical races
+2025-11-15 14:32:29,366 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-15 14:32:29,367 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-15 14:32:29,367 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 16/16 horses
+2025-11-15 14:32:29,367 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['423,729', '1,515,700', '902,707']
+2025-11-15 14:32:29,367 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=801,543, max=1,709,556
+2025-11-15 14:32:29,367 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-15 14:32:29,367 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/16
+2025-11-15 14:32:29,368 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-15 14:32:29,368 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: -2.375, recent perf: 8.02
+2025-11-15 14:32:29,368 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: -1.703
+2025-11-15 14:32:29,368 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 1/16
+2025-11-15 14:32:29,368 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-15 14:32:29,368 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/16
+2025-11-15 14:32:29,368 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/16
+2025-11-15 14:32:29,369 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-15 14:32:29,369 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 4300m
+2025-11-15 14:32:29,369 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 2/16
+2025-11-15 14:32:29,373 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-15 14:32:29,374 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-15 14:32:29,374 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 113
+2025-11-15 14:32:29,374 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 16/16
+2025-11-15 14:32:29,374 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 7.1
+2025-11-15 14:32:29,394 - race_prediction.quinte_prediction_storage - INFO - Stored 16 horses for Quinté race 1621556
+2025-11-15 14:47:33,589 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 85.7% missing values', 'Feature che_by_type_recent_perf has 85.7% missing values', 'Feature che_by_type_consistency has 85.7% missing values', 'Feature che_by_type_trend has 85.7% missing values', 'Feature che_by_type_pct_top3 has 85.7% missing values', 'Feature che_by_type_nb_courses has 85.7% missing values', 'Feature che_by_type_total_races has 85.7% missing values', 'Feature che_by_type_dnf_rate has 85.7% missing values']
+2025-11-15 15:05:36,391 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-15 15:05:39,163 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-15 15:05:39,163 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 16 horses
+2025-11-15 15:05:39,163 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (16, 280)
+2025-11-15 15:05:39,163 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-15 15:05:39,164 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-15 15:05:39,164 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 16/16 non-null values (100.0%)
+2025-11-15 15:05:39,164 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-15 15:05:39,164 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 16/16 non-null values (100.0%)
+2025-11-15 15:05:39,164 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Auteuil', 'Auteuil', 'Auteuil']
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 16/16 non-null values (100.0%)
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [14, 19, 29]
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 16/16 non-null values (100.0%)
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [1, 4, 7]
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 16/16 non-null values (100.0%)
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [6, 14, 12]
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 16/16 non-null values (100.0%)
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [5932200, 28798300, 26178500]
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 16/16 non-null values (100.0%)
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [6, 8, 7]
+2025-11-15 15:05:39,165 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 16/16 non-null values (100.0%)
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [10.0, 7.0, 1.0]
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - comp: 1621556
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - hippo: Auteuil
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - dist: 4300
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - typec: Haies
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - partant: 16
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Jilaijone', 'recordG': 0.0, 'hippo': 'Auteuil', 'coursescheval': 14}
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'New President', 'recordG': 0.0, 'hippo': 'Auteuil', 'coursescheval': 19}
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'File au Poteau', 'recordG': 0.0, 'hippo': 'Auteuil', 'coursescheval': 29}
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-15 15:05:39,166 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 16 horses: [1537037, 1412451, 1478232, 1419196, 1536715, 1453045, 1649365, 1651880, 1478196, 1531945, 1559231, 1575110, 1646967, 1676002, 1647372, 1379485]
+2025-11-15 15:05:39,167 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 16 horses: [1537037, 1412451, 1478232, 1419196, 1536715, 1453045, 1649365, 1651880, 1478196, 1531945, 1559231, 1575110, 1646967, 1676002, 1647372, 1379485]
+2025-11-15 15:06:02,172 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 23.00s, found 113 total records
+2025-11-15 15:06:02,179 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 113 total historical races
+2025-11-15 15:06:02,179 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-15 15:06:02,179 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1537037: 3 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1412451: 8 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1478232: 8 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1419196: 3 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1536715: 12 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1453045: 7 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1649365: 5 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1651880: 7 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1478196: 10 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1531945: 5 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1559231: 9 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1575110: 4 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1646967: 7 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1676002: 9 historical races found
+2025-11-15 15:06:02,180 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1647372: 7 historical races found
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1379485: 9 historical races found
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - Retrieved 113 total historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1537037: 3 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1412451: 8 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1478232: 8 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1419196: 3 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1536715: 12 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1453045: 7 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1649365: 5 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1651880: 7 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1478196: 10 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1531945: 5 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1559231: 9 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1575110: 4 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1646967: 7 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1676002: 9 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1647372: 7 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1379485: 9 historical races
+2025-11-15 15:06:02,181 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-15 15:06:02,183 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-15 15:06:02,183 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 16/16 horses
+2025-11-15 15:06:02,184 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['423,729', '1,515,700', '902,707']
+2025-11-15 15:06:02,184 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=801,543, max=1,709,556
+2025-11-15 15:06:02,186 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-15 15:06:02,186 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/16
+2025-11-15 15:06:02,189 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-15 15:06:02,189 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: -2.375, recent perf: 8.02
+2025-11-15 15:06:02,189 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: -1.703
+2025-11-15 15:06:02,190 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 1/16
+2025-11-15 15:06:02,190 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-15 15:06:02,190 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/16
+2025-11-15 15:06:02,190 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/16
+2025-11-15 15:06:02,190 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-15 15:06:02,190 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 4300m
+2025-11-15 15:06:02,190 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 2/16
+2025-11-15 15:06:02,190 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-15 15:06:02,191 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-15 15:06:02,191 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 113
+2025-11-15 15:06:02,192 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 16/16
+2025-11-15 15:06:02,192 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 7.1
+2025-11-15 15:06:02,224 - race_prediction.quinte_prediction_storage - INFO - Stored 16 horses for Quinté race 1621556
+2025-11-15 16:40:09,832 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 85.7% missing values', 'Feature che_by_type_recent_perf has 85.7% missing values', 'Feature che_by_type_consistency has 85.7% missing values', 'Feature che_by_type_trend has 85.7% missing values', 'Feature che_by_type_pct_top3 has 85.7% missing values', 'Feature che_by_type_nb_courses has 85.7% missing values', 'Feature che_by_type_total_races has 85.7% missing values', 'Feature che_by_type_dnf_rate has 85.7% missing values']
+2025-11-16 09:19:22,269 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 85.7% missing values', 'Feature che_by_type_recent_perf has 85.7% missing values', 'Feature che_by_type_consistency has 85.7% missing values', 'Feature che_by_type_trend has 85.7% missing values', 'Feature che_by_type_pct_top3 has 85.7% missing values', 'Feature che_by_type_nb_courses has 85.7% missing values', 'Feature che_by_type_total_races has 85.7% missing values', 'Feature che_by_type_dnf_rate has 85.7% missing values']
+2025-11-16 19:58:26,443 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_total_races has 92.3% missing values']
+2025-11-16 20:39:09,570 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-16 20:39:14,103 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-16 20:39:14,103 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 18 horses
+2025-11-16 20:39:14,103 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (18, 280)
+2025-11-16 20:39:14,103 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-16 20:39:14,104 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-16 20:39:14,104 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 18/18 non-null values (100.0%)
+2025-11-16 20:39:14,104 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-16 20:39:14,104 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 18/18 non-null values (100.0%)
+2025-11-16 20:39:14,104 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Paris-Vincennes', 'Paris-Vincennes', 'Paris-Vincennes']
+2025-11-16 20:39:14,104 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 18/18 non-null values (100.0%)
+2025-11-16 20:39:14,104 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [23, 48, 39]
+2025-11-16 20:39:14,104 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 18/18 non-null values (100.0%)
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [12, 9, 11]
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 18/18 non-null values (100.0%)
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [17, 15, 19]
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 18/18 non-null values (100.0%)
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [52380400, 53855000, 62906000]
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 18/18 non-null values (100.0%)
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [5, 6, 5]
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 18/18 non-null values (100.0%)
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [2.0, 9.0, 10.0]
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - comp: 1622944
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - hippo: Paris-Vincennes
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - dist: 2700
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - typec: Attelé
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - partant: 18
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-16 20:39:14,105 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-16 20:39:14,106 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Epic Kronos', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 23}
+2025-11-16 20:39:14,106 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': "J'Aime le Foot", 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 48}
+2025-11-16 20:39:14,106 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'Keep Going', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 39}
+2025-11-16 20:39:14,106 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-16 20:39:14,106 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-16 20:39:14,106 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 18 horses: [1664415, 1505646, 1561718, 1510565, 1453354, 1557844, 1530842, 1574234, 1518557, 1463704, 1502943, 1381662, 1519599, 1431125, 1381687, 1469344, 1502942, 1457153]
+2025-11-16 20:39:14,109 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 18 horses: [1664415, 1505646, 1561718, 1510565, 1453354, 1557844, 1530842, 1574234, 1518557, 1463704, 1502943, 1381662, 1519599, 1431125, 1381687, 1469344, 1502942, 1457153]
+2025-11-16 20:39:46,538 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 32.43s, found 143 total records
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 143 total historical races
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1664415: 4 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505646: 10 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561718: 9 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1510565: 12 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1453354: 13 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1557844: 7 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530842: 8 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1574234: 13 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1518557: 10 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1463704: 10 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1502943: 8 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1381662: 4 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1519599: 4 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1431125: 3 historical races found
+2025-11-16 20:39:46,551 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1381687: 8 historical races found
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1469344: 6 historical races found
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1502942: 3 historical races found
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1457153: 11 historical races found
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - Retrieved 143 total historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1664415: 4 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1505646: 10 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561718: 9 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1510565: 12 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1453354: 13 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1557844: 7 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1530842: 8 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1574234: 13 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1518557: 10 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1463704: 10 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1502943: 8 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1381662: 4 historical races
+2025-11-16 20:39:46,552 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1519599: 4 historical races
+2025-11-16 20:39:46,553 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1431125: 3 historical races
+2025-11-16 20:39:46,553 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1381687: 8 historical races
+2025-11-16 20:39:46,553 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1469344: 6 historical races
+2025-11-16 20:39:46,553 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1502942: 3 historical races
+2025-11-16 20:39:46,553 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1457153: 11 historical races
+2025-11-16 20:39:46,553 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-16 20:39:46,557 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-16 20:39:46,557 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 18/18 horses
+2025-11-16 20:39:46,557 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['2,277,409', '1,121,979', '1,612,974']
+2025-11-16 20:39:46,558 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=1,997,219, max=3,557,167
+2025-11-16 20:39:46,560 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-16 20:39:46,560 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/18
+2025-11-16 20:39:46,566 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-16 20:39:46,566 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: -0.163, recent perf: 7.87
+2025-11-16 20:39:46,566 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: 0.245
+2025-11-16 20:39:46,566 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 2/18
+2025-11-16 20:39:46,567 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-16 20:39:46,567 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/18
+2025-11-16 20:39:46,567 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/18
+2025-11-16 20:39:46,567 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-16 20:39:46,567 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 2700m
+2025-11-16 20:39:46,567 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 12/18
+2025-11-16 20:39:46,567 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-16 20:39:46,569 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-16 20:39:46,569 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 143
+2025-11-16 20:39:46,569 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 18/18
+2025-11-16 20:39:46,569 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 7.9
+2025-11-16 20:39:46,674 - race_prediction.quinte_prediction_storage - INFO - Stored 18 horses for Quinté race 1622944
+2025-11-18 22:55:52,704 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-18 22:55:55,941 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 16 horses
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (16, 280)
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 16/16 non-null values (100.0%)
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 16/16 non-null values (100.0%)
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Chantilly', 'Chantilly', 'Chantilly']
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 16/16 non-null values (100.0%)
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [23, 20, 13]
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 16/16 non-null values (100.0%)
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [4, 3, 4]
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 16/16 non-null values (100.0%)
+2025-11-18 22:55:55,942 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [10, 8, 6]
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 16/16 non-null values (100.0%)
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [15670700, 7222100, 9967600]
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 16/16 non-null values (100.0%)
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [6, 4, 4]
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 16/16 non-null values (100.0%)
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [1.0, 8.0, 6.0]
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - comp: 1621645
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - hippo: Chantilly
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - dist: 1600
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - typec: Plat
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - partant: 16
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Westminster Night', 'recordG': 0.0, 'hippo': 'Chantilly', 'coursescheval': 23}
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'Kiaro', 'recordG': 0.0, 'hippo': 'Chantilly', 'coursescheval': 20}
+2025-11-18 22:55:55,943 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'Darlinghurst', 'recordG': 0.0, 'hippo': 'Chantilly', 'coursescheval': 13}
+2025-11-18 22:55:55,944 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-18 22:55:55,944 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-18 22:55:55,944 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 16 horses: [1523574, 1654567, 1654234, 1711628, 1687025, 1554365, 1714279, 1523504, 1723301, 1553763, 1652349, 1434013, 1559335, 1448807, 1662857, 1728001]
+2025-11-18 22:55:55,946 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 16 horses: [1523574, 1654567, 1654234, 1711628, 1687025, 1554365, 1714279, 1523504, 1723301, 1553763, 1652349, 1434013, 1559335, 1448807, 1662857, 1728001]
+2025-11-18 22:56:18,319 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 22.37s, found 146 total records
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 146 total historical races
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1523574: 9 historical races found
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1654567: 9 historical races found
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1654234: 5 historical races found
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1711628: 10 historical races found
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1687025: 10 historical races found
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1554365: 12 historical races found
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1714279: 7 historical races found
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1523504: 7 historical races found
+2025-11-18 22:56:18,327 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1723301: 8 historical races found
+2025-11-18 22:56:18,328 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553763: 9 historical races found
+2025-11-18 22:56:18,328 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1652349: 7 historical races found
+2025-11-18 22:56:18,328 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1434013: 9 historical races found
+2025-11-18 22:56:18,328 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1559335: 14 historical races found
+2025-11-18 22:56:18,328 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1448807: 17 historical races found
+2025-11-18 22:56:18,328 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1662857: 7 historical races found
+2025-11-18 22:56:18,328 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1728001: 6 historical races found
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - Retrieved 146 total historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1523574: 9 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1654567: 9 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1654234: 5 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1711628: 10 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1687025: 10 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1554365: 12 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1714279: 7 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1523504: 7 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1723301: 8 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553763: 9 historical races
+2025-11-18 22:56:18,329 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1652349: 7 historical races
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1434013: 9 historical races
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1559335: 14 historical races
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1448807: 17 historical races
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1662857: 7 historical races
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1728001: 6 historical races
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 16/16 horses
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['681,335', '361,105', '766,738']
+2025-11-18 22:56:18,330 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=469,783, max=1,038,721
+2025-11-18 22:56:18,331 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-18 22:56:18,331 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/16
+2025-11-18 22:56:18,332 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-18 22:56:18,332 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: 0.583, recent perf: 6.62
+2025-11-18 22:56:18,332 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: 1.521
+2025-11-18 22:56:18,332 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 3/16
+2025-11-18 22:56:18,333 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-18 22:56:18,333 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/16
+2025-11-18 22:56:18,333 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/16
+2025-11-18 22:56:18,333 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-18 22:56:18,333 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 1600m
+2025-11-18 22:56:18,333 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 11/16
+2025-11-18 22:56:18,333 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-18 22:56:18,334 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-18 22:56:18,335 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 146
+2025-11-18 22:56:18,335 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 16/16
+2025-11-18 22:56:18,335 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 9.1
+2025-11-18 22:56:18,377 - race_prediction.quinte_prediction_storage - INFO - Stored 16 horses for Quinté race 1621645
+2025-11-18 22:56:55,640 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-18 22:56:58,087 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-18 22:56:58,087 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 16 horses
+2025-11-18 22:56:58,087 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (16, 280)
+2025-11-18 22:56:58,087 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-18 22:56:58,088 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-18 22:56:58,088 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 16/16 non-null values (100.0%)
+2025-11-18 22:56:58,088 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-18 22:56:58,088 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 16/16 non-null values (100.0%)
+2025-11-18 22:56:58,088 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Paris-Vincennes', 'Paris-Vincennes', 'Paris-Vincennes']
+2025-11-18 22:56:58,088 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 16/16 non-null values (100.0%)
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [15, 34, 21]
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 16/16 non-null values (100.0%)
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [4, 2, 4]
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 16/16 non-null values (100.0%)
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [7, 11, 9]
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 16/16 non-null values (100.0%)
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [7662000, 7693500, 7741500]
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 16/16 non-null values (100.0%)
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [5, 5, 5]
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 16/16 non-null values (100.0%)
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [1.0, 2.0, 1.0]
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - comp: 1622952
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - hippo: Paris-Vincennes
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - dist: 2700
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - typec: Attelé
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - partant: 16
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-18 22:56:58,089 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-18 22:56:58,090 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Kwalita Suprême', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 15}
+2025-11-18 22:56:58,090 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'Kivaoa du Perche', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 34}
+2025-11-18 22:56:58,090 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': "Kyra d'Essarts", 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 21}
+2025-11-18 22:56:58,090 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-18 22:56:58,090 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-18 22:56:58,090 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 16 horses: [1572522, 1553971, 1576738, 1573607, 1584920, 1576077, 1561732, 1658356, 1587610, 1579953, 1687384, 1651321, 1575453, 1584931, 1575520, 1650244]
+2025-11-18 22:56:58,091 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 16 horses: [1572522, 1553971, 1576738, 1573607, 1584920, 1576077, 1561732, 1658356, 1587610, 1579953, 1687384, 1651321, 1575453, 1584931, 1575520, 1650244]
+2025-11-18 22:57:19,501 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 21.41s, found 171 total records
+2025-11-18 22:57:19,508 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 171 total historical races
+2025-11-18 22:57:19,508 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-18 22:57:19,508 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1572522: 5 historical races found
+2025-11-18 22:57:19,508 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553971: 15 historical races found
+2025-11-18 22:57:19,508 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576738: 7 historical races found
+2025-11-18 22:57:19,508 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1573607: 6 historical races found
+2025-11-18 22:57:19,508 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1584920: 10 historical races found
+2025-11-18 22:57:19,508 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576077: 13 historical races found
+2025-11-18 22:57:19,508 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561732: 14 historical races found
+2025-11-18 22:57:19,519 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1658356: 13 historical races found
+2025-11-18 22:57:19,519 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1587610: 11 historical races found
+2025-11-18 22:57:19,519 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1579953: 11 historical races found
+2025-11-18 22:57:19,519 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1687384: 11 historical races found
+2025-11-18 22:57:19,519 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1651321: 8 historical races found
+2025-11-18 22:57:19,519 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1575453: 5 historical races found
+2025-11-18 22:57:19,519 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1584931: 13 historical races found
+2025-11-18 22:57:19,519 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1575520: 10 historical races found
+2025-11-18 22:57:19,519 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1650244: 19 historical races found
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - Retrieved 171 total historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1572522: 5 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553971: 15 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576738: 7 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1573607: 6 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1584920: 10 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576077: 13 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561732: 14 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1658356: 13 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1587610: 11 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1579953: 11 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1687384: 11 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1651321: 8 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1575453: 5 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1584931: 13 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1575520: 10 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1650244: 19 historical races
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 16/16 horses
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['510,800', '226,279', '368,643']
+2025-11-18 22:57:19,521 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=331,686, max=510,800
+2025-11-18 22:57:19,522 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-18 22:57:19,522 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/16
+2025-11-18 22:57:19,523 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-18 22:57:19,523 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: 0.638, recent perf: 5.94
+2025-11-18 22:57:19,523 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: -2.422
+2025-11-18 22:57:19,523 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 4/16
+2025-11-18 22:57:19,523 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-18 22:57:19,523 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/16
+2025-11-18 22:57:19,523 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/16
+2025-11-18 22:57:19,524 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-18 22:57:19,524 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 2700m
+2025-11-18 22:57:19,524 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 14/16
+2025-11-18 22:57:19,524 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-18 22:57:19,524 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-18 22:57:19,524 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 171
+2025-11-18 22:57:19,524 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 16/16
+2025-11-18 22:57:19,524 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 10.7
+2025-11-18 22:57:19,546 - race_prediction.quinte_prediction_storage - INFO - Stored 16 horses for Quinté race 1622952
+2025-11-19 13:14:58,701 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-19 13:15:01,394 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-19 13:15:01,394 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 16 horses
+2025-11-19 13:15:01,394 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (16, 280)
+2025-11-19 13:15:01,394 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-19 13:15:01,394 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 16/16 non-null values (100.0%)
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 16/16 non-null values (100.0%)
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Mauquenchy', 'Mauquenchy', 'Mauquenchy']
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 16/16 non-null values (100.0%)
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [86, 88, 89]
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 16/16 non-null values (100.0%)
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [10, 16, 3]
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 16/16 non-null values (100.0%)
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [34, 41, 24]
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 16/16 non-null values (100.0%)
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [29787000, 33324000, 33431700]
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 16/16 non-null values (100.0%)
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [8, 10, 8]
+2025-11-19 13:15:01,395 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 16/16 non-null values (100.0%)
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [7.0, 1.0, 10.0]
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - comp: 1622975
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - hippo: Mauquenchy
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - dist: 2850
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - typec: Attelé
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - partant: 16
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Hélios Si', 'recordG': 0.0, 'hippo': 'Mauquenchy', 'coursescheval': 86}
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'Furioso Fligny', 'recordG': 0.0, 'hippo': 'Mauquenchy', 'coursescheval': 88}
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'Hannah', 'recordG': 0.0, 'hippo': 'Mauquenchy', 'coursescheval': 89}
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-19 13:15:01,396 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 16 horses: [1380598, 1356130, 1403418, 1510765, 1383316, 1492670, 1444935, 1542523, 1402571, 1403039, 1556553, 1346835, 1331703, 1382172, 1468153, 1318509]
+2025-11-19 13:15:01,397 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 16 horses: [1380598, 1356130, 1403418, 1510765, 1383316, 1492670, 1444935, 1542523, 1402571, 1403039, 1556553, 1346835, 1331703, 1382172, 1468153, 1318509]
+2025-11-19 13:15:24,547 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 23.15s, found 192 total records
+2025-11-19 13:15:24,564 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 192 total historical races
+2025-11-19 13:15:24,576 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-19 13:15:24,576 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1380598: 16 historical races found
+2025-11-19 13:15:24,576 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1356130: 14 historical races found
+2025-11-19 13:15:24,576 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1403418: 13 historical races found
+2025-11-19 13:15:24,576 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1510765: 16 historical races found
+2025-11-19 13:15:24,576 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1383316: 7 historical races found
+2025-11-19 13:15:24,576 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1492670: 14 historical races found
+2025-11-19 13:15:24,576 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1444935: 8 historical races found
+2025-11-19 13:15:24,577 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1542523: 8 historical races found
+2025-11-19 13:15:24,577 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1402571: 14 historical races found
+2025-11-19 13:15:24,577 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1403039: 15 historical races found
+2025-11-19 13:15:24,577 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1556553: 6 historical races found
+2025-11-19 13:15:24,577 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1346835: 15 historical races found
+2025-11-19 13:15:24,577 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1331703: 14 historical races found
+2025-11-19 13:15:24,577 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1382172: 15 historical races found
+2025-11-19 13:15:24,578 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1468153: 11 historical races found
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1318509: 6 historical races found
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - Retrieved 192 total historical races
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1380598: 16 historical races
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1356130: 14 historical races
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1403418: 13 historical races
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1510765: 16 historical races
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1383316: 7 historical races
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1492670: 14 historical races
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1444935: 8 historical races
+2025-11-19 13:15:24,579 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1542523: 8 historical races
+2025-11-19 13:15:24,580 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1402571: 14 historical races
+2025-11-19 13:15:24,580 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1403039: 15 historical races
+2025-11-19 13:15:24,580 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1556553: 6 historical races
+2025-11-19 13:15:24,580 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1346835: 15 historical races
+2025-11-19 13:15:24,580 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1331703: 14 historical races
+2025-11-19 13:15:24,580 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1382172: 15 historical races
+2025-11-19 13:15:24,580 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1468153: 11 historical races
+2025-11-19 13:15:24,580 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1318509: 6 historical races
+2025-11-19 13:15:24,580 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-19 13:15:24,581 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-19 13:15:24,581 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 16/16 horses
+2025-11-19 13:15:24,581 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['346,360', '378,682', '375,637']
+2025-11-19 13:15:24,581 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=731,661, max=1,385,615
+2025-11-19 13:15:24,582 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-19 13:15:24,582 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/16
+2025-11-19 13:15:24,585 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-19 13:15:24,585 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: 1.925, recent perf: 6.65
+2025-11-19 13:15:24,585 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: -0.025
+2025-11-19 13:15:24,585 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 3/16
+2025-11-19 13:15:24,586 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-19 13:15:24,586 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/16
+2025-11-19 13:15:24,586 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/16
+2025-11-19 13:15:24,586 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-19 13:15:24,586 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 2850m
+2025-11-19 13:15:24,586 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 14/16
+2025-11-19 13:15:24,586 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-19 13:15:24,587 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-19 13:15:24,587 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 192
+2025-11-19 13:15:24,587 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 16/16
+2025-11-19 13:15:24,587 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 12.0
+2025-11-19 13:15:24,620 - race_prediction.quinte_prediction_storage - INFO - Stored 16 horses for Quinté race 1622975

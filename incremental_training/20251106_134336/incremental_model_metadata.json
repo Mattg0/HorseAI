@@ -1,0 +1,33 @@
+{
+    "version": "2years_incremental_v20251106_1416",
+    "model_type": "hybrid_incremental",
+    "base_model": "models/2025-11-02/2years_061724",
+    "training_date": "2025-11-06T14:16:54.687363",
+    "models_trained": {
+        "rf": true,
+        "lstm": false,
+        "tabnet": false
+    },
+    "model_sources": {
+        "rf": "retrained",
+        "lstm": "base_model_copy",
+        "tabnet": "base_model_copy"
+    },
+    "performance_improvements": {
+        "rf": {
+            "mae_improvement_pct": 89.3621149760801,
+            "rmse_improvement_pct": 90.31828495440428,
+            "significant": true
+        },
+        "lstm": {},
+        "tabnet": {}
+    },
+    "training_summary": {
+        "rf_samples": 9077,
+        "rf_features": 211,
+        "lstm_samples": 0,
+        "lstm_sequence_length": 0,
+        "lstm_sequential_features": 0,
+        "lstm_static_features": 0
+    }
+}

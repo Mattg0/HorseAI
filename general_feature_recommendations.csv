@@ -1,35 +1,23 @@
 feature_name,issue_type,severity,recommendation
-coteprob,constant,high,Remove (no variance)
 handicapDistance,constant,high,Remove (no variance)
-gainsAnneeEnCours,constant,high,Remove (no variance)
-gains_par_course,constant,high,Remove (no variance)
-blinkers_first_time,constant,high,Remove (no variance)
-blinkers_high_impact_change,constant,high,Remove (no variance)
+barefoot_to_shod,constant,high,Remove (no variance)
+major_shoeing_change,constant,high,Remove (no variance)
 moving_up_in_class,constant,high,Remove (no variance)
 speed_figure_proxy,constant,high,Remove (no variance)
-market_confidence_shift,constant,high,Remove (no variance)
 trainer_change,constant,high,Remove (no variance)
-earnings_per_race,constant,high,Remove (no variance)
 earnings_trend,constant,high,Remove (no variance)
-vha_normalized,constant,high,Remove (no variance)
-claiming_tax_trend,constant,high,Remove (no variance)
-class_stability,constant,high,Remove (no variance)
-coteprob,all_zeros,high,Remove (not calculated)
-gains_par_course,all_zeros,high,Remove (not calculated)
-blinkers_first_time,all_zeros,high,Remove (not calculated)
-blinkers_high_impact_change,all_zeros,high,Remove (not calculated)
+barefoot_to_shod,all_zeros,high,Remove (not calculated)
+major_shoeing_change,all_zeros,high,Remove (not calculated)
 moving_up_in_class,all_zeros,high,Remove (not calculated)
-earnings_per_race,all_zeros,high,Remove (not calculated)
 earnings_trend,all_zeros,high,Remove (not calculated)
-vha_normalized,all_zeros,high,Remove (not calculated)
-claiming_tax_trend,all_zeros,high,Remove (not calculated)
-pourcVictChevalHippo,skewed,medium,Apply log/sqrt transform
-perf_cheval_hippo,skewed,medium,Apply log/sqrt transform
-class_drop_pct,skewed,medium,Apply log/sqrt transform
-purse_ratio,skewed,medium,Apply log/sqrt transform
-distance_consistency,skewed,medium,Apply log/sqrt transform
+claiming_tax_trend,skewed,medium,Apply log/sqrt transform
+class_stability,skewed,medium,Apply log/sqrt transform
+"placescheval,coursescheval",multicollinear,medium,Remove one feature
 "pourcPlaceChevalHippo,perf_cheval_hippo",multicollinear,medium,Remove one feature
+"gains_par_course,earnings_per_race",multicollinear,medium,Remove one feature
+"blinkers_first_time,equipment_optimization_score",multicollinear,medium,Remove one feature
 "class_drop_pct,purse_ratio",multicollinear,medium,Remove one feature
+"claiming_tax_trend,class_stability",multicollinear,medium,Remove one feature
 placescheval,leakage,high,Verify not using future data
 pourcPlaceChevalHippo,leakage,high,Verify not using future data
 ratio_places,leakage,high,Verify not using future data

@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,8,1657540,5,C. Bigeon,8.8,4.613410260391236,4.4729304,7.12,1
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,16,1575465,5,T. Raffegeau,5.0,4.616543237304688,3.5353088,7.36,2
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,13,1584739,5,T. Radoux,6.8,4.705571652460098,4.791226,7.205,3
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,14,1558628,5,JM. Baudouin,45.0,4.818034874343872,8.060317,8.935,4
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,5,1565635,5,Mme S. Raimond,5.6,4.925871963310241,3.8647997,7.83,5
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,9,1557734,5,T. Le Beller,24.0,4.960964152145387,7.719674,9.345,6
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,2,1575520,5,N. Bazire,76.0,5.143344585609437,11.737678,8.755,7
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,15,1552859,5,S. Roger,41.0,5.228144953203202,9.10859,9.605,8
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,3,1566866,5,P. Belloche,51.0,5.5967829864501955,8.857021,7.78,9
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,4,1572457,5,T. Raffegeau,51.0,5.687131336688994,8.722366,7.975,10
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,12,1580185,5,LC. Abrivard,6.6,5.897260215997696,7.835068,7.87,11
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,11,1660138,5,SG. Dupont,13.0,6.094402992296218,4.81145,9.68,12
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,10,1581928,5,T. Lamare,12.0,6.166214028739929,8.784386,8.815,13
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,7,1552861,5,B. Marie,32.0,6.555605943012237,8.005756,9.705,14
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,6,1583971,5,D. Brouwer,45.0,6.6463927109241485,9.629285,8.67,15
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,1,1580126,5,A. Buisson,30.0,6.883046095848083,7.766974,9.53,16

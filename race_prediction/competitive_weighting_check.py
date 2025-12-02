@@ -35,86 +35,90 @@ class CompetitiveWeightChecker:
         else:
             self.db_path = db_path
 
-    def find_latest_prediction_file(self) -> str:
-        """Find the most recent quinté prediction JSON file."""
-        pred_path = Path('predictions')
-        json_files = list(pred_path.glob("quinte_predictions_*.json"))
-
-        if not json_files:
-            raise FileNotFoundError("No quinté prediction files found in predictions/")
-
-        latest_file = max(json_files, key=lambda f: f.stat().st_mtime)
-        return str(latest_file)
-
-    def load_competitive_adjustments_from_db(self) -> pd.DataFrame:
-        """
-        Load competitive adjustments from race_predictions table.
-
-        Returns:
-            DataFrame with competitive adjustments for quinté races
-        """
+    def get_available_prediction_dates(self) -> List[str]:
+        """Get list of dates with predictions in quinte_predictions table."""
         conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
 
         query = """
-            SELECT race_id, horse_id, competitive_adjustment, advantage_strength
-            FROM race_predictions
-            WHERE race_id IN (
-                SELECT comp FROM daily_race WHERE quinte = 1
-            )
+        SELECT DISTINCT race_date
+        FROM quinte_predictions
+        WHERE race_date IS NOT NULL
+        ORDER BY race_date DESC
         """
-
-        df = pd.read_sql_query(query, conn)
+        cursor.execute(query)
+        dates = [row[0] for row in cursor.fetchall()]
         conn.close()
 
-        print(f"   Loaded {len(df)} competitive adjustments from race_predictions table")
-        return df
+        print(f"   Found predictions for {len(dates)} dates")
+        return dates
 
-    def load_predictions(self, json_file: str, competitive_adjustments_db: pd.DataFrame) -> pd.DataFrame:
+    def load_predictions(self, race_date: str = None, race_comps: List[str] = None) -> pd.DataFrame:
         """
-        Load predictions from JSON file and merge with competitive adjustments from DB.
+        Load predictions from quinte_predictions table.
 
         Args:
-            json_file: Path to JSON prediction file
-            competitive_adjustments_db: DataFrame from race_predictions table
+            race_date: Specific date to load predictions for (YYYY-MM-DD)
+            race_comps: Specific race IDs to load
 
         Returns:
             DataFrame with columns: comp, numero, predicted_position_base, competitive_adjustment
         """
-        with open(json_file, 'r') as f:
-            data = json.load(f)
+        conn = sqlite3.connect(self.db_path)
 
-        # Flatten nested structure
-        all_predictions = []
-        for race in data:
-            if 'predictions' in race and isinstance(race['predictions'], list):
-                all_predictions.extend(race['predictions'])
-
-        df = pd.DataFrame(all_predictions)
-
-        # Use ONLY TabNet base prediction (NO competitive adjustment applied)
-        if 'predicted_position_tabnet' in df.columns:
-            df['predicted_position_base'] = df['predicted_position_tabnet']
+        if race_comps:
+            # Load specific races
+            race_comps_str = [str(rc) for rc in race_comps]
+            placeholders = ','.join('?' * len(race_comps_str))
+            query = f"""
+            SELECT
+                race_id as comp,
+                horse_number as numero,
+                quinte_tabnet_prediction as predicted_position_base,
+                competitive_adjustment,
+                final_prediction,
+                predicted_rank
+            FROM quinte_predictions
+            WHERE race_id IN ({placeholders})
+            ORDER BY race_id, predicted_rank
+            """
+            df = pd.read_sql_query(query, conn, params=race_comps_str)
+        elif race_date:
+            # Load specific date
+            query = """
+            SELECT
+                race_id as comp,
+                horse_number as numero,
+                quinte_tabnet_prediction as predicted_position_base,
+                competitive_adjustment,
+                final_prediction,
+                predicted_rank
+            FROM quinte_predictions
+            WHERE race_date = ?
+            ORDER BY race_id, predicted_rank
+            """
+            df = pd.read_sql_query(query, conn, params=(race_date,))
         else:
-            raise ValueError("No base prediction column found")
+            # Load all predictions
+            query = """
+            SELECT
+                race_id as comp,
+                horse_number as numero,
+                quinte_tabnet_prediction as predicted_position_base,
+                competitive_adjustment,
+                final_prediction,
+                predicted_rank
+            FROM quinte_predictions
+            ORDER BY race_date DESC, race_id, predicted_rank
+            """
+            df = pd.read_sql_query(query, conn)
 
-        # Merge with competitive adjustments from DB
-        df = df.merge(
-            competitive_adjustments_db,
-            left_on=['comp', 'idche'],
-            right_on=['race_id', 'horse_id'],
-            how='left'
-        )
+        conn.close()
 
         # Fill missing adjustments with 0.0
         df['competitive_adjustment'] = df['competitive_adjustment'].fillna(0.0)
 
-        # IMPORTANT: Recalculate adjustment to ensure it's based on current base
-        # If the JSON has 'predicted_position' with competitive already applied,
-        # we calculate the adjustment that was applied
-        if 'predicted_position' in df.columns:
-            # This shows what adjustment was originally applied
-            original_adjustment = df['predicted_position'] - df['predicted_position_base']
-            print(f"   INFO: Original adjustment range: [{original_adjustment.min():.4f}, {original_adjustment.max():.4f}]")
+        print(f"   Loaded {len(df)} predictions from quinte_predictions table")
 
         return df[['comp', 'numero', 'predicted_position_base', 'competitive_adjustment']]
 
@@ -250,11 +254,14 @@ class CompetitiveWeightChecker:
             'bonus4': bonus4_wins
         }
 
-    def test_weights(self, weight_start: float = 0.0, weight_stop: float = 1.0, weight_step: float = 0.1):
+    def test_weights(self, race_date: str = None, race_comps: List[str] = None,
+                    weight_start: float = 0.0, weight_stop: float = 1.0, weight_step: float = 0.1):
         """
         Test different competitive weights and display results.
 
         Args:
+            race_date: Specific date to load predictions for (YYYY-MM-DD)
+            race_comps: Specific race IDs to load
             weight_start: Starting weight
             weight_stop: Ending weight (inclusive)
             weight_step: Step size
@@ -264,16 +271,10 @@ class CompetitiveWeightChecker:
         print("=" * 80)
 
         # Load data
-        print("\n📊 Loading data...")
+        print("\n📊 Loading data from database...")
 
-        # 1. Load competitive adjustments from race_predictions table
-        competitive_adjustments_db = self.load_competitive_adjustments_from_db()
-
-        # 2. Load predictions from JSON
-        prediction_file = self.find_latest_prediction_file()
-        print(f"   Prediction file: {Path(prediction_file).name}")
-
-        df_predictions = self.load_predictions(prediction_file, competitive_adjustments_db)
+        # Load predictions from quinte_predictions table
+        df_predictions = self.load_predictions(race_date=race_date, race_comps=race_comps)
         race_comps = df_predictions['comp'].unique().tolist()
         print(f"   Races in predictions: {len(race_comps)}")
 
@@ -362,7 +363,9 @@ def main():
     """Main function."""
     import argparse
 
-    parser = argparse.ArgumentParser(description='Test competitive weighting configurations')
+    parser = argparse.ArgumentParser(description='Test competitive weighting configurations from database')
+    parser.add_argument('--date', type=str, help='Race date to analyze (YYYY-MM-DD). If not specified, uses all predictions.')
+    parser.add_argument('--race-ids', nargs='+', help='Specific race IDs to analyze (space-separated)')
     parser.add_argument('--start', type=float, default=0.0, help='Starting weight (default: 0.0)')
     parser.add_argument('--stop', type=float, default=1.0, help='Ending weight (default: 1.0)')
     parser.add_argument('--step', type=float, default=0.1, help='Weight step (default: 0.1)')
@@ -370,7 +373,13 @@ def main():
     args = parser.parse_args()
 
     checker = CompetitiveWeightChecker()
-    checker.test_weights(weight_start=args.start, weight_stop=args.stop, weight_step=args.step)
+    checker.test_weights(
+        race_date=args.date,
+        race_comps=args.race_ids,
+        weight_start=args.start,
+        weight_stop=args.stop,
+        weight_step=args.step
+    )
 
 
 if __name__ == '__main__':

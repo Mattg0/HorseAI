@@ -1,0 +1,14 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,6,1537350,6,M. Seror (s),8.3,4.204116282463074,4.534302,7.625,1
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,1,1544270,6,F. Nicolle,9.8,5.200321819424629,4.508812,7.54,2
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,12,1515777,7,N.George & A.Zetterholm,0.0,5.289628820657731,6.1041923,7.29,3
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,9,1536998,6,N. Devilder,5.8,5.410164255738259,4.707762,7.84,4
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,7,1476552,8,Chaillé-Chaillé & Pamart (s),10.0,5.590077512741089,4.6471834,8.155,5
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,3,1538098,6,E. Clayeux,5.5,5.618280736327172,3.5752048,8.47,6
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,11,1641961,5,Mlle D. Mele,10.0,5.769931956052781,4.786213,8.42,7
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,5,1576353,6,N.George & A.Zetterholm,8.9,5.827422049999237,7.90948,7.735,8
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,13,1538910,6,Mme L. Carberry,15.0,5.880731456279755,5.504876,8.425,9
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,10,1667100,5,Mlle D. Mele,14.0,5.954755185127259,5.378368,8.58,10
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,4,1536527,6,M. Rolland (s),14.0,6.140706695079805,6.5980444,8.585,11
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,8,1559531,5,S. Dehez,18.0,6.214906257390977,5.9327083,8.875,12
+1607344,2025-10-23,Auteuil,1,1,Prix Montgomery,2,1531945,8,G. Leenders,24.0,6.437413678407669,6.056091,9.215,13

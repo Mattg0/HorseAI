@@ -1,0 +1,51 @@
+comp,actual_arrive,horses,mae,correlation,winner_correct,hippo,prixnom
+1592537,"11,17,4,1,6",18,4.170070255503935,0.12990196078431374,0,ParisLongchamp,Qatar Prix de l'Arc de Triomphe
+1606667,"13,10,7,1,8",16,2.7296987533569337,-0.07878787878787878,0,Auteuil,Prix Calabrais
+1606698,"7,10,6,5,2",16,4.004887089133263,0.3852941176470588,1,Chantilly,Prix de la Chambre du Duc
+1606724,"12,5,7,15,3",16,2.7800158587369053,0.07272727272727274,0,Auteuil,Prix Grandlieu
+1606844,"16,11,10,7,3",16,4.068081172307332,0.21071428571428572,0,Chantilly,Prix de la Galerie des Batailles
+1606886,"6,5,12,16,15",18,4.590295314788818,0.1936274509803922,1,Compiègne,Prix de Beaune
+1606916,"14,15,17,2,1",18,5.314849336942037,-0.23219814241486067,0,ParisLongchamp,Qatar Prix de La Place de La Concorde
+1607004,,16,,0.0,0,Auteuil,Prix Guillaume de Pracomtal
+1607033,,16,,0.0,0,Saint-Cloud,Prix de Versailles
+1607093,,18,,0.0,0,Auteuil,Prix Jack Barbe
+1607168,,16,,0.0,0,Marseille-Borély,Prix Hôtel Villa M Marseille (Prix Jules Morgan)
+1607184,,16,,0.0,0,Chantilly,Prix de la Vierge de Lorette
+1607203,,16,,0.0,0,Saint-Cloud,Prix des Landes
+1607224,,14,,0.0,0,Auteuil,Prix «Le Parisien» (Prix Prince d'Ecouen)
+1607280,,16,,0.0,0,ParisLongchamp,Prix «Le Parisien» (Prix Rieussec)
+1607304,"15,10,9,1,7",16,3.7432667016983032,0.5,0,Deauville,Prix de la Forêt de Lyons
+1607321,,16,,0.0,0,Clairefontaine,Prix Genybet (Prix des Equidays)
+1607344,,13,,0.0,0,Auteuil,Prix Montgomery
+1607383,,15,,0.0,0,Compiègne,Prix Céréaliste
+1607426,"5,8,2,12,15",16,3.822217991954486,0.024999999999999998,0,Saint-Cloud,Prix de l'Elevage
+1607432,"16,13,15,8,7",16,3.9585565142504384,0.3285714285714285,0,Chantilly,Prix de la Chambre de Monsieur le Prince
+1607452,"11,16,9,3,13",16,4.458086952610314,0.3852941176470588,0,Chantilly,Prix de la Route des Princes
+1607476,"10,4,15,1,11",16,1.9966461116600036,0.6121212121212121,0,Auteuil,Prix Santo Pietro
+1610765,"2,3,14,5,10",16,1.8801845550537108,0.5636363636363636,0,Lisieux,Grand National du Trot de Lisieux
+1611759,"6,1,10,16,11",16,3.102438824517386,0.5604395604395604,0,Paris-Vincennes,Prix Austria
+1611846,"2,6,8,16,1",16,3.092165231704712,-0.15384615384615385,0,Paris-Vincennes,Grand Prix du Portugal (Prix d'Argelès)
+1611878,"5,6,12,1,9",13,1.726355493068695,0.3571428571428572,0,Enghien,Prix de Saint-Chamond
+1612854,"1,9,12,14,13",16,3.1481094543750467,0.3021978021978022,1,Paris-Vincennes,Prix Ludovica
+1612996,"14,9,6,7,10",14,2.474246458573775,0.28181818181818186,1,Enghien,Prix du Pont des Arts
+1613016,"14,16,3,5,7",16,2.860709208708543,0.4175824175824176,1,Enghien,Prix Armand de Bellaigue
+1614086,,14,,0.0,0,Paris-Vincennes,Prix Héra
+1614096,,16,,0.0,0,Caen,Prix d'Automne (Prix de la Ville de Caen)
+1614234,,16,,0.0,0,Feurs,Grand National du Trot
+1615258,,14,,0.0,0,Paris-Vincennes,Prix Gudrun
+1615378,"2,4,1,14,13",14,2.1514118909835815,0.8111888111888113,0,Beaumont-de-Lomagne,Grand Prix Baron d'Ardeuil AOC Buzet
+1617031,,16,,0.0,0,Paris-Vincennes,Prix Orionis
+1617175,"3,14,11,6,5",15,3.3397607177771045,0.3516483516483516,0,Paris-Vincennes,Prix de Soulac
+1618773,"14,1,3,10,8",14,2.289427890880108,0.4666666666666666,0,Paris-Vincennes,Prix Barbara
+1618791,"16,15,7,14,1",16,3.2102154951829176,0.19780219780219782,0,Paris-Vincennes,Prix de Maure-de-Bretagne
+1618804,"7,4,5,2,14",14,2.652797959067605,0.1272727272727273,0,Paris-Vincennes,Prix Marcel Laurent
+1619849,"16,15,6,7,4",16,2.7495387786645153,0.7912087912087913,0,Laval,Grand Prix de la Ville de Laval
+1619950,"6,4,11,5,12",16,2.690205557005746,0.6571428571428571,0,Nantes,Grand National du Trot
+1619965,"15,16,11,5,12",16,3.495901482445853,0.24835164835164836,0,Paris-Vincennes,Prix Dejopeja
+1619992,"3,11,6,10,12",13,2.318492282520641,0.5909090909090909,0,Paris-Vincennes,Prix d'Argentan
+1620115,"5,14,1,3,8",14,2.872708320617676,0.745054945054945,0,Bordeaux - Le Bouscat,Prix Jonny Ruffato
+1621292,"8,3,5,10,15",16,3.7537393521372477,0.557142857142857,1,Deauville,Prix Irish River - Polytrack Challenge
+1621325,"11,10,5,1,2",16,4.579313160720467,0.09117647058823529,0,Fontainebleau,Prix Roland Fougedoire
+1621443,"4,9,16,1,5",16,4.31139449775219,0.011764705882352941,0,Saint-Cloud,Prix de Windsor
+1621458,"2,5,8,1,14",16,4.175732453664144,0.1714285714285714,0,Chantilly,Prix de la Rotonde de Minerve
+1621509,"11,2,15,4,16",16,4.546352490782738,-0.0823529411764706,1,Toulouse,Prix de la Ville de Toulouse

@@ -1,0 +1,16 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,8,1490438,7,HE. Bondo,2.5,4.462753012466431,3.3568072,7.13,1
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,1,1471793,7,BJ. Crebas,0.0,4.490263753938675,3.7533126,7.08,2
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,7,1345331,9,GR. Huguet,39.0,4.775716951942445,7.6556087,8.94,3
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,14,1467198,7,JP. Ducher,5.2,4.958933719348907,7.3409553,7.02,4
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,15,1430681,8,Mlle C. Beiléard,26.0,5.191028616189958,9.091169,9.525,5
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,9,1389845,8,Mme A. Germain,14.0,5.440429045391083,7.0802073,7.945,6
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,13,1433230,7,J. Vanmeerbeck,16.0,5.537944201850891,5.096744,8.615,7
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,11,1458251,7,T. Duvaldestin,15.0,5.727395559310913,5.0099683,8.975,8
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,12,1389366,9,JR. Delliaux,187.0,5.8568693470001225,13.787244,8.755,9
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,3,1451535,7,MB. Svedberg,4.2,6.080959837818145,8.075427,8.84,10
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,5,1398609,8,JL. Bigeon,88.0,6.189067940998077,9.687628,8.63,11
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,6,1450371,7,HE. Bondo,38.0,6.214475836277007,7.589113,9.2,12
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,2,1451537,7,C. Martens,44.0,6.270716345119477,8.970831,8.955,13
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,10,1337803,9,HE. Bondo,57.0,6.677118239879609,10.194121,8.58,14
+1617175,2025-10-30,Paris-Vincennes,1,1,Prix de Soulac,4,1389387,8,M. Lenoir,177.0,7.004120815277099,13.329434,9.175,15

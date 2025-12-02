@@ -1,0 +1,6 @@
+race_id,race_name,date,track,race_type,distance,field_size,config_name,scenario_description,rf_weight,tabnet_weight,config_accuracy,predicted_rank,horse_number,horse_name,predicted_position
+1622859,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),2025-11-14,Paris-Vincennes,Attelé,2100,16,default,Default optimal weights from automated analysis (Accuracy: 15.6%),1.0,0.0,15.58562762482501,1,3,,5.602
+1622859,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),2025-11-14,Paris-Vincennes,Attelé,2100,16,default,Default optimal weights from automated analysis (Accuracy: 15.6%),1.0,0.0,15.58562762482501,2,1,,7.517
+1622859,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),2025-11-14,Paris-Vincennes,Attelé,2100,16,default,Default optimal weights from automated analysis (Accuracy: 15.6%),1.0,0.0,15.58562762482501,3,13,,7.672
+1622859,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),2025-11-14,Paris-Vincennes,Attelé,2100,16,default,Default optimal weights from automated analysis (Accuracy: 15.6%),1.0,0.0,15.58562762482501,4,6,,7.687
+1622859,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),2025-11-14,Paris-Vincennes,Attelé,2100,16,default,Default optimal weights from automated analysis (Accuracy: 15.6%),1.0,0.0,15.58562762482501,5,9,,8.166

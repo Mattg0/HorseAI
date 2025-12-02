@@ -1,0 +1,160 @@
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+🚀 Starting batch prediction job: batch_20251114_103712
+   Total races: 32
+   Workers: 3
+   Chunk size: 50
+   Memory limit: 4096.0MB
+   Database: 2years
+
+✓ Loaded 25 selected features from models/2025-11-13/2years_144333/feature_selector.json
+[5%] Loading races from database...
+[15%] Loaded 32 races, starting predictions...
+[20%] Processing chunk 1/1 (Mem: 680MB)...
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+2025-11-14 10:37:26,976 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:26,977 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:37:26,977 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:26,980 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:26,980 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:26,980 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:37:26,980 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:26,981 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:26,981 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:37:26,981 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:26,984 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:26,985 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:53,313 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:53,314 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:37:53,314 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:53,317 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:53,318 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:53,318 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:37:53,318 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:53,319 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:53,320 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:37:53,320 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:53,322 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:37:53,323 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:20,075 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:20,076 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:20,077 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:38:20,077 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:20,078 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:38:20,078 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:20,081 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:20,081 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:20,090 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:20,090 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:38:20,090 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:20,093 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:47,010 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:47,010 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:38:47,010 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:47,013 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:47,017 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:47,017 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:38:47,017 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:47,019 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:47,019 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:38:47,019 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:47,021 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:38:47,022 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:16,359 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:16,359 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:16,359 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:39:16,359 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:39:16,359 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:16,359 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:16,362 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:16,363 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:16,363 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:16,363 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:39:16,363 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:16,366 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:47,381 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:47,383 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:39:47,383 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:47,387 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:47,386 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:47,387 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:39:47,387 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:47,388 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:47,389 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:39:47,389 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:47,390 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:39:47,392 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:18,386 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:18,388 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:40:18,388 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:18,393 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:18,394 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:18,395 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:40:18,395 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:18,398 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:18,405 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:18,405 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:40:18,405 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:18,408 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:48,150 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:48,151 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:40:48,151 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:48,153 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:48,154 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:48,154 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:40:48,154 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:48,154 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:48,154 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:40:48,154 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:48,157 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:40:48,157 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:11,152 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:11,153 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:41:11,153 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:11,155 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:11,159 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:11,159 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:41:11,159 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:11,163 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:11,163 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:11,164 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:41:11,164 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:11,167 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:27,795 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:27,795 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:41:27,795 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:27,798 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:27,798 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:27,798 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:41:27,799 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:27,802 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:51,640 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:51,640 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:41:51,640 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:51,643 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:51,651 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:51,652 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:41:51,652 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:41:51,655 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:42:12,962 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:42:12,963 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:42:12,963 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:42:12,965 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+[95%] Storing predictions to database...
+[100%] Complete! Processed 32 races in 314.4s
+
+============================================================
+✅ BATCH PREDICTION COMPLETE
+============================================================
+  Job ID: batch_20251114_103712
+  Total races: 32
+  Successful: 32
+  Failed: 0
+  Total time: 314.62s
+  Throughput: 0.1 races/second
+============================================================

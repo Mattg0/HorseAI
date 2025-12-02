@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),5,1692653,4,JP. Macedo Da Costa Oliveira,13.0,4.941232488441466,5.2369375,8.985,1
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),1,1531279,6,Mlle A. Budka,11.0,5.002594281578063,7.9682856,8.43,2
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),9,1328739,10,A. Pean,13.0,5.04094427433014,7.187869,8.705,3
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),3,1657754,4,JP. Gauvin (s),8.0,5.068371529698372,4.5091434,7.32,4
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),16,1500286,6,A. Fouassier,7.3,5.253741525650025,4.3649435,7.665,5
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),2,1654889,4,A. Fabre,19.0,5.283511497116089,8.349262,8.92,6
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),12,1653563,4,F. Rohaut,6.6,5.856714675664902,6.1847644,8.215,7
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),11,1694590,4,M. Boutin,12.0,6.099716493844986,6.7247763,8.485,8
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),7,1559961,5,C. Lotoux,10.0,6.100477663636209,4.829851,8.96,9
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),10,1724288,4,HA. Pantall,35.0,6.476466374158861,7.9364424,8.81,10
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),14,1653737,4,F. Jolivet,11.0,6.516570448637009,7.903803,8.885,11
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),4,1667971,5,M. Baratti,24.0,6.5733066480159765,7.002044,9.205,12
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),6,1544716,7,Mlle L. Hebrard de Veyrinas,38.0,6.653579858779908,9.497199,8.715,13
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),8,1371902,8,F. Chappet,16.0,6.721642216444016,8.210948,9.15,14
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),15,1361228,8,Mme C. Whitfield,29.0,6.901201087188721,9.7142935,9.895,15
+1607280,2025-10-19,ParisLongchamp,1,4,Prix «Le Parisien» (Prix Rieussec),13,1536685,6,N. Leenders,48.0,7.09378562450409,11.591904,8.925,16

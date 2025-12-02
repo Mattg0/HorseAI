@@ -1172,15 +1172,6 @@ class FeatureCalculator:
             race_type = result_df.at[index, 'typec']
             che_musique_stats = cheval_musique_extractor.extract_features(musique_che, race_type)
 
-            # DEBUG: Check bytype extraction on first horse
-            if idx == 0:
-                print(f"\n🔍 DEBUG - Musique extraction (first horse):")
-                print(f"  musiqueche: {str(musique_che)[:60]}")
-                print(f"  typec: {race_type}")
-                print(f"  bytype DNF rate: {che_musique_stats['by_type'].get('dnf_rate', 'MISSING')}")
-                print(f"  bytype avg_pos: {che_musique_stats['by_type'].get('avg_pos', 'MISSING')}")
-                print(f"  bytype nb_courses: {che_musique_stats['by_type'].get('nb_courses', 'MISSING')}\n")
-
             # Correct way to access nested dictionaries
             # Add 'global' features
             for key, value in che_musique_stats['global'].items():

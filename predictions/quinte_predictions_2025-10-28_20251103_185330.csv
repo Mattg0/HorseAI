@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,4,1545829,5,C. Plisson,22.0,4.312636619377137,7.4257874,7.945,1
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,6,1559877,5,G. Hernon,8.3,4.587444036126137,4.4029603,6.545,2
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,3,1653990,4,F. Chappet,7.7,4.789998566770553,4.6542754,7.39,3
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,16,1654449,4,M. Delcher-Sanchez,8.3,4.98018196401596,7.532728,7.01,4
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,12,1666989,4,S. Wattel,8.4,5.088130517482758,6.6437893,7.425,5
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,11,1523574,6,HA. Pantall,28.0,5.1536781367301945,9.911619,9.235,6
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,5,1654567,4,HA. Pantall,21.0,5.187516949987413,9.799245,9.34,7
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,15,1641065,5,Mme C. Barande-Barbe,29.0,5.3809560904502876,9.817782,9.775,8
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,7,1662833,4,Mlle C. Hérisson de Beauvoir,39.0,5.5196903767108925,9.859003,10.08,9
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,9,1554365,5,G. Mossé,10.0,5.962119013690948,7.126564,8.865,10
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,8,1732313,3,C. Ferland,15.0,5.966650308322906,7.5389304,8.77,11
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,13,1523504,6,V. Luka,10.0,5.968014232730866,6.4886727,9.035,12
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,1,1654085,4,C. Ferland,12.0,5.982017662715912,7.5486975,8.795,13
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,2,1559222,5,F. Chappet,22.0,6.2085337142944335,8.646669,8.925,14
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,10,1655704,4,M. Baratti,10.0,6.443553711509703,7.5853834,9.61,15
+1607452,2025-10-28,Chantilly,1,3,Prix de la Route des Princes,14,1653870,4,Y. Bonnefoy,63.0,6.847470685195923,10.830504,9.52,16

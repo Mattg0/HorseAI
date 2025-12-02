@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,raw_rf_prediction,raw_tabnet_prediction,predicted_position_base,predicted_rank
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,4,1514335,6,N. Bazire,2.2,2.8575258,4.5080175,5.6538234,5.6538234,4.5080175,5.1955013,1
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,1,1524130,6,E. Lelièvre,0.0,3.4889066,6.718056,6.09374,6.09374,6.718056,6.3434668,2
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,14,1549663,6,JF. Popot,7.5,4.811448,6.300151,7.2557273,7.2557273,6.300151,6.873497,3
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,2,1464529,7,GA. Pou Pou,52.0,4.969263,8.238203,9.5662365,9.5662365,8.238203,9.035024,4
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,3,1520431,6,PE. Trible,33.0,5.08806,7.4310966,7.1603627,7.1603627,7.4310966,7.2686567,5
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,6,1532312,6,Y. Desmet,118.0,5.150443,9.610964,9.200093,9.200093,9.610964,9.364442,6
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,16,1551438,6,JP. Marmion,6.4,5.326319,6.044899,7.806332,7.806332,6.044899,7.101759,7
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,12,1527008,6,J. Dubreil,20.0,5.3729653,6.3521676,7.705145,7.705145,6.3521676,7.163954,8
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,7,1532059,6,P. Belloche,27.0,5.443571,7.8236117,7.745142,7.745142,7.8236117,7.7765303,9
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,11,1532073,6,Grégory Thorel (S),22.0,5.7885365,6.694193,9.319434,9.319434,6.694193,8.269338,10
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,13,1505741,6,P. Belloche,12.0,5.861054,6.3953266,9.691339,9.691339,6.3953266,8.372934,11
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,9,1514720,6,A. Desmottes,30.0,5.957037,7.4061985,9.245955,9.245955,7.4061985,8.510053,12
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,15,1522819,6,Y. Dreux,11.0,6.041899,6.089129,10.326056,10.326056,6.089129,8.631285,13
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,5,1534094,6,JM. Baudouin,183.0,6.942692,11.411627,8.922466,8.922466,11.411627,9.918131,14
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,10,1513745,6,LC. Abrivard,31.0,7.843904,10.114925,11.932677,11.932677,10.114925,11.205577,15
+1624778,2025-11-24,Paris-Vincennes,1,1,Prix de Brassac-les-Mines,8,1543512,6,O. Touvais,54.0,8.645039,10.875475,11.96088,11.96088,10.875475,11.526718,16

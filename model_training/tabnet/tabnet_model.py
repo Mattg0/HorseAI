@@ -282,6 +282,16 @@ class TabNetModel:
                            tabnet_params: Optional[Dict] = None) -> Dict[str, Any]:
         """Train TabNet model with provided data."""
 
+        # Extract fit() parameters if provided
+        fit_params = {}
+        if tabnet_params:
+            # Extract max_epochs and patience for .fit() method
+            fit_params['max_epochs'] = tabnet_params.pop('max_epochs', 200)
+            fit_params['patience'] = tabnet_params.pop('patience', 20)
+        else:
+            fit_params['max_epochs'] = 200
+            fit_params['patience'] = 20
+
         # Default TabNet parameters optimized for horse race prediction
         default_params = {
             'n_d': 32,  # Dimension of the feature transformer
@@ -300,7 +310,7 @@ class TabNetModel:
             'device_name': 'cpu'  # Use CPU to avoid MPS float64 compatibility issues
         }
 
-        # Update with user-provided parameters
+        # Update with user-provided parameters (after removing fit params)
         if tabnet_params:
             default_params.update(tabnet_params)
 
@@ -318,8 +328,8 @@ class TabNetModel:
             X_train=X_train,
             y_train=y_train_array.reshape(-1, 1),
             eval_set=[(X_test, y_test_array.reshape(-1, 1))],
-            max_epochs=200,
-            patience=20,
+            max_epochs=fit_params['max_epochs'],
+            patience=fit_params['patience'],
             batch_size=1024,
             virtual_batch_size=256,
             num_workers=0,
@@ -455,10 +465,20 @@ class TabNetModel:
             'created_at': datetime.now().isoformat(),
             'model_type': 'TabNet'
         }
-        
+
         with open(tabnet_config_path, 'w') as f:
             json.dump(config_data, f, indent=2)
         saved_paths['tabnet_config'] = str(tabnet_config_path)
+
+        # Save feature selector if it exists (from automatic feature selection)
+        if hasattr(self, 'feature_selector') and self.feature_selector is not None:
+            try:
+                feature_selector_path = save_path / "feature_selector.json"
+                self.feature_selector.save(str(feature_selector_path))
+                saved_paths['feature_selector'] = str(feature_selector_path)
+                self.log_info(f"  Feature selector: {feature_selector_path}")
+            except Exception as e:
+                self.log_info(f"  Warning: Could not save feature selector: {e}")
 
         # Update config.yaml with latest TabNet model path
         relative_path = save_path.relative_to(models_dir)

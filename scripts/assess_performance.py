@@ -21,8 +21,13 @@ from collections import defaultdict
 # Configuration
 DB_PATH = "data/hippique2.db"
 QUINTE_PREDICTIONS_PATH = "predictions/quinte_predictions_all_2025-09-23_to_2025-10-26_20251026_143757.json"
-QUINTE_MODEL_FEATURES_PATH = "models/2025-10-26/2years_120713_quinte_rf/feature_columns.json"
-GENERAL_FEATURES_EXTRACT_PATH = "X_general_features.json"
+
+# Model feature paths
+QUINTE_RF_PATH = "models/2025-10-26/2years_120713_quinte_rf"
+QUINTE_TABNET_PATH = "models/2025-10-26/2years_120713_quinte_tabnet"
+GENERAL_RF_PATH = "models/2025-10-29/2years_200717"
+GENERAL_TABNET_PATH = "models/2025-10-29/2years_200721"
+
 OUTPUT_DIR = "assessment_results"
 
 
@@ -120,23 +125,54 @@ def load_quinte_predictions_from_json():
 
 
 def load_feature_lists():
-    """Load feature lists from saved models"""
-    # Quinte features
-    with open(QUINTE_MODEL_FEATURES_PATH) as f:
-        quinte_features = json.load(f)
+    """Load feature lists from all 4 models: Quinte RF, Quinte TabNet, General RF, General TabNet"""
 
-    # General features - extract from X_general_features.json
-    with open(GENERAL_FEATURES_EXTRACT_PATH) as f:
-        general_data = json.load(f)
+    def load_features_from_model(model_path, model_name):
+        """Load features from a model directory"""
+        model_path = Path(model_path)
 
-    # Get feature names from first horse in first race
-    if general_data['races'] and general_data['races'][0]['X_features']:
-        first_horse = general_data['races'][0]['X_features'][0]
-        general_features = list(first_horse.keys())
-    else:
-        general_features = []
+        # Try feature_columns.json first
+        feature_file = model_path / "feature_columns.json"
+        if feature_file.exists():
+            with open(feature_file) as f:
+                return json.load(f)
 
-    return quinte_features, general_features
+        # Try tabnet_config.json for TabNet models
+        tabnet_config = model_path / "tabnet_config.json"
+        if tabnet_config.exists():
+            with open(tabnet_config) as f:
+                config = json.load(f)
+                if 'feature_columns' in config:
+                    return config['feature_columns']
+
+        # Try tabnet_feature_columns.json
+        tabnet_features = model_path / "tabnet_feature_columns.json"
+        if tabnet_features.exists():
+            with open(tabnet_features) as f:
+                return json.load(f)
+
+        print(f"  WARNING: Could not find features for {model_name} at {model_path}")
+        return []
+
+    print("\nLoading model features...")
+
+    # Load Quinte RF features
+    quinte_rf_features = load_features_from_model(QUINTE_RF_PATH, "Quinte RF")
+    print(f"  Quinte RF: {len(quinte_rf_features)} features")
+
+    # Load Quinte TabNet features
+    quinte_tabnet_features = load_features_from_model(QUINTE_TABNET_PATH, "Quinte TabNet")
+    print(f"  Quinte TabNet: {len(quinte_tabnet_features)} features")
+
+    # Load General RF features
+    general_rf_features = load_features_from_model(GENERAL_RF_PATH, "General RF")
+    print(f"  General RF: {len(general_rf_features)} features")
+
+    # Load General TabNet features
+    general_tabnet_features = load_features_from_model(GENERAL_TABNET_PATH, "General TabNet")
+    print(f"  General TabNet: {len(general_tabnet_features)} features")
+
+    return quinte_rf_features, quinte_tabnet_features, general_rf_features, general_tabnet_features
 
 
 def validate_predictions(df, model_name):
@@ -205,32 +241,83 @@ def calculate_metrics(df, model_name):
     return results
 
 
-def compare_features(quinte_features, general_features):
-    """Compare feature lists between models"""
-    quinte_set = set(quinte_features)
-    general_set = set(general_features)
+def compare_features(quinte_rf_features, quinte_tabnet_features, general_rf_features, general_tabnet_features):
+    """Compare feature lists between all 4 models"""
+
+    # Convert to sets for comparison
+    quinte_rf_set = set(quinte_rf_features)
+    quinte_tabnet_set = set(quinte_tabnet_features)
+    general_rf_set = set(general_rf_features)
+    general_tabnet_set = set(general_tabnet_features)
 
     comparison = {
-        'quinte_count': len(quinte_features),
-        'general_count': len(general_features),
-        'shared_count': len(quinte_set & general_set),
-        'quinte_only_count': len(quinte_set - general_set),
-        'general_only_count': len(general_set - quinte_set),
-        'quinte_only': sorted(list(quinte_set - general_set)),
-        'general_only': sorted(list(general_set - quinte_set)),
-        'shared': sorted(list(quinte_set & general_set))
+        'counts': {
+            'quinte_rf': len(quinte_rf_features),
+            'quinte_tabnet': len(quinte_tabnet_features),
+            'general_rf': len(general_rf_features),
+            'general_tabnet': len(general_tabnet_features)
+        }
+    }
+
+    # 1. RF Models Comparison: Quinte RF vs General RF
+    comparison['rf_models'] = {
+        'shared': sorted(list(quinte_rf_set & general_rf_set)),
+        'shared_count': len(quinte_rf_set & general_rf_set),
+        'in_quinte_only': sorted(list(quinte_rf_set - general_rf_set)),
+        'in_quinte_only_count': len(quinte_rf_set - general_rf_set),
+        'in_general_only': sorted(list(general_rf_set - quinte_rf_set)),
+        'in_general_only_count': len(general_rf_set - quinte_rf_set)
+    }
+
+    # Analyze quinte-specific vs non-quinte features
+    quinte_specific = [f for f in comparison['rf_models']['in_quinte_only'] if 'quinte' in f.lower()]
+    non_quinte_missing = [f for f in comparison['rf_models']['in_quinte_only'] if 'quinte' not in f.lower()]
+    comparison['rf_models']['quinte_specific_features'] = sorted(quinte_specific)
+    comparison['rf_models']['quinte_specific_count'] = len(quinte_specific)
+    comparison['rf_models']['non_quinte_missing_from_general'] = sorted(non_quinte_missing)
+    comparison['rf_models']['non_quinte_missing_count'] = len(non_quinte_missing)
+
+    # 2. TabNet Models Comparison: Quinte TabNet vs General TabNet
+    comparison['tabnet_models'] = {
+        'shared': sorted(list(quinte_tabnet_set & general_tabnet_set)),
+        'shared_count': len(quinte_tabnet_set & general_tabnet_set),
+        'in_quinte_only': sorted(list(quinte_tabnet_set - general_tabnet_set)),
+        'in_quinte_only_count': len(quinte_tabnet_set - general_tabnet_set),
+        'in_general_only': sorted(list(general_tabnet_set - quinte_tabnet_set)),
+        'in_general_only_count': len(general_tabnet_set - quinte_tabnet_set)
+    }
+
+    # 3. Quinte Models: RF vs TabNet
+    comparison['quinte_rf_vs_tabnet'] = {
+        'shared': sorted(list(quinte_rf_set & quinte_tabnet_set)),
+        'shared_count': len(quinte_rf_set & quinte_tabnet_set),
+        'rf_only': sorted(list(quinte_rf_set - quinte_tabnet_set)),
+        'rf_only_count': len(quinte_rf_set - quinte_tabnet_set),
+        'tabnet_only': sorted(list(quinte_tabnet_set - quinte_rf_set)),
+        'tabnet_only_count': len(quinte_tabnet_set - quinte_rf_set)
+    }
+
+    # 4. General Models: RF vs TabNet
+    comparison['general_rf_vs_tabnet'] = {
+        'shared': sorted(list(general_rf_set & general_tabnet_set)),
+        'shared_count': len(general_rf_set & general_tabnet_set),
+        'rf_only': sorted(list(general_rf_set - general_tabnet_set)),
+        'rf_only_count': len(general_rf_set - general_tabnet_set),
+        'tabnet_only': sorted(list(general_tabnet_set - general_rf_set)),
+        'tabnet_only_count': len(general_tabnet_set - general_rf_set)
     }
 
     return comparison
 
 
-def print_report(quinte_results, general_results, feature_comparison):
+def print_report(quinte_results, general_results, comparison):
     """Print text report to console"""
     print("\n" + "="*80)
-    print("PERFORMANCE ASSESSMENT REPORT")
+    print("PERFORMANCE ASSESSMENT REPORT - ALL 4 MODELS")
     print("="*80)
 
-    print("\nQUINTE MODEL")
+    # Performance metrics
+    print("\nQUINTE MODEL (Quinte+ races only)")
     print("-"*80)
     print(f"Races evaluated: {quinte_results['n_races']}")
     print(f"Total predictions: {quinte_results['n_predictions']}")
@@ -243,7 +330,7 @@ def print_report(quinte_results, general_results, feature_comparison):
     print(f"RMSE: {quinte_results['rmse']:.3f}")
     print(f"Median error: {quinte_results['median_error']:.3f}")
 
-    print("\nGENERAL MODEL")
+    print("\nGENERAL MODEL (All race types)")
     print("-"*80)
     print(f"Races evaluated: {general_results['n_races']}")
     print(f"Total predictions: {general_results['n_predictions']}")
@@ -256,73 +343,167 @@ def print_report(quinte_results, general_results, feature_comparison):
     print(f"RMSE: {general_results['rmse']:.3f}")
     print(f"Median error: {general_results['median_error']:.3f}")
 
-    print("\nFEATURE COMPARISON")
-    print("-"*80)
-    print(f"Quinte features: {feature_comparison['quinte_count']}")
-    print(f"General features: {feature_comparison['general_count']}")
-    print(f"Shared features: {feature_comparison['shared_count']}")
-    print(f"Quinte-only features: {feature_comparison['quinte_only_count']}")
-    print(f"General-only features: {feature_comparison['general_only_count']}")
+    # Feature counts summary
+    print("\n" + "="*80)
+    print("FEATURE COUNTS - ALL 4 MODELS")
+    print("="*80)
+    counts = comparison['counts']
+    print(f"Quinte RF:      {counts['quinte_rf']:3d} features")
+    print(f"Quinte TabNet:  {counts['quinte_tabnet']:3d} features")
+    print(f"General RF:     {counts['general_rf']:3d} features")
+    print(f"General TabNet: {counts['general_tabnet']:3d} features")
 
-    if feature_comparison['quinte_only']:
-        print(f"\nTop Quinte-specific features:")
-        for feat in feature_comparison['quinte_only'][:15]:
+    # 1. RF Models Comparison
+    print("\n" + "="*80)
+    print("COMPARISON 1: RF MODELS (Quinte RF vs General RF)")
+    print("="*80)
+    rf = comparison['rf_models']
+    print(f"Shared features: {rf['shared_count']}")
+    print(f"In Quinte RF only: {rf['in_quinte_only_count']}")
+    print(f"  - Quinte-specific (expected): {rf['quinte_specific_count']}")
+    print(f"  - Non-quinte missing from General: {rf['non_quinte_missing_count']}")
+    print(f"In General RF only: {rf['in_general_only_count']}")
+
+    if rf['quinte_specific_features']:
+        print(f"\nQuinte-specific features (expected in Quinte only):")
+        for feat in rf['quinte_specific_features'][:10]:
             print(f"  - {feat}")
-        if len(feature_comparison['quinte_only']) > 15:
-            print(f"  ... and {len(feature_comparison['quinte_only'])-15} more")
+        if len(rf['quinte_specific_features']) > 10:
+            print(f"  ... and {len(rf['quinte_specific_features'])-10} more")
+
+    if rf['non_quinte_missing_from_general']:
+        print(f"\nNon-quinte features MISSING from General RF:")
+        for feat in rf['non_quinte_missing_from_general'][:20]:
+            print(f"  - {feat}")
+        if len(rf['non_quinte_missing_from_general']) > 20:
+            print(f"  ... and {len(rf['non_quinte_missing_from_general'])-20} more")
+
+    # 2. TabNet Models Comparison
+    print("\n" + "="*80)
+    print("COMPARISON 2: TABNET MODELS (Quinte TabNet vs General TabNet)")
+    print("="*80)
+    tn = comparison['tabnet_models']
+    print(f"Shared features: {tn['shared_count']}")
+    print(f"In Quinte TabNet only: {tn['in_quinte_only_count']}")
+    print(f"In General TabNet only: {tn['in_general_only_count']}")
+
+    if tn['in_quinte_only_count'] > 0 and tn['in_quinte_only_count'] <= 20:
+        print(f"\nFeatures in Quinte TabNet only:")
+        for feat in tn['in_quinte_only']:
+            print(f"  - {feat}")
+
+    if tn['in_general_only_count'] > 0 and tn['in_general_only_count'] <= 20:
+        print(f"\nFeatures in General TabNet only:")
+        for feat in tn['in_general_only']:
+            print(f"  - {feat}")
+
+    # 3. Quinte: RF vs TabNet
+    print("\n" + "="*80)
+    print("COMPARISON 3: QUINTE MODELS (Quinte RF vs Quinte TabNet)")
+    print("="*80)
+    qcomp = comparison['quinte_rf_vs_tabnet']
+    print(f"Shared features: {qcomp['shared_count']}")
+    print(f"Quinte RF only: {qcomp['rf_only_count']}")
+    print(f"Quinte TabNet only: {qcomp['tabnet_only_count']}")
+    print(f"\nNote: TabNet typically uses an optimized subset of RF features")
+
+    # 4. General: RF vs TabNet
+    print("\n" + "="*80)
+    print("COMPARISON 4: GENERAL MODELS (General RF vs General TabNet)")
+    print("="*80)
+    gcomp = comparison['general_rf_vs_tabnet']
+    print(f"Shared features: {gcomp['shared_count']}")
+    print(f"General RF only: {gcomp['rf_only_count']}")
+    print(f"General TabNet only: {gcomp['tabnet_only_count']}")
+    print(f"\nNote: TabNet typically uses an optimized subset of RF features")
 
     print("\n" + "="*80)
 
 
-def save_results(quinte_results, general_results, feature_comparison):
+def save_results(quinte_results, general_results, comparison):
     """Save results to files"""
     Path(OUTPUT_DIR).mkdir(exist_ok=True)
 
     # Text report
     report_path = Path(OUTPUT_DIR) / "assessment_report.txt"
     with open(report_path, 'w') as f:
-        f.write("PERFORMANCE ASSESSMENT REPORT\n")
+        f.write("PERFORMANCE ASSESSMENT REPORT - ALL 4 MODELS\n")
         f.write("="*80 + "\n\n")
 
-        f.write("QUINTE MODEL\n")
+        f.write("QUINTE MODEL (Quinte+ races only)\n")
         f.write("-"*80 + "\n")
         for key, value in sorted(quinte_results.items()):
             f.write(f"{key}: {value}\n")
 
-        f.write("\nGENERAL MODEL\n")
+        f.write("\nGENERAL MODEL (All race types)\n")
         f.write("-"*80 + "\n")
         for key, value in sorted(general_results.items()):
             f.write(f"{key}: {value}\n")
 
-        f.write("\nFEATURE COMPARISON\n")
-        f.write("-"*80 + "\n")
-        f.write(f"Quinte features: {feature_comparison['quinte_count']}\n")
-        f.write(f"General features: {feature_comparison['general_count']}\n")
-        f.write(f"Shared: {feature_comparison['shared_count']}\n")
-        f.write(f"Quinte-only: {feature_comparison['quinte_only_count']}\n")
-        f.write(f"General-only: {feature_comparison['general_only_count']}\n\n")
+        f.write("\n" + "="*80 + "\n")
+        f.write("FEATURE COUNTS - ALL 4 MODELS\n")
+        f.write("="*80 + "\n")
+        counts = comparison['counts']
+        f.write(f"Quinte RF:      {counts['quinte_rf']} features\n")
+        f.write(f"Quinte TabNet:  {counts['quinte_tabnet']} features\n")
+        f.write(f"General RF:     {counts['general_rf']} features\n")
+        f.write(f"General TabNet: {counts['general_tabnet']} features\n")
 
-        f.write("Quinte-specific features:\n")
-        for feat in feature_comparison['quinte_only']:
+        f.write("\n" + "="*80 + "\n")
+        f.write("COMPARISON 1: RF MODELS (Quinte RF vs General RF)\n")
+        f.write("="*80 + "\n")
+        rf = comparison['rf_models']
+        f.write(f"Shared features: {rf['shared_count']}\n")
+        f.write(f"In Quinte RF only: {rf['in_quinte_only_count']}\n")
+        f.write(f"  - Quinte-specific: {rf['quinte_specific_count']}\n")
+        f.write(f"  - Non-quinte missing from General: {rf['non_quinte_missing_count']}\n")
+        f.write(f"In General RF only: {rf['in_general_only_count']}\n\n")
+
+        f.write("Quinte-specific features (expected):\n")
+        for feat in rf['quinte_specific_features']:
             f.write(f"  {feat}\n")
 
-        f.write("\nGeneral-specific features:\n")
-        for feat in feature_comparison['general_only']:
+        f.write("\nNon-quinte features MISSING from General RF:\n")
+        for feat in rf['non_quinte_missing_from_general']:
             f.write(f"  {feat}\n")
 
-    # JSON data
+        f.write("\nGeneral RF-only features:\n")
+        for feat in rf['in_general_only'][:50]:
+            f.write(f"  {feat}\n")
+        if len(rf['in_general_only']) > 50:
+            f.write(f"  ... and {len(rf['in_general_only']) - 50} more\n")
+
+        f.write("\n" + "="*80 + "\n")
+        f.write("COMPARISON 2: TABNET MODELS (Quinte TabNet vs General TabNet)\n")
+        f.write("="*80 + "\n")
+        tn = comparison['tabnet_models']
+        f.write(f"Shared features: {tn['shared_count']}\n")
+        f.write(f"In Quinte TabNet only: {tn['in_quinte_only_count']}\n")
+        f.write(f"In General TabNet only: {tn['in_general_only_count']}\n")
+
+        f.write("\n" + "="*80 + "\n")
+        f.write("COMPARISON 3: QUINTE MODELS (RF vs TabNet)\n")
+        f.write("="*80 + "\n")
+        qcomp = comparison['quinte_rf_vs_tabnet']
+        f.write(f"Shared: {qcomp['shared_count']}\n")
+        f.write(f"Quinte RF only: {qcomp['rf_only_count']}\n")
+        f.write(f"Quinte TabNet only: {qcomp['tabnet_only_count']}\n")
+
+        f.write("\n" + "="*80 + "\n")
+        f.write("COMPARISON 4: GENERAL MODELS (RF vs TabNet)\n")
+        f.write("="*80 + "\n")
+        gcomp = comparison['general_rf_vs_tabnet']
+        f.write(f"Shared: {gcomp['shared_count']}\n")
+        f.write(f"General RF only: {gcomp['rf_only_count']}\n")
+        f.write(f"General TabNet only: {gcomp['tabnet_only_count']}\n")
+
+    # JSON data - comprehensive dump
     data = {
-        'quinte_model': quinte_results,
-        'general_model': general_results,
-        'feature_comparison': {
-            'quinte_count': feature_comparison['quinte_count'],
-            'general_count': feature_comparison['general_count'],
-            'shared_count': feature_comparison['shared_count'],
-            'quinte_only_count': feature_comparison['quinte_only_count'],
-            'general_only_count': feature_comparison['general_only_count'],
-            'quinte_only': feature_comparison['quinte_only'],
-            'general_only': feature_comparison['general_only']
-        }
+        'performance': {
+            'quinte_model': quinte_results,
+            'general_model': general_results
+        },
+        'feature_comparison': comparison
     }
 
     json_path = Path(OUTPUT_DIR) / "assessment_data.json"
@@ -336,7 +517,15 @@ def save_results(quinte_results, general_results, feature_comparison):
 
 def main():
     """Main execution"""
-    print("Loading predictions...")
+    print("="*80)
+    print("PERFORMANCE ASSESSMENT: ALL 4 MODELS")
+    print("  1. Quinte RF")
+    print("  2. Quinte TabNet")
+    print("  3. General RF")
+    print("  4. General TabNet")
+    print("="*80)
+
+    print("\nLoading predictions...")
 
     # Load predictions
     quinte_df = load_quinte_predictions_from_json()
@@ -351,16 +540,20 @@ def main():
     quinte_results = calculate_metrics(quinte_df, "QUINTE")
     general_results = calculate_metrics(general_df, "GENERAL")
 
-    # Load and compare features
-    print("\nComparing features...")
-    quinte_features, general_features = load_feature_lists()
-    feature_comparison = compare_features(quinte_features, general_features)
+    # Load and compare features from all 4 models
+    quinte_rf_features, quinte_tabnet_features, general_rf_features, general_tabnet_features = load_feature_lists()
+
+    print("\nComparing features across all 4 models...")
+    comparison = compare_features(
+        quinte_rf_features, quinte_tabnet_features,
+        general_rf_features, general_tabnet_features
+    )
 
     # Print report
-    print_report(quinte_results, general_results, feature_comparison)
+    print_report(quinte_results, general_results, comparison)
 
     # Save results
-    save_results(quinte_results, general_results, feature_comparison)
+    save_results(quinte_results, general_results, comparison)
 
     print("\nAssessment complete.")
 

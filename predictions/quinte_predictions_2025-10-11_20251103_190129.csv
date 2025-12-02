@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),9,1541261,6,SG. Dupont,2.5,4.4828329662323,2.9369414,8.605,1
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),11,1463746,8,A. Plard,9.4,4.511304551124573,6.2942047,7.825,2
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),14,1351630,9,E. Szirmay,90.0,5.3225207997322075,11.226553,9.29,3
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),8,1514076,6,CM. Bruneau,20.0,5.512437489509582,9.036979,9.225,4
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),4,1557632,6,M. Bézier,8.4,5.56156952047348,6.51713,7.64,5
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),1,1471997,7,S. Hardy,0.0,5.618010887861252,8.513406,7.235,6
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),6,1510577,6,A. Buisson,5.3,5.737351962804795,3.229013,8.755,7
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),5,1530671,6,J. Dubreil,7.7,5.853867588043213,8.625784,7.6,8
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),3,1510772,6,M. Abrivard,18.0,5.886581088066102,5.403874,8.46,9
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),10,1503038,7,K. Ait Ouakli,78.0,5.933931686639786,7.919544,7.91,10
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),13,1348067,9,S. Rousselle,143.0,5.97079275856018,13.776606,8.995,11
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),2,1510501,6,L. Roelens,59.0,6.318820931196213,9.405473,8.18,12
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),7,1407560,8,C. Chalon,38.0,6.83417497229576,6.4811664,9.77,13
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),16,1511506,6,C. Buhigné,27.0,6.874315225839615,9.288768,9.135,14
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),12,1448161,8,R. Lagadeuc,104.0,7.046676223754882,11.3578415,8.905,15
+1614096,2025-10-11,Caen,1,4,Prix d'Automne (Prix de la Ville de Caen),15,1411765,8,JP. Raffegeau,126.0,7.371679852008819,13.244533,8.975,16

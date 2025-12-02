@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,raw_rf_prediction,raw_tabnet_prediction,predicted_position_base,predicted_rank
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,5,1565635,5,Mme S. Raimond,4.8,3.703049,4.541478,5.477218,5.477218,4.541478,5.29007,1
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,13,1584739,5,T. Radoux,7.8,4.805652,5.7944403,7.1329107,7.1329107,5.7944403,6.865217,2
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,9,1557734,5,T. Le Beller,28.0,4.902075,8.175992,9.097082,9.097082,8.175992,8.912864,3
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,16,1575465,5,T. Raffegeau,5.9,4.961493,4.8061023,7.6582837,7.6582837,4.8061023,7.087847,4
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,8,1657540,5,C. Bigeon,9.8,5.2741256,6.605118,7.7668023,7.7668023,6.605118,7.5344653,5
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,10,1581928,5,T. Lamare,6.4,5.3685985,6.87773,7.8673506,7.8673506,6.87773,7.6694264,6
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,12,1580185,5,LC. Abrivard,6.4,5.401972,5.055333,7.7394524,7.7394524,5.055333,7.202629,7
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,7,1552861,5,B. Marie,41.0,5.9960284,8.661434,8.541835,8.541835,8.661434,8.565755,8
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,11,1660138,5,SG. Dupont,12.0,6.1786513,7.5580645,9.14379,9.14379,7.5580645,8.826645,9
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,15,1552859,5,S. Roger,64.0,6.397394,10.201194,11.989233,11.989233,10.201194,11.631626,10
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,14,1558628,5,JM. Baudouin,60.0,6.5800962,9.519897,12.574789,12.574789,9.519897,11.963811,11
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,2,1575520,5,N. Bazire,127.0,7.1435785,11.675943,13.316419,13.316419,11.675943,12.988324,12
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,1,1580126,5,A. Buisson,29.0,7.3307915,7.519121,10.338205,10.338205,7.519121,9.774388,13
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,3,1566866,5,P. Belloche,84.0,8.157102,10.106926,12.03952,12.03952,10.106926,11.653002,14
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,6,1583971,5,D. Brouwer,53.0,8.338406,9.244568,11.586201,11.586201,9.244568,11.117874,15
+1618791,2025-11-04,Paris-Vincennes,1,1,Prix de Maure-de-Bretagne,4,1572457,5,T. Raffegeau,81.0,8.566427,10.924282,12.566121,12.566121,10.924282,12.237754,16

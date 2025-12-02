@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),3,1730612,3,Mme M. Scandella-Lacaille,13.0,4.299160049486161,7.203273,7.97,1
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),8,1560629,5,C. Escuder,7.7,4.461000453662872,6.084289,6.445,2
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),15,1641810,5,M. Pitart,9.3,4.613421574401856,5.2330112,6.93,3
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),1,1415898,8,C. Escuder,0.0,4.613442104578018,4.6531577,7.075,4
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),2,1489807,7,P. Cottier,7.8,4.641293672275543,7.072098,6.52,5
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),11,1570593,5,Mme M. Scandella-Lacaille,7.6,4.78955380859375,4.2510986,7.49,6
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),7,1714294,3,M. Pitart,6.6,4.909503044605255,5.7678785,7.325,7
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),12,1717449,3,R. Chotard,26.0,5.011016692924501,6.874697,9.67,8
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),6,1371167,8,P. Cottier,10.0,5.170805688095093,4.7543263,8.045,9
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),5,1524470,6,P. Monfort,12.0,5.49256516456604,5.2326083,8.5,10
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),9,1559940,5,N. Bellanger,22.0,5.7260584239006045,7.540417,8.34,11
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),13,1523301,6,R. Fradet,16.0,5.768199352025986,5.554662,8.225,12
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),14,1654744,4,F. Forési,20.0,6.362817654037476,11.488697,8.49,13
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),16,1405896,7,R. Fradet,33.0,6.450594743824005,9.635676,9.11,14
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),10,1312562,9,Mme M. Scandella-Lacaille,24.0,6.4946183152198795,7.917455,8.845,15
+1607168,2025-10-13,Marseille-Borély,1,1,Prix Hôtel Villa M Marseille (Prix Jules Morgan),4,1419714,7,F. Forési,75.0,6.934273195266725,10.728488,8.875,16

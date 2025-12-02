@@ -10,7 +10,7 @@ import yaml
 from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 import logging
-from .competitive_field_analyzer import CompetitiveFieldAnalyzer
+from race_prediction.competitive_field_analyzer import CompetitiveFieldAnalyzer
 
 
 class EnhancedPredictionBlender:

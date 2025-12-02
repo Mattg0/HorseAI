@@ -1,0 +1,158 @@
+{
+  "race_info": {
+    "race_id": "1622859",
+    "date": "2025-11-14",
+    "track": "Paris-Vincennes",
+    "race_name": "Prix de la Ville de Fontenay-sous-Bois (Prix Mizar)",
+    "actual_results": "pending"
+  },
+  "race_metadata": {
+    "typec": "Attelé",
+    "dist": 2100,
+    "partant": 16
+  },
+  "num_horses": 16,
+  "eligible_configs": 1,
+  "scenarios": [
+    {
+      "scenario_type": "Configured_Blend",
+      "config_name": "default",
+      "rf_weight": 1.0,
+      "tabnet_weight": 0.0,
+      "description": "Default optimal weights from automated analysis (Accuracy: 15.6%)",
+      "condition": {},
+      "accuracy": 15.58562762482501,
+      "top5": [
+        {
+          "numero": 3,
+          "horse_name": null,
+          "predicted_position": 5.602067470550537,
+          "predicted_rank": 1
+        },
+        {
+          "numero": 1,
+          "horse_name": null,
+          "predicted_position": 7.517090320587158,
+          "predicted_rank": 2
+        },
+        {
+          "numero": 13,
+          "horse_name": null,
+          "predicted_position": 7.672399520874023,
+          "predicted_rank": 3
+        },
+        {
+          "numero": 6,
+          "horse_name": null,
+          "predicted_position": 7.686690330505371,
+          "predicted_rank": 4
+        },
+        {
+          "numero": 9,
+          "horse_name": null,
+          "predicted_position": 8.166279792785645,
+          "predicted_rank": 5
+        }
+      ],
+      "all_predictions": [
+        {
+          "numero": 3,
+          "horse_name": null,
+          "predicted_position": 5.602067470550537,
+          "predicted_rank": 1
+        },
+        {
+          "numero": 1,
+          "horse_name": null,
+          "predicted_position": 7.517090320587158,
+          "predicted_rank": 2
+        },
+        {
+          "numero": 13,
+          "horse_name": null,
+          "predicted_position": 7.672399520874023,
+          "predicted_rank": 3
+        },
+        {
+          "numero": 6,
+          "horse_name": null,
+          "predicted_position": 7.686690330505371,
+          "predicted_rank": 4
+        },
+        {
+          "numero": 9,
+          "horse_name": null,
+          "predicted_position": 8.166279792785645,
+          "predicted_rank": 5
+        },
+        {
+          "numero": 5,
+          "horse_name": null,
+          "predicted_position": 8.437934875488281,
+          "predicted_rank": 6
+        },
+        {
+          "numero": 7,
+          "horse_name": null,
+          "predicted_position": 9.066679000854492,
+          "predicted_rank": 7
+        },
+        {
+          "numero": 15,
+          "horse_name": null,
+          "predicted_position": 9.411126136779785,
+          "predicted_rank": 8
+        },
+        {
+          "numero": 2,
+          "horse_name": null,
+          "predicted_position": 9.415138244628906,
+          "predicted_rank": 9
+        },
+        {
+          "numero": 4,
+          "horse_name": null,
+          "predicted_position": 9.543362617492676,
+          "predicted_rank": 10
+        },
+        {
+          "numero": 14,
+          "horse_name": null,
+          "predicted_position": 9.602766036987305,
+          "predicted_rank": 11
+        },
+        {
+          "numero": 12,
+          "horse_name": null,
+          "predicted_position": 9.707242012023926,
+          "predicted_rank": 12
+        },
+        {
+          "numero": 10,
+          "horse_name": null,
+          "predicted_position": 10.124218940734863,
+          "predicted_rank": 13
+        },
+        {
+          "numero": 11,
+          "horse_name": null,
+          "predicted_position": 10.27851676940918,
+          "predicted_rank": 14
+        },
+        {
+          "numero": 8,
+          "horse_name": null,
+          "predicted_position": 10.62009334564209,
+          "predicted_rank": 15
+        },
+        {
+          "numero": 16,
+          "horse_name": null,
+          "predicted_position": 11.591161727905273,
+          "predicted_rank": 16
+        }
+      ]
+    }
+  ],
+  "total_scenarios": 1
+}

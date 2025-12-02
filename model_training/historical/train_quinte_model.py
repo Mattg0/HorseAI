@@ -24,7 +24,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler
 import platform
@@ -488,14 +488,26 @@ class QuinteRaceModel:
         # Update feature_columns to reflect actual features after transformations
         self.feature_columns = list(X.columns)
 
-        # FAIL-FAST: Validate we have the expected ~90 features
-        expected_min_features = 85  # Should be ~89 after recence/cotedirect transform
+        # Remove all DNF_rate features (user will handle separately)
+        dnf_features = [col for col in self.feature_columns if 'dnf_rate' in col.lower()]
+        if dnf_features:
+            self.log_info(f"🗑️  Removing {len(dnf_features)} DNF_rate features:")
+            for dnf_feat in dnf_features:
+                self.log_info(f"   - {dnf_feat}")
+            X = X.drop(columns=dnf_features)
+            self.feature_columns = [col for col in self.feature_columns if col not in dnf_features]
+            self.log_info(f"✓ Remaining features after DNF removal: {len(self.feature_columns)}")
+
+        # FAIL-FAST: Validate we have the expected features
+        # ~89 features after transformations - 6 DNF features = ~83 features
+        expected_min_features = 80  # Should be ~83 after DNF removal
         if len(self.feature_columns) < expected_min_features:
             error_msg = f"""
 ❌ FEATURE COUNT TOO LOW!
 
 Created: {len(self.feature_columns)} features
-Expected: ~89 features (minimum {expected_min_features})
+Expected: ~83 features (minimum {expected_min_features})
+Note: ~89 original features - 6 DNF_rate features = ~83
 
 This suggests the feature calculation is not creating all required features.
 Check that:
@@ -510,7 +522,7 @@ Current features:
             raise ValueError(f"Feature count too low: {len(self.feature_columns)} < {expected_min_features}")
 
         # Verify critical features are present
-        critical_features = ['che_bytype_dnf_rate', 'che_global_avg_pos', 'joc_bytype_avg_pos']
+        critical_features = ['che_global_avg_pos', 'joc_bytype_avg_pos']
         missing_critical = [f for f in critical_features if f not in self.feature_columns]
         if missing_critical:
             error_msg = f"""
@@ -523,6 +535,8 @@ These features are essential for model performance. Check feature calculation pi
             self.log_info(error_msg)
             raise ValueError(f"Critical features missing: {missing_critical}")
 
+        # Use absolute positions as targets (for XGBoost with regularization)
+        # XGBoost's feature interactions and regularization handle field size variations
         y = self.complete_df['final_position'].copy()
 
         # Handle missing values
@@ -584,21 +598,26 @@ These features are essential for model performance. Check feature calculation pi
         return self.training_results
 
     def _train_rf_model(self, X_train, y_train, X_test, y_test) -> Dict[str, Any]:
-        """Train Random Forest model for quinté races."""
+        """Train XGBoost model for quinté races (previously Random Forest)."""
 
-        base_rf = RandomForestRegressor(
-            n_estimators=200,  # More trees for quinté complexity
-            max_depth=None,
-            min_samples_split=2,
-            min_samples_leaf=1,
+        base_xgb = XGBRegressor(
+            n_estimators=200,  # Same number of trees as RF
+            max_depth=6,  # XGBoost default - prevents overfitting
+            learning_rate=0.1,  # XGBoost default
+            subsample=0.8,  # Row sampling for regularization
+            colsample_bytree=0.8,  # Feature sampling for diversity
+            reg_alpha=0.1,  # L1 regularization
+            reg_lambda=1.0,  # L2 regularization
             random_state=42,
-            n_jobs=-1
+            n_jobs=-1,
+            tree_method='hist',  # Faster training on large datasets
+            objective='reg:squarederror'
         )
 
-        self.rf_model = CalibratedRegressor(
-            base_regressor=base_rf,
-            clip_min=1.0
-        )
+        # NOTE: Switched from RandomForest to XGBoost to fix prediction compression
+        # XGBoost better handles feature interactions and field size variations
+        # See XGBOOST_MIGRATION.md for details
+        self.rf_model = base_xgb  # Keep name for backward compatibility
 
         self.rf_model.fit(X_train, y_train)
 
@@ -615,11 +634,11 @@ These features are essential for model performance. Check feature calculation pi
 
         # Feature importance
         feature_importance = None
-        if hasattr(self.rf_model.base_regressor, 'feature_importances_'):
-            feature_importance = self.rf_model.base_regressor.feature_importances_.tolist()
+        if hasattr(self.rf_model, 'feature_importances_'):
+            feature_importance = self.rf_model.feature_importances_.tolist()
 
         return {
-            'model_type': 'RandomForest_Quinté',
+            'model_type': 'XGBoost_Quinté',  # Updated to reflect actual model type
             'train_samples': len(X_train),
             'test_samples': len(X_test),
             'features': len(self.feature_columns),
@@ -633,19 +652,135 @@ These features are essential for model performance. Check feature calculation pi
         }
 
     def _train_tabnet_model(self, X_train, y_train, X_test, y_test) -> Dict[str, Any]:
-        """Train TabNet model for quinté races."""
+        """
+        Train TabNet model for quinté races with automatic feature selection.
+
+        Uses 3-phase training:
+        1. Initial training on all features to get importance (50 epochs)
+        2. Automatic feature selection (removes sparse, correlated, uses importance)
+        3. Final training on selected features (200 epochs)
+        """
 
         try:
-            # Scale features
-            self.scaler = StandardScaler()
-            X_train_scaled = self.scaler.fit_transform(X_train)
-            X_test_scaled = self.scaler.transform(X_test)
+            self.log_info("TabNet training: Using 3-phase approach with automatic feature selection")
 
-            # TabNet parameters (tuned for quinté)
-            tabnet_params = {
-                'n_d': 64,  # Larger for quinté complexity
+            # Split train into train/val for feature selection
+            X_train_main, X_val, y_train_main, y_val = train_test_split(
+                X_train, y_train, test_size=0.1, random_state=42
+            )
+
+            print(f"[QUINTE-TABNET] Training set: {X_train_main.shape[0]:,} samples, {X_train_main.shape[1]} features")
+            print(f"[QUINTE-TABNET] Validation set: {X_val.shape[0]:,} samples")
+            print(f"[QUINTE-TABNET] Test set: {X_test.shape[0]:,} samples")
+
+            # ===== PHASE 1: Initial Training for Feature Importance =====
+            print(f"\n[QUINTE-TABNET] ========================================")
+            print(f"[QUINTE-TABNET] PHASE 1: INITIAL TRAINING (50 epochs)")
+            print(f"[QUINTE-TABNET] ========================================")
+            print(f"[QUINTE-TABNET] Training on ALL {X_train_main.shape[1]} features to extract importance...")
+
+            # Scale data
+            scaler_initial = StandardScaler()
+            X_train_scaled_initial = scaler_initial.fit_transform(X_train_main)
+            X_val_scaled_initial = scaler_initial.transform(X_val)
+
+            # TabNet parameters for initial training
+            tabnet_params_initial = {
+                'n_d': 64,
                 'n_a': 64,
-                'n_steps': 6,  # More steps for larger fields
+                'n_steps': 6,
+                'gamma': 1.5,
+                'n_independent': 2,
+                'n_shared': 2,
+                'lambda_sparse': 1e-4,
+                'optimizer_fn': optim.Adam,
+                'optimizer_params': {'lr': 2e-2},
+                'mask_type': 'entmax',
+                'scheduler_params': {'step_size': 30, 'gamma': 0.95},
+                'scheduler_fn': optim.lr_scheduler.StepLR,
+                'verbose': 0,
+                'device_name': 'cpu'
+            }
+
+            # Initial quick training
+            model_initial = TabNetRegressor(**tabnet_params_initial)
+
+            X_train_f32_initial = X_train_scaled_initial.astype(np.float32)
+            X_val_f32_initial = X_val_scaled_initial.astype(np.float32)
+            y_train_f32_initial = y_train_main.values.astype(np.float32).reshape(-1, 1) if hasattr(y_train_main, 'values') else y_train_main.astype(np.float32).reshape(-1, 1)
+            y_val_f32_initial = y_val.values.astype(np.float32).reshape(-1, 1) if hasattr(y_val, 'values') else y_val.astype(np.float32).reshape(-1, 1)
+
+            model_initial.fit(
+                X_train=X_train_f32_initial,
+                y_train=y_train_f32_initial,
+                eval_set=[(X_val_f32_initial, y_val_f32_initial)],
+                max_epochs=50,
+                patience=10,
+                batch_size=512,
+                virtual_batch_size=128,
+                num_workers=0,
+                drop_last=False
+            )
+
+            # Extract feature importances
+            feature_importances = model_initial.feature_importances_
+
+            val_mae_initial = mean_absolute_error(y_val, model_initial.predict(X_val_f32_initial))
+            print(f"[QUINTE-TABNET] Phase 1 complete - Validation MAE: {val_mae_initial:.4f}")
+
+            # ===== PHASE 2: Automatic Feature Selection =====
+            print(f"\n[QUINTE-TABNET] ========================================")
+            print(f"[QUINTE-TABNET] PHASE 2: AUTOMATIC FEATURE SELECTION")
+            print(f"[QUINTE-TABNET] ========================================")
+
+            from core.feature_selection.tabnet_feature_selector import TabNetFeatureSelector
+
+            # Quinte model typically has ~92 features
+            target_features = 45
+
+            selector = TabNetFeatureSelector(
+                sparse_threshold=0.7,
+                correlation_threshold=0.95,
+                target_features=target_features
+            )
+
+            # Select features
+            X_train_selected = selector.fit_transform(X_train_main, feature_importances)
+            X_val_selected = selector.transform(X_val)
+            X_test_selected = selector.transform(X_test)
+
+            # Get selected feature names
+            selected_feature_names = selector.selected_features
+
+            print(f"[QUINTE-TABNET] Feature selection complete:")
+            print(f"[QUINTE-TABNET]   Original: {X_train_main.shape[1]} features")
+            print(f"[QUINTE-TABNET]   Selected: {len(selected_feature_names)} features")
+            print(f"[QUINTE-TABNET]   Reduction: {(1 - len(selected_feature_names)/X_train_main.shape[1])*100:.1f}%")
+
+            # Update feature_columns to selected ones
+            self.feature_columns = selected_feature_names
+
+            # ===== PHASE 3: Final Training on Selected Features =====
+            print(f"\n[QUINTE-TABNET] ========================================")
+            print(f"[QUINTE-TABNET] PHASE 3: FINAL TRAINING (200 epochs)")
+            print(f"[QUINTE-TABNET] ========================================")
+            print(f"[QUINTE-TABNET] Training on {len(selected_feature_names)} selected features...")
+
+            # Scale selected features
+            self.scaler = StandardScaler()
+
+            # Combine train_main and val for final training
+            X_train_final = pd.concat([X_train_selected, X_val_selected])
+            y_train_final = pd.concat([pd.Series(y_train_main), pd.Series(y_val)])
+
+            X_train_scaled = self.scaler.fit_transform(X_train_final)
+            X_test_scaled = self.scaler.transform(X_test_selected)
+
+            # TabNet parameters for final training (full verbosity)
+            tabnet_params_final = {
+                'n_d': 64,
+                'n_a': 64,
+                'n_steps': 6,
                 'gamma': 1.5,
                 'n_independent': 2,
                 'n_shared': 2,
@@ -659,13 +794,16 @@ These features are essential for model performance. Check feature calculation pi
                 'device_name': 'cpu'
             }
 
-            # Create model
-            self.tabnet_model = TabNetRegressor(**tabnet_params)
+            # Create final model
+            self.tabnet_model = TabNetRegressor(**tabnet_params_final)
+
+            # Store feature selector for saving
+            self.feature_selector = selector
 
             # Prepare data
             X_train_f32 = X_train_scaled.astype(np.float32)
             X_test_f32 = X_test_scaled.astype(np.float32)
-            y_train_f32 = y_train.values.astype(np.float32).reshape(-1, 1) if hasattr(y_train, 'values') else y_train.astype(np.float32).reshape(-1, 1)
+            y_train_f32 = y_train_final.values.astype(np.float32).reshape(-1, 1) if hasattr(y_train_final, 'values') else y_train_final.astype(np.float32).reshape(-1, 1)
             y_test_f32 = y_test.values.astype(np.float32).reshape(-1, 1) if hasattr(y_test, 'values') else y_test.astype(np.float32).reshape(-1, 1)
 
             # Early stopping
@@ -673,7 +811,7 @@ These features are essential for model performance. Check feature calculation pi
                 early_stopping_metric='val_0_mse',
                 is_maximize=False,
                 tol=0.5,
-                patience=10
+                patience=20
             )
 
             # Train
@@ -683,7 +821,7 @@ These features are essential for model performance. Check feature calculation pi
                 eval_set=[(X_test_f32, y_test_f32)],
                 max_epochs=200,
                 patience=20,
-                batch_size=512,  # Smaller for quinté
+                batch_size=512,
                 virtual_batch_size=128,
                 num_workers=0,
                 drop_last=False,
@@ -695,28 +833,40 @@ These features are essential for model performance. Check feature calculation pi
             test_preds = self.tabnet_model.predict(X_test_f32).flatten()
 
             # Metrics
-            train_mae = mean_absolute_error(y_train, train_preds)
+            train_mae = mean_absolute_error(y_train_final, train_preds)
             test_mae = mean_absolute_error(y_test, test_preds)
-            train_rmse = np.sqrt(mean_squared_error(y_train, train_preds))
+            train_rmse = np.sqrt(mean_squared_error(y_train_final, train_preds))
             test_rmse = np.sqrt(mean_squared_error(y_test, test_preds))
             test_r2 = r2_score(y_test, test_preds)
 
             # Feature importance
             feature_importance = self.tabnet_model.feature_importances_
 
+            print(f"\n[QUINTE-TABNET] ========================================")
+            print(f"[QUINTE-TABNET] TABNET TRAINING COMPLETE")
+            print(f"[QUINTE-TABNET] ========================================")
+            print(f"[QUINTE-TABNET] Features: {X_train_main.shape[1]} → {len(selected_feature_names)} (selected)")
+            print(f"[QUINTE-TABNET] Test MAE:  {test_mae:.4f}")
+            print(f"[QUINTE-TABNET] Test RMSE: {test_rmse:.4f}")
+            print(f"[QUINTE-TABNET] Test R²:   {test_r2:.4f}")
+            print(f"[QUINTE-TABNET] ========================================")
+
             return {
                 'status': 'success',
-                'model_type': 'TabNet_Quinté',
-                'train_samples': len(X_train),
+                'model_type': 'TabNet_Quinté_Selected',
+                'train_samples': len(X_train_final),
                 'test_samples': len(X_test),
-                'features': len(self.feature_columns),
+                'original_features': X_train_main.shape[1],
+                'selected_features': len(selected_feature_names),
+                'features': len(selected_feature_names),
                 'train_mae': float(train_mae),
                 'test_mae': float(test_mae),
                 'train_rmse': float(train_rmse),
                 'test_rmse': float(test_rmse),
                 'test_r2': float(test_r2),
                 'feature_importance': feature_importance.tolist(),
-                'feature_names': self.feature_columns
+                'feature_names': selected_feature_names,
+                'feature_selection': selector.get_feature_summary()
             }
 
         except Exception as e:
@@ -743,7 +893,8 @@ These features are essential for model performance. Check feature calculation pi
             tabnet_model=self.tabnet_model,
             tabnet_scaler=self.scaler,
             feature_columns=self.feature_columns,
-            training_results=self.training_results
+            training_results=self.training_results,
+            feature_selector=getattr(self, 'feature_selector', None)  # Pass feature selector if it exists
         )
 
         return saved_paths

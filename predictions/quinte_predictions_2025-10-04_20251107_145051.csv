@@ -1,0 +1,19 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,6,1654567,4,HA. Pantall,19.0,4.898112919664384,9.968299,8.64,1
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,18,1447790,7,H. Boujardine,47.0,4.933021196889878,9.565647,8.82,2
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,12,1653870,4,Y. Bonnefoy,32.0,4.997206617450715,11.169151,8.565,3
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,7,1408356,7,G. Mossé,7.9,5.3312398270130155,4.6402845,8.36,4
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,2,1654085,4,C. Ferland,21.0,5.678715435791015,6.942253,8.405,5
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,4,1716658,4,Mme A. Karkosa,9.0,5.712487993812561,6.7634854,8.51,6
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,14,1559222,5,F. Chappet,9.8,5.828783774375915,6.6341696,8.75,7
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,16,1652349,4,G. Arizkorreta Elosegui,9.2,5.8324880894660955,7.1006293,8.64,8
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,9,1732313,3,C. Ferland,17.0,6.007499372768403,9.59071,8.33,9
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,1,1461543,7,Lerner (s),13.0,6.095798285579681,8.001416,8.885,10
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,13,1666989,4,S. Wattel,5.1,6.596193103599548,9.295665,9.455,11
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,10,1657763,4,N. Perret,41.0,6.619959176254273,11.405422,8.97,12
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,3,1654601,4,C. Ferland,19.0,6.664912174415589,10.226516,9.345,13
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,5,1545829,5,C. Plisson,36.0,6.686114878654481,9.757963,9.5,14
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,11,1554365,5,G. Mossé,24.0,6.717450684785843,9.363005,8.855,15
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,17,1654449,4,M. Delcher-Sanchez,13.0,6.74391641254425,10.090831,9.52,16
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,8,1651292,4,L. Gadbin (s),71.0,6.964608363533019,12.787203,9.24,17
+1606916,2025-10-04,ParisLongchamp,1,4,Qatar Prix de La Place de La Concorde,15,1654258,4,E. Libaud,68.0,7.464403247261047,15.857166,9.365,18

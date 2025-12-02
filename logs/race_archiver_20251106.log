@@ -1,0 +1,1653 @@
+2025-11-06 08:13:49,339 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:13:49,341 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:17:15,511 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:17:15,513 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:17:29,817 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:17:29,820 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:18:22,931 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:18:22,933 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:18:38,077 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:18:38,078 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:18:48,921 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:18:48,924 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:23:08,873 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:23:08,874 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:23:21,753 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:23:21,755 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:44:33,505 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:44:33,510 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:45:11,720 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:45:11,721 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:46:04,850 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:46:04,852 - RaceArchiver - INFO - Database structure verified
+2025-11-06 08:48:37,947 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 08:48:37,952 - RaceArchiver - INFO - Database structure verified
+2025-11-06 13:43:11,325 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 13:43:11,329 - RaceArchiver - INFO - Database structure verified
+2025-11-06 13:43:30,179 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 13:43:30,181 - RaceArchiver - INFO - Database structure verified
+2025-11-06 13:43:36,296 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 13:43:36,298 - RaceArchiver - INFO - Database structure verified
+2025-11-06 14:10:21,353 - model_training.features.couple_embedding - INFO - Epoch 1/4 - Train Loss: 0.5612 - Valid Loss: 0.5603 - Train Acc: 0.7519 - Valid Acc: 0.7526
+2025-11-06 14:14:16,513 - model_training.features.couple_embedding - INFO - Epoch 2/4 - Train Loss: 0.5578 - Valid Loss: 0.5595 - Train Acc: 0.7524 - Valid Acc: 0.7526
+2025-11-06 14:14:40,766 - model_training.features.couple_embedding - INFO - Epoch 3/4 - Train Loss: 0.5464 - Valid Loss: 0.5660 - Train Acc: 0.7524 - Valid Acc: 0.7518
+2025-11-06 14:15:04,533 - model_training.features.couple_embedding - INFO - Epoch 4/4 - Train Loss: 0.5257 - Valid Loss: 0.5782 - Train Acc: 0.7581 - Valid Acc: 0.7396
+2025-11-06 14:15:04,557 - parquet - DEBUG - Using json encoder/decoder
+2025-11-06 14:16:54,721 - RaceArchiver - INFO - Successfully archived race 1621339
+2025-11-06 14:16:54,726 - RaceArchiver - INFO - Successfully archived race 1621338
+2025-11-06 14:16:54,730 - RaceArchiver - INFO - Successfully archived race 1621335
+2025-11-06 14:16:54,738 - RaceArchiver - INFO - Successfully archived race 1621334
+2025-11-06 14:16:54,745 - RaceArchiver - INFO - Successfully archived race 1619950
+2025-11-06 14:16:54,750 - RaceArchiver - INFO - Successfully archived race 1619949
+2025-11-06 14:16:54,754 - RaceArchiver - INFO - Successfully archived race 1621333
+2025-11-06 14:16:54,757 - RaceArchiver - INFO - Successfully archived race 1621332
+2025-11-06 14:16:54,762 - RaceArchiver - INFO - Successfully archived race 1621331
+2025-11-06 14:16:54,767 - RaceArchiver - INFO - Successfully archived race 1621330
+2025-11-06 14:16:54,770 - RaceArchiver - INFO - Successfully archived race 1621329
+2025-11-06 14:16:54,775 - RaceArchiver - INFO - Successfully archived race 1618791
+2025-11-06 14:16:54,780 - RaceArchiver - INFO - Successfully archived race 1627738
+2025-11-06 14:16:54,786 - RaceArchiver - INFO - Successfully archived race 1621325
+2025-11-06 14:16:54,790 - RaceArchiver - INFO - Successfully archived race 1621324
+2025-11-06 14:16:54,796 - RaceArchiver - INFO - Successfully archived race 1621323
+2025-11-06 14:16:54,813 - RaceArchiver - INFO - Successfully archived race 1621322
+2025-11-06 14:16:54,817 - RaceArchiver - INFO - Successfully archived race 1621321
+2025-11-06 14:16:54,820 - RaceArchiver - INFO - Successfully archived race 1621320
+2025-11-06 14:16:54,824 - RaceArchiver - INFO - Successfully archived race 1621319
+2025-11-06 14:16:54,832 - RaceArchiver - INFO - Successfully archived race 1621318
+2025-11-06 14:16:54,835 - RaceArchiver - INFO - Successfully archived race 1621316
+2025-11-06 14:16:54,839 - RaceArchiver - INFO - Successfully archived race 1621315
+2025-11-06 14:16:54,842 - RaceArchiver - INFO - Successfully archived race 1621313
+2025-11-06 14:16:54,846 - RaceArchiver - INFO - Successfully archived race 1621311
+2025-11-06 14:16:54,850 - RaceArchiver - INFO - Successfully archived race 1619940
+2025-11-06 14:16:54,853 - RaceArchiver - INFO - Successfully archived race 1619939
+2025-11-06 14:16:54,857 - RaceArchiver - INFO - Successfully archived race 1619938
+2025-11-06 14:16:54,863 - RaceArchiver - INFO - Successfully archived race 1619937
+2025-11-06 14:16:54,866 - RaceArchiver - INFO - Successfully archived race 1619936
+2025-11-06 14:16:54,870 - RaceArchiver - INFO - Successfully archived race 1619935
+2025-11-06 14:16:54,877 - RaceArchiver - INFO - Successfully archived race 1619934
+2025-11-06 14:16:54,881 - RaceArchiver - INFO - Successfully archived race 1619933
+2025-11-06 14:16:54,894 - RaceArchiver - INFO - Successfully archived race 1619932
+2025-11-06 14:16:54,899 - RaceArchiver - INFO - Successfully archived race 1619931
+2025-11-06 14:16:54,903 - RaceArchiver - INFO - Successfully archived race 1619930
+2025-11-06 14:16:54,907 - RaceArchiver - INFO - Successfully archived race 1619929
+2025-11-06 14:16:54,910 - RaceArchiver - INFO - Successfully archived race 1619928
+2025-11-06 14:16:54,914 - RaceArchiver - INFO - Successfully archived race 1619927
+2025-11-06 14:16:54,917 - RaceArchiver - INFO - Successfully archived race 1619926
+2025-11-06 14:16:54,920 - RaceArchiver - INFO - Successfully archived race 1618782
+2025-11-06 14:16:54,923 - RaceArchiver - INFO - Successfully archived race 1618781
+2025-11-06 14:16:54,926 - RaceArchiver - INFO - Successfully archived race 1618780
+2025-11-06 14:16:54,930 - RaceArchiver - INFO - Successfully archived race 1618779
+2025-11-06 14:16:54,934 - RaceArchiver - INFO - Successfully archived race 1618778
+2025-11-06 14:16:54,938 - RaceArchiver - INFO - Successfully archived race 1627593
+2025-11-06 14:16:54,941 - RaceArchiver - INFO - Successfully archived race 1627592
+2025-11-06 14:16:54,948 - RaceArchiver - INFO - Successfully archived race 1627591
+2025-11-06 14:16:54,951 - RaceArchiver - INFO - Successfully archived race 1627590
+2025-11-06 14:16:54,954 - RaceArchiver - INFO - Successfully archived race 1627589
+2025-11-06 14:16:54,963 - RaceArchiver - INFO - Successfully archived race 1627588
+2025-11-06 14:16:54,968 - RaceArchiver - INFO - Successfully archived race 1627587
+2025-11-06 14:16:54,971 - RaceArchiver - INFO - Successfully archived race 1627586
+2025-11-06 14:16:54,976 - RaceArchiver - INFO - Successfully archived race 1627585
+2025-11-06 14:16:54,981 - RaceArchiver - INFO - Successfully archived race 1627584
+2025-11-06 14:16:54,984 - RaceArchiver - INFO - Successfully archived race 1627583
+2025-11-06 14:16:54,988 - RaceArchiver - INFO - Successfully archived race 1621309
+2025-11-06 14:16:54,991 - RaceArchiver - INFO - Successfully archived race 1621308
+2025-11-06 14:16:54,995 - RaceArchiver - INFO - Successfully archived race 1621307
+2025-11-06 14:16:54,997 - RaceArchiver - INFO - Successfully archived race 1621306
+2025-11-06 14:16:55,000 - RaceArchiver - INFO - Successfully archived race 1621305
+2025-11-06 14:16:55,003 - RaceArchiver - INFO - Successfully archived race 1621304
+2025-11-06 14:16:55,005 - RaceArchiver - INFO - Successfully archived race 1621303
+2025-11-06 14:16:55,008 - RaceArchiver - INFO - Successfully archived race 1621302
+2025-11-06 14:16:55,011 - RaceArchiver - INFO - Successfully archived race 1621301
+2025-11-06 14:16:55,014 - RaceArchiver - INFO - Successfully archived race 1621300
+2025-11-06 14:16:55,016 - RaceArchiver - INFO - Successfully archived race 1621299
+2025-11-06 14:16:55,019 - RaceArchiver - INFO - Successfully archived race 1621298
+2025-11-06 14:16:55,022 - RaceArchiver - INFO - Successfully archived race 1621297
+2025-11-06 14:16:55,024 - RaceArchiver - INFO - Successfully archived race 1621296
+2025-11-06 14:16:55,027 - RaceArchiver - INFO - Successfully archived race 1621295
+2025-11-06 14:16:55,037 - RaceArchiver - INFO - Successfully archived race 1621294
+2025-11-06 14:16:55,040 - RaceArchiver - INFO - Successfully archived race 1621293
+2025-11-06 14:16:55,045 - RaceArchiver - INFO - Successfully archived race 1621292
+2025-11-06 14:16:55,048 - RaceArchiver - INFO - Successfully archived race 1621291
+2025-11-06 14:16:55,051 - RaceArchiver - INFO - Successfully archived race 1621290
+2025-11-06 14:16:55,055 - RaceArchiver - INFO - Successfully archived race 1621289
+2025-11-06 14:16:55,058 - RaceArchiver - INFO - Successfully archived race 1621288
+2025-11-06 14:16:55,060 - RaceArchiver - INFO - Successfully archived race 1621286
+2025-11-06 14:16:55,063 - RaceArchiver - INFO - Successfully archived race 1621285
+2025-11-06 14:16:55,066 - RaceArchiver - INFO - Successfully archived race 1621284
+2025-11-06 14:16:55,069 - RaceArchiver - INFO - Successfully archived race 1621283
+2025-11-06 14:16:55,072 - RaceArchiver - INFO - Successfully archived race 1621282
+2025-11-06 14:16:55,075 - RaceArchiver - INFO - Successfully archived race 1621281
+2025-11-06 14:16:55,077 - RaceArchiver - INFO - Successfully archived race 1621280
+2025-11-06 14:16:55,081 - RaceArchiver - INFO - Successfully archived race 1621279
+2025-11-06 14:16:55,083 - RaceArchiver - INFO - Successfully archived race 1621278
+2025-11-06 14:16:55,087 - RaceArchiver - INFO - Successfully archived race 1621277
+2025-11-06 14:16:55,091 - RaceArchiver - INFO - Successfully archived race 1621276
+2025-11-06 14:16:55,099 - RaceArchiver - INFO - Successfully archived race 1621275
+2025-11-06 14:16:55,104 - RaceArchiver - INFO - Successfully archived race 1621274
+2025-11-06 14:16:55,108 - RaceArchiver - INFO - Successfully archived race 1621273
+2025-11-06 14:16:55,112 - RaceArchiver - INFO - Successfully archived race 1621272
+2025-11-06 14:16:55,115 - RaceArchiver - INFO - Successfully archived race 1619925
+2025-11-06 14:16:55,120 - RaceArchiver - INFO - Successfully archived race 1619924
+2025-11-06 14:16:55,125 - RaceArchiver - INFO - Successfully archived race 1619923
+2025-11-06 14:16:55,128 - RaceArchiver - INFO - Successfully archived race 1619922
+2025-11-06 14:16:55,133 - RaceArchiver - INFO - Successfully archived race 1619921
+2025-11-06 14:16:55,137 - RaceArchiver - INFO - Successfully archived race 1619920
+2025-11-06 14:16:55,140 - RaceArchiver - INFO - Successfully archived race 1619919
+2025-11-06 14:16:55,143 - RaceArchiver - INFO - Successfully archived race 1619918
+2025-11-06 14:16:55,146 - RaceArchiver - INFO - Successfully archived race 1619917
+2025-11-06 14:16:55,149 - RaceArchiver - INFO - Successfully archived race 1619916
+2025-11-06 14:16:55,153 - RaceArchiver - INFO - Successfully archived race 1619915
+2025-11-06 14:16:55,159 - RaceArchiver - INFO - Successfully archived race 1619914
+2025-11-06 14:16:55,161 - RaceArchiver - INFO - Successfully archived race 1619913
+2025-11-06 14:16:55,169 - RaceArchiver - INFO - Successfully archived race 1619912
+2025-11-06 14:16:55,175 - RaceArchiver - INFO - Successfully archived race 1619911
+2025-11-06 14:16:55,178 - RaceArchiver - INFO - Successfully archived race 1619910
+2025-11-06 14:16:55,187 - RaceArchiver - INFO - Successfully archived race 1619909
+2025-11-06 14:16:55,190 - RaceArchiver - INFO - Successfully archived race 1619908
+2025-11-06 14:16:55,194 - RaceArchiver - INFO - Successfully archived race 1619907
+2025-11-06 14:16:55,199 - RaceArchiver - INFO - Successfully archived race 1619906
+2025-11-06 14:16:55,202 - RaceArchiver - INFO - Successfully archived race 1619905
+2025-11-06 14:16:55,206 - RaceArchiver - INFO - Successfully archived race 1619904
+2025-11-06 14:16:55,212 - RaceArchiver - INFO - Successfully archived race 1619903
+2025-11-06 14:16:55,217 - RaceArchiver - INFO - Successfully archived race 1619902
+2025-11-06 14:16:55,222 - RaceArchiver - INFO - Successfully archived race 1619901
+2025-11-06 14:16:55,226 - RaceArchiver - INFO - Successfully archived race 1619900
+2025-11-06 14:16:55,230 - RaceArchiver - INFO - Successfully archived race 1619899
+2025-11-06 14:16:55,234 - RaceArchiver - INFO - Successfully archived race 1619898
+2025-11-06 14:16:55,243 - RaceArchiver - INFO - Successfully archived race 1619897
+2025-11-06 14:16:55,250 - RaceArchiver - INFO - Successfully archived race 1619896
+2025-11-06 14:16:55,254 - RaceArchiver - INFO - Successfully archived race 1619895
+2025-11-06 14:16:55,258 - RaceArchiver - INFO - Successfully archived race 1619894
+2025-11-06 14:16:55,262 - RaceArchiver - INFO - Successfully archived race 1619893
+2025-11-06 14:16:55,265 - RaceArchiver - INFO - Successfully archived race 1619892
+2025-11-06 14:16:55,269 - RaceArchiver - INFO - Successfully archived race 1619891
+2025-11-06 14:16:55,273 - RaceArchiver - INFO - Successfully archived race 1619890
+2025-11-06 14:16:55,279 - RaceArchiver - INFO - Successfully archived race 1619889
+2025-11-06 14:16:55,283 - RaceArchiver - INFO - Successfully archived race 1619888
+2025-11-06 14:16:55,287 - RaceArchiver - INFO - Successfully archived race 1619887
+2025-11-06 14:16:55,292 - RaceArchiver - INFO - Successfully archived race 1619886
+2025-11-06 14:16:55,295 - RaceArchiver - INFO - Successfully archived race 1619885
+2025-11-06 14:16:55,299 - RaceArchiver - INFO - Successfully archived race 1619884
+2025-11-06 14:16:55,303 - RaceArchiver - INFO - Successfully archived race 1619883
+2025-11-06 14:16:55,313 - RaceArchiver - INFO - Successfully archived race 1619882
+2025-11-06 14:16:55,316 - RaceArchiver - INFO - Successfully archived race 1619881
+2025-11-06 14:16:55,320 - RaceArchiver - INFO - Successfully archived race 1619880
+2025-11-06 14:16:55,324 - RaceArchiver - INFO - Successfully archived race 1619879
+2025-11-06 14:16:55,327 - RaceArchiver - INFO - Successfully archived race 1619878
+2025-11-06 14:16:55,331 - RaceArchiver - INFO - Successfully archived race 1619877
+2025-11-06 14:16:55,335 - RaceArchiver - INFO - Successfully archived race 1619876
+2025-11-06 14:16:55,338 - RaceArchiver - INFO - Successfully archived race 1619875
+2025-11-06 14:16:55,342 - RaceArchiver - INFO - Successfully archived race 1619874
+2025-11-06 14:16:55,348 - RaceArchiver - INFO - Successfully archived race 1619873
+2025-11-06 14:16:55,351 - RaceArchiver - INFO - Successfully archived race 1619872
+2025-11-06 14:16:55,355 - RaceArchiver - INFO - Successfully archived race 1619871
+2025-11-06 14:16:55,359 - RaceArchiver - INFO - Successfully archived race 1619870
+2025-11-06 14:16:55,363 - RaceArchiver - INFO - Successfully archived race 1619869
+2025-11-06 14:16:55,368 - RaceArchiver - INFO - Successfully archived race 1619868
+2025-11-06 14:16:55,377 - RaceArchiver - INFO - Successfully archived race 1627438
+2025-11-06 14:16:55,383 - RaceArchiver - INFO - Successfully archived race 1627437
+2025-11-06 14:16:55,387 - RaceArchiver - INFO - Successfully archived race 1627436
+2025-11-06 14:16:55,391 - RaceArchiver - INFO - Successfully archived race 1627435
+2025-11-06 14:16:55,394 - RaceArchiver - INFO - Successfully archived race 1627434
+2025-11-06 14:16:55,398 - RaceArchiver - INFO - Successfully archived race 1627433
+2025-11-06 14:16:55,402 - RaceArchiver - INFO - Successfully archived race 1627432
+2025-11-06 14:16:55,405 - RaceArchiver - INFO - Successfully archived race 1627431
+2025-11-06 14:16:55,408 - RaceArchiver - INFO - Successfully archived race 1627430
+2025-11-06 14:16:55,413 - RaceArchiver - INFO - Successfully archived race 1627429
+2025-11-06 14:16:55,417 - RaceArchiver - INFO - Successfully archived race 1627426
+2025-11-06 14:16:55,420 - RaceArchiver - INFO - Successfully archived race 1627425
+2025-11-06 14:16:55,423 - RaceArchiver - INFO - Successfully archived race 1621271
+2025-11-06 14:16:55,426 - RaceArchiver - INFO - Successfully archived race 1621270
+2025-11-06 14:16:55,429 - RaceArchiver - INFO - Successfully archived race 1621269
+2025-11-06 14:16:55,432 - RaceArchiver - INFO - Successfully archived race 1621268
+2025-11-06 14:16:55,435 - RaceArchiver - INFO - Successfully archived race 1621267
+2025-11-06 14:16:55,438 - RaceArchiver - INFO - Successfully archived race 1621266
+2025-11-06 14:16:55,446 - RaceArchiver - INFO - Successfully archived race 1621265
+2025-11-06 14:16:55,448 - RaceArchiver - INFO - Successfully archived race 1621264
+2025-11-06 14:16:55,453 - RaceArchiver - INFO - Successfully archived race 1621263
+2025-11-06 14:16:55,456 - RaceArchiver - INFO - Successfully archived race 1621262
+2025-11-06 14:16:55,458 - RaceArchiver - INFO - Successfully archived race 1621261
+2025-11-06 14:16:55,461 - RaceArchiver - INFO - Successfully archived race 1621260
+2025-11-06 14:16:55,464 - RaceArchiver - INFO - Successfully archived race 1621259
+2025-11-06 14:16:55,468 - RaceArchiver - INFO - Successfully archived race 1621258
+2025-11-06 14:16:55,470 - RaceArchiver - INFO - Successfully archived race 1621257
+2025-11-06 14:16:55,476 - RaceArchiver - INFO - Successfully archived race 1621256
+2025-11-06 14:16:55,480 - RaceArchiver - INFO - Successfully archived race 1621255
+2025-11-06 14:16:55,489 - RaceArchiver - INFO - Successfully archived race 1621254
+2025-11-06 14:16:55,494 - RaceArchiver - INFO - Successfully archived race 1621253
+2025-11-06 14:16:55,510 - RaceArchiver - INFO - Successfully archived race 1621251
+2025-11-06 14:16:55,516 - RaceArchiver - INFO - Successfully archived race 1621250
+2025-11-06 14:16:55,519 - RaceArchiver - INFO - Successfully archived race 1621249
+2025-11-06 14:16:55,523 - RaceArchiver - INFO - Successfully archived race 1621248
+2025-11-06 14:16:55,528 - RaceArchiver - INFO - Successfully archived race 1621247
+2025-11-06 14:16:55,532 - RaceArchiver - INFO - Successfully archived race 1621244
+2025-11-06 14:16:55,535 - RaceArchiver - INFO - Successfully archived race 1621243
+2025-11-06 14:16:55,543 - RaceArchiver - INFO - Successfully archived race 1621242
+2025-11-06 14:16:55,549 - RaceArchiver - INFO - Successfully archived race 1621241
+2025-11-06 14:16:55,552 - RaceArchiver - INFO - Successfully archived race 1621240
+2025-11-06 14:16:55,554 - RaceArchiver - INFO - Successfully archived race 1621239
+2025-11-06 14:16:55,557 - RaceArchiver - INFO - Successfully archived race 1621238
+2025-11-06 14:16:55,561 - RaceArchiver - INFO - Successfully archived race 1621237
+2025-11-06 14:16:55,565 - RaceArchiver - INFO - Successfully archived race 1621236
+2025-11-06 14:16:55,568 - RaceArchiver - INFO - Successfully archived race 1621235
+2025-11-06 14:16:55,572 - RaceArchiver - INFO - Successfully archived race 1621234
+2025-11-06 14:16:55,575 - RaceArchiver - INFO - Successfully archived race 1621233
+2025-11-06 14:16:55,578 - RaceArchiver - INFO - Successfully archived race 1621232
+2025-11-06 14:16:55,583 - RaceArchiver - INFO - Successfully archived race 1621231
+2025-11-06 14:16:55,588 - RaceArchiver - INFO - Successfully archived race 1621230
+2025-11-06 14:16:55,593 - RaceArchiver - INFO - Successfully archived race 1621229
+2025-11-06 14:16:55,597 - RaceArchiver - INFO - Successfully archived race 1619867
+2025-11-06 14:16:55,601 - RaceArchiver - INFO - Successfully archived race 1619866
+2025-11-06 14:16:55,604 - RaceArchiver - INFO - Successfully archived race 1619865
+2025-11-06 14:16:55,610 - RaceArchiver - INFO - Successfully archived race 1619864
+2025-11-06 14:16:55,619 - RaceArchiver - INFO - Successfully archived race 1619863
+2025-11-06 14:16:55,625 - RaceArchiver - INFO - Successfully archived race 1619862
+2025-11-06 14:16:55,628 - RaceArchiver - INFO - Successfully archived race 1619861
+2025-11-06 14:16:55,633 - RaceArchiver - INFO - Successfully archived race 1619860
+2025-11-06 14:16:55,638 - RaceArchiver - INFO - Successfully archived race 1619859
+2025-11-06 14:16:55,643 - RaceArchiver - INFO - Successfully archived race 1619858
+2025-11-06 14:16:55,649 - RaceArchiver - INFO - Successfully archived race 1619857
+2025-11-06 14:16:55,653 - RaceArchiver - INFO - Successfully archived race 1619856
+2025-11-06 14:16:55,657 - RaceArchiver - INFO - Successfully archived race 1619855
+2025-11-06 14:16:55,662 - RaceArchiver - INFO - Successfully archived race 1619854
+2025-11-06 14:16:55,667 - RaceArchiver - INFO - Successfully archived race 1619853
+2025-11-06 14:16:55,670 - RaceArchiver - INFO - Successfully archived race 1619852
+2025-11-06 14:16:55,674 - RaceArchiver - INFO - Successfully archived race 1619851
+2025-11-06 14:16:55,678 - RaceArchiver - INFO - Successfully archived race 1619850
+2025-11-06 14:16:55,683 - RaceArchiver - INFO - Successfully archived race 1619849
+2025-11-06 14:16:55,687 - RaceArchiver - INFO - Successfully archived race 1619848
+2025-11-06 14:16:55,697 - RaceArchiver - INFO - Successfully archived race 1619847
+2025-11-06 14:16:55,704 - RaceArchiver - INFO - Successfully archived race 1619846
+2025-11-06 14:16:55,708 - RaceArchiver - INFO - Successfully archived race 1619845
+2025-11-06 14:16:55,712 - RaceArchiver - INFO - Successfully archived race 1619844
+2025-11-06 14:16:55,717 - RaceArchiver - INFO - Successfully archived race 1619843
+2025-11-06 14:16:55,722 - RaceArchiver - INFO - Successfully archived race 1619842
+2025-11-06 14:16:55,726 - RaceArchiver - INFO - Successfully archived race 1619841
+2025-11-06 14:16:55,732 - RaceArchiver - INFO - Successfully archived race 1619840
+2025-11-06 14:16:55,736 - RaceArchiver - INFO - Successfully archived race 1619839
+2025-11-06 14:16:55,740 - RaceArchiver - INFO - Successfully archived race 1619838
+2025-11-06 14:16:55,745 - RaceArchiver - INFO - Successfully archived race 1619837
+2025-11-06 14:16:55,750 - RaceArchiver - INFO - Successfully archived race 1619836
+2025-11-06 14:16:55,754 - RaceArchiver - INFO - Successfully archived race 1619835
+2025-11-06 14:16:55,758 - RaceArchiver - INFO - Successfully archived race 1619834
+2025-11-06 14:16:55,763 - RaceArchiver - INFO - Successfully archived race 1619833
+2025-11-06 14:16:55,772 - RaceArchiver - INFO - Successfully archived race 1619832
+2025-11-06 14:16:55,778 - RaceArchiver - INFO - Successfully archived race 1619831
+2025-11-06 14:16:55,782 - RaceArchiver - INFO - Successfully archived race 1619830
+2025-11-06 14:16:55,787 - RaceArchiver - INFO - Successfully archived race 1619829
+2025-11-06 14:16:55,790 - RaceArchiver - INFO - Successfully archived race 1619828
+2025-11-06 14:16:55,794 - RaceArchiver - INFO - Successfully archived race 1619827
+2025-11-06 14:16:55,798 - RaceArchiver - INFO - Successfully archived race 1619826
+2025-11-06 14:16:55,803 - RaceArchiver - INFO - Successfully archived race 1619825
+2025-11-06 14:16:55,807 - RaceArchiver - INFO - Successfully archived race 1619824
+2025-11-06 14:16:55,811 - RaceArchiver - INFO - Successfully archived race 1619823
+2025-11-06 14:16:55,814 - RaceArchiver - INFO - Successfully archived race 1619822
+2025-11-06 14:16:55,819 - RaceArchiver - INFO - Successfully archived race 1619821
+2025-11-06 14:16:55,823 - RaceArchiver - INFO - Successfully archived race 1619820
+2025-11-06 14:16:55,826 - RaceArchiver - INFO - Successfully archived race 1627428
+2025-11-06 14:16:55,830 - RaceArchiver - INFO - Successfully archived race 1627427
+2025-11-06 14:16:55,841 - RaceArchiver - INFO - Successfully archived race 1618777
+2025-11-06 14:16:55,848 - RaceArchiver - INFO - Successfully archived race 1618776
+2025-11-06 14:16:55,852 - RaceArchiver - INFO - Successfully archived race 1618775
+2025-11-06 14:16:55,855 - RaceArchiver - INFO - Successfully archived race 1618774
+2025-11-06 14:16:55,859 - RaceArchiver - INFO - Successfully archived race 1618773
+2025-11-06 14:16:55,862 - RaceArchiver - INFO - Successfully archived race 1618772
+2025-11-06 14:16:55,867 - RaceArchiver - INFO - Successfully archived race 1618771
+2025-11-06 14:16:55,870 - RaceArchiver - INFO - Successfully archived race 1618770
+2025-11-06 14:16:55,875 - RaceArchiver - INFO - Successfully archived race 1618769
+2025-11-06 14:16:55,881 - RaceArchiver - INFO - Successfully archived race 1618768
+2025-11-06 14:16:55,885 - RaceArchiver - INFO - Successfully archived race 1618767
+2025-11-06 14:16:55,888 - RaceArchiver - INFO - Successfully archived race 1618766
+2025-11-06 14:16:55,892 - RaceArchiver - INFO - Successfully archived race 1618765
+2025-11-06 14:16:55,895 - RaceArchiver - INFO - Successfully archived race 1618764
+2025-11-06 14:16:55,899 - RaceArchiver - INFO - Successfully archived race 1618763
+2025-11-06 14:16:55,908 - RaceArchiver - INFO - Successfully archived race 1618762
+2025-11-06 14:16:55,914 - RaceArchiver - INFO - Successfully archived race 1618761
+2025-11-06 14:16:55,918 - RaceArchiver - INFO - Successfully archived race 1618760
+2025-11-06 14:16:55,922 - RaceArchiver - INFO - Successfully archived race 1618759
+2025-11-06 14:16:55,926 - RaceArchiver - INFO - Successfully archived race 1618758
+2025-11-06 14:16:55,930 - RaceArchiver - INFO - Successfully archived race 1618757
+2025-11-06 14:16:55,934 - RaceArchiver - INFO - Successfully archived race 1618756
+2025-11-06 14:16:55,938 - RaceArchiver - INFO - Successfully archived race 1618755
+2025-11-06 14:16:55,944 - RaceArchiver - INFO - Successfully archived race 1607508
+2025-11-06 14:16:55,948 - RaceArchiver - INFO - Successfully archived race 1607507
+2025-11-06 14:16:55,951 - RaceArchiver - INFO - Successfully archived race 1607506
+2025-11-06 14:16:55,954 - RaceArchiver - INFO - Successfully archived race 1607505
+2025-11-06 14:16:55,958 - RaceArchiver - INFO - Successfully archived race 1607504
+2025-11-06 14:16:55,961 - RaceArchiver - INFO - Successfully archived race 1607503
+2025-11-06 14:16:55,964 - RaceArchiver - INFO - Successfully archived race 1607502
+2025-11-06 14:16:55,967 - RaceArchiver - INFO - Successfully archived race 1607501
+2025-11-06 14:16:55,977 - RaceArchiver - INFO - Successfully archived race 1607500
+2025-11-06 14:16:55,980 - RaceArchiver - INFO - Successfully archived race 1607499
+2025-11-06 14:16:55,984 - RaceArchiver - INFO - Successfully archived race 1607498
+2025-11-06 14:16:55,989 - RaceArchiver - INFO - Successfully archived race 1607497
+2025-11-06 14:16:55,992 - RaceArchiver - INFO - Successfully archived race 1607496
+2025-11-06 14:16:55,996 - RaceArchiver - INFO - Successfully archived race 1607495
+2025-11-06 14:16:56,000 - RaceArchiver - INFO - Successfully archived race 1607494
+2025-11-06 14:16:56,004 - RaceArchiver - INFO - Successfully archived race 1607493
+2025-11-06 14:16:56,007 - RaceArchiver - INFO - Successfully archived race 1618754
+2025-11-06 14:16:56,012 - RaceArchiver - INFO - Successfully archived race 1617177
+2025-11-06 14:16:56,015 - RaceArchiver - INFO - Successfully archived race 1617176
+2025-11-06 14:16:56,020 - RaceArchiver - INFO - Successfully archived race 1617175
+2025-11-06 14:16:56,023 - RaceArchiver - INFO - Successfully archived race 1617174
+2025-11-06 14:16:56,027 - RaceArchiver - INFO - Successfully archived race 1617173
+2025-11-06 14:16:56,030 - RaceArchiver - INFO - Successfully archived race 1617172
+2025-11-06 14:16:56,034 - RaceArchiver - INFO - Successfully archived race 1617171
+2025-11-06 14:16:56,046 - RaceArchiver - INFO - Successfully archived race 1617170
+2025-11-06 14:16:56,052 - RaceArchiver - INFO - Successfully archived race 1617169
+2025-11-06 14:16:56,055 - RaceArchiver - INFO - Successfully archived race 1617168
+2025-11-06 14:16:56,059 - RaceArchiver - INFO - Successfully archived race 1617167
+2025-11-06 14:16:56,063 - RaceArchiver - INFO - Successfully archived race 1617166
+2025-11-06 14:16:56,067 - RaceArchiver - INFO - Successfully archived race 1617165
+2025-11-06 14:16:56,070 - RaceArchiver - INFO - Successfully archived race 1617164
+2025-11-06 14:16:56,074 - RaceArchiver - INFO - Successfully archived race 1617163
+2025-11-06 14:16:56,078 - RaceArchiver - INFO - Successfully archived race 1607492
+2025-11-06 14:16:56,081 - RaceArchiver - INFO - Successfully archived race 1607491
+2025-11-06 14:16:56,085 - RaceArchiver - INFO - Successfully archived race 1607490
+2025-11-06 14:16:56,088 - RaceArchiver - INFO - Successfully archived race 1607489
+2025-11-06 14:16:56,092 - RaceArchiver - INFO - Successfully archived race 1607488
+2025-11-06 14:16:56,094 - RaceArchiver - INFO - Successfully archived race 1607487
+2025-11-06 14:16:56,099 - RaceArchiver - INFO - Successfully archived race 1607486
+2025-11-06 14:16:56,102 - RaceArchiver - INFO - Successfully archived race 1607485
+2025-11-06 14:16:56,106 - RaceArchiver - INFO - Successfully archived race 1617162
+2025-11-06 14:16:56,114 - RaceArchiver - INFO - Successfully archived race 1617161
+2025-11-06 14:16:56,119 - RaceArchiver - INFO - Successfully archived race 1617160
+2025-11-06 14:16:56,123 - RaceArchiver - INFO - Successfully archived race 1617159
+2025-11-06 14:16:56,126 - RaceArchiver - INFO - Successfully archived race 1617158
+2025-11-06 14:16:56,130 - RaceArchiver - INFO - Successfully archived race 1617157
+2025-11-06 14:16:56,134 - RaceArchiver - INFO - Successfully archived race 1617156
+2025-11-06 14:16:56,140 - RaceArchiver - INFO - Successfully archived race 1617155
+2025-11-06 14:16:56,144 - RaceArchiver - INFO - Successfully archived race 1607484
+2025-11-06 14:16:56,147 - RaceArchiver - INFO - Successfully archived race 1607483
+2025-11-06 14:16:56,151 - RaceArchiver - INFO - Successfully archived race 1607482
+2025-11-06 14:16:56,155 - RaceArchiver - INFO - Successfully archived race 1607481
+2025-11-06 14:16:56,158 - RaceArchiver - INFO - Successfully archived race 1607480
+2025-11-06 14:16:56,161 - RaceArchiver - INFO - Successfully archived race 1607479
+2025-11-06 14:16:56,165 - RaceArchiver - INFO - Successfully archived race 1607478
+2025-11-06 14:16:56,168 - RaceArchiver - INFO - Successfully archived race 1607477
+2025-11-06 14:16:56,172 - RaceArchiver - INFO - Successfully archived race 1607476
+2025-11-06 14:16:56,180 - RaceArchiver - INFO - Successfully archived race 1607475
+2025-11-06 14:16:56,184 - RaceArchiver - INFO - Successfully archived race 1607474
+2025-11-06 14:16:56,187 - RaceArchiver - INFO - Successfully archived race 1607473
+2025-11-06 14:16:56,190 - RaceArchiver - INFO - Successfully archived race 1607472
+2025-11-06 14:16:56,192 - RaceArchiver - INFO - Successfully archived race 1607471
+2025-11-06 14:16:56,197 - RaceArchiver - INFO - Successfully archived race 1607470
+2025-11-06 14:16:56,200 - RaceArchiver - INFO - Successfully archived race 1607469
+2025-11-06 14:16:56,203 - RaceArchiver - INFO - Successfully archived race 1607468
+2025-11-06 14:16:56,207 - RaceArchiver - INFO - Successfully archived race 1607467
+2025-11-06 14:16:56,210 - RaceArchiver - INFO - Successfully archived race 1607466
+2025-11-06 14:16:56,214 - RaceArchiver - INFO - Successfully archived race 1607465
+2025-11-06 14:16:56,217 - RaceArchiver - INFO - Successfully archived race 1607464
+2025-11-06 14:16:56,220 - RaceArchiver - INFO - Successfully archived race 1607463
+2025-11-06 14:16:56,223 - RaceArchiver - INFO - Successfully archived race 1607462
+2025-11-06 14:16:56,228 - RaceArchiver - INFO - Successfully archived race 1617154
+2025-11-06 14:16:56,232 - RaceArchiver - INFO - Successfully archived race 1617153
+2025-11-06 14:16:56,237 - RaceArchiver - INFO - Successfully archived race 1617152
+2025-11-06 14:16:56,244 - RaceArchiver - INFO - Successfully archived race 1617151
+2025-11-06 14:16:56,248 - RaceArchiver - INFO - Successfully archived race 1617150
+2025-11-06 14:16:56,252 - RaceArchiver - INFO - Successfully archived race 1617149
+2025-11-06 14:16:56,255 - RaceArchiver - INFO - Successfully archived race 1617148
+2025-11-06 14:16:56,259 - RaceArchiver - INFO - Successfully archived race 1617147
+2025-11-06 14:16:56,262 - RaceArchiver - INFO - Successfully archived race 1607461
+2025-11-06 14:16:56,265 - RaceArchiver - INFO - Successfully archived race 1607460
+2025-11-06 14:16:56,268 - RaceArchiver - INFO - Successfully archived race 1607459
+2025-11-06 14:16:56,272 - RaceArchiver - INFO - Successfully archived race 1607458
+2025-11-06 14:16:56,275 - RaceArchiver - INFO - Successfully archived race 1607457
+2025-11-06 14:16:56,277 - RaceArchiver - INFO - Successfully archived race 1607456
+2025-11-06 14:16:56,282 - RaceArchiver - INFO - Successfully archived race 1607455
+2025-11-06 14:16:56,286 - RaceArchiver - INFO - Successfully archived race 1607454
+2025-11-06 14:16:56,289 - RaceArchiver - INFO - Successfully archived race 1607453
+2025-11-06 14:16:56,293 - RaceArchiver - INFO - Successfully archived race 1607452
+2025-11-06 14:16:56,297 - RaceArchiver - INFO - Successfully archived race 1607451
+2025-11-06 14:16:56,306 - RaceArchiver - INFO - Successfully archived race 1607450
+2025-11-06 14:16:56,310 - RaceArchiver - INFO - Successfully archived race 1607449
+2025-11-06 14:16:56,313 - RaceArchiver - INFO - Successfully archived race 1607448
+2025-11-06 14:16:56,320 - RaceArchiver - INFO - Successfully archived race 1607447
+2025-11-06 14:16:56,326 - RaceArchiver - INFO - Successfully archived race 1626428
+2025-11-06 14:16:56,330 - RaceArchiver - INFO - Successfully archived race 1626427
+2025-11-06 14:16:56,335 - RaceArchiver - INFO - Successfully archived race 1626426
+2025-11-06 14:16:56,339 - RaceArchiver - INFO - Successfully archived race 1626425
+2025-11-06 14:16:56,343 - RaceArchiver - INFO - Successfully archived race 1617146
+2025-11-06 14:16:56,347 - RaceArchiver - INFO - Successfully archived race 1617145
+2025-11-06 14:16:56,352 - RaceArchiver - INFO - Successfully archived race 1617144
+2025-11-06 14:16:56,357 - RaceArchiver - INFO - Successfully archived race 1617143
+2025-11-06 14:16:56,361 - RaceArchiver - INFO - Successfully archived race 1617142
+2025-11-06 14:16:56,365 - RaceArchiver - INFO - Successfully archived race 1617141
+2025-11-06 14:16:56,369 - RaceArchiver - INFO - Successfully archived race 1617140
+2025-11-06 14:16:56,380 - RaceArchiver - INFO - Successfully archived race 1617139
+2025-11-06 14:16:56,386 - RaceArchiver - INFO - Successfully archived race 1617138
+2025-11-06 14:16:56,390 - RaceArchiver - INFO - Successfully archived race 1617137
+2025-11-06 14:16:56,394 - RaceArchiver - INFO - Successfully archived race 1617136
+2025-11-06 14:16:56,399 - RaceArchiver - INFO - Successfully archived race 1617135
+2025-11-06 14:16:56,402 - RaceArchiver - INFO - Successfully archived race 1617134
+2025-11-06 14:16:56,407 - RaceArchiver - INFO - Successfully archived race 1617133
+2025-11-06 14:16:56,411 - RaceArchiver - INFO - Successfully archived race 1617132
+2025-11-06 14:16:56,419 - RaceArchiver - INFO - Successfully archived race 1617131
+2025-11-06 14:16:56,424 - RaceArchiver - INFO - Successfully archived race 1617130
+2025-11-06 14:16:56,428 - RaceArchiver - INFO - Successfully archived race 1617129
+2025-11-06 14:16:56,432 - RaceArchiver - INFO - Successfully archived race 1617128
+2025-11-06 14:16:56,436 - RaceArchiver - INFO - Successfully archived race 1617127
+2025-11-06 14:16:56,440 - RaceArchiver - INFO - Successfully archived race 1607446
+2025-11-06 14:16:56,444 - RaceArchiver - INFO - Successfully archived race 1607445
+2025-11-06 14:16:56,456 - RaceArchiver - INFO - Successfully archived race 1607444
+2025-11-06 14:16:56,459 - RaceArchiver - INFO - Successfully archived race 1607443
+2025-11-06 14:16:56,465 - RaceArchiver - INFO - Successfully archived race 1607442
+2025-11-06 14:16:56,470 - RaceArchiver - INFO - Successfully archived race 1607441
+2025-11-06 14:16:56,474 - RaceArchiver - INFO - Successfully archived race 1607440
+2025-11-06 14:16:56,477 - RaceArchiver - INFO - Successfully archived race 1607439
+2025-11-06 14:16:56,480 - RaceArchiver - INFO - Successfully archived race 1607438
+2025-11-06 14:16:56,484 - RaceArchiver - INFO - Successfully archived race 1607437
+2025-11-06 14:16:56,489 - RaceArchiver - INFO - Successfully archived race 1607436
+2025-11-06 14:16:56,493 - RaceArchiver - INFO - Successfully archived race 1607435
+2025-11-06 14:16:56,497 - RaceArchiver - INFO - Successfully archived race 1607434
+2025-11-06 14:16:56,500 - RaceArchiver - INFO - Successfully archived race 1607433
+2025-11-06 14:16:56,504 - RaceArchiver - INFO - Successfully archived race 1607432
+2025-11-06 14:16:56,508 - RaceArchiver - INFO - Successfully archived race 1607431
+2025-11-06 14:16:56,512 - RaceArchiver - INFO - Successfully archived race 1626420
+2025-11-06 14:16:56,516 - RaceArchiver - INFO - Successfully archived race 1626419
+2025-11-06 14:16:56,520 - RaceArchiver - INFO - Successfully archived race 1626418
+2025-11-06 14:16:56,529 - RaceArchiver - INFO - Successfully archived race 1626417
+2025-11-06 14:16:56,533 - RaceArchiver - INFO - Successfully archived race 1626416
+2025-11-06 14:16:56,536 - RaceArchiver - INFO - Successfully archived race 1626415
+2025-11-06 14:16:56,540 - RaceArchiver - INFO - Successfully archived race 1626414
+2025-11-06 14:16:56,544 - RaceArchiver - INFO - Successfully archived race 1626413
+2025-11-06 14:16:56,548 - RaceArchiver - INFO - Successfully archived race 1626412
+2025-11-06 14:16:56,552 - RaceArchiver - INFO - Successfully archived race 1626411
+2025-11-06 14:16:56,556 - RaceArchiver - INFO - Successfully archived race 1626410
+2025-11-06 14:16:56,560 - RaceArchiver - INFO - Successfully archived race 1626409
+2025-11-06 14:16:56,564 - RaceArchiver - INFO - Successfully archived race 1626408
+2025-11-06 14:16:56,568 - RaceArchiver - INFO - Successfully archived race 1626407
+2025-11-06 14:16:56,572 - RaceArchiver - INFO - Successfully archived race 1624670
+2025-11-06 14:16:56,577 - RaceArchiver - INFO - Successfully archived race 1617126
+2025-11-06 14:16:56,581 - RaceArchiver - INFO - Successfully archived race 1617125
+2025-11-06 14:16:56,588 - RaceArchiver - INFO - Successfully archived race 1617124
+2025-11-06 14:16:56,593 - RaceArchiver - INFO - Successfully archived race 1617123
+2025-11-06 14:16:56,602 - RaceArchiver - INFO - Successfully archived race 1617122
+2025-11-06 14:16:56,606 - RaceArchiver - INFO - Successfully archived race 1617120
+2025-11-06 14:16:56,610 - RaceArchiver - INFO - Successfully archived race 1617119
+2025-11-06 14:16:56,614 - RaceArchiver - INFO - Successfully archived race 1617118
+2025-11-06 14:16:56,617 - RaceArchiver - INFO - Successfully archived race 1617117
+2025-11-06 14:16:56,620 - RaceArchiver - INFO - Successfully archived race 1617116
+2025-11-06 14:16:56,624 - RaceArchiver - INFO - Successfully archived race 1617115
+2025-11-06 14:16:56,627 - RaceArchiver - INFO - Successfully archived race 1617114
+2025-11-06 14:16:56,633 - RaceArchiver - INFO - Successfully archived race 1617113
+2025-11-06 14:16:56,637 - RaceArchiver - INFO - Successfully archived race 1617112
+2025-11-06 14:16:56,641 - RaceArchiver - INFO - Successfully archived race 1617111
+2025-11-06 14:16:56,644 - RaceArchiver - INFO - Successfully archived race 1617110
+2025-11-06 14:16:56,649 - RaceArchiver - INFO - Successfully archived race 1617109
+2025-11-06 14:16:56,652 - RaceArchiver - INFO - Successfully archived race 1617108
+2025-11-06 14:16:56,656 - RaceArchiver - INFO - Successfully archived race 1617107
+2025-11-06 14:16:56,660 - RaceArchiver - INFO - Successfully archived race 1617106
+2025-11-06 14:16:56,670 - RaceArchiver - INFO - Successfully archived race 1617105
+2025-11-06 14:16:56,673 - RaceArchiver - INFO - Successfully archived race 1617104
+2025-11-06 14:16:56,676 - RaceArchiver - INFO - Successfully archived race 1617103
+2025-11-06 14:16:56,680 - RaceArchiver - INFO - Successfully archived race 1617102
+2025-11-06 14:16:56,685 - RaceArchiver - INFO - Successfully archived race 1617101
+2025-11-06 14:16:56,690 - RaceArchiver - INFO - Successfully archived race 1617100
+2025-11-06 14:16:56,694 - RaceArchiver - INFO - Successfully archived race 1617099
+2025-11-06 14:16:56,699 - RaceArchiver - INFO - Successfully archived race 1617098
+2025-11-06 14:16:56,704 - RaceArchiver - INFO - Successfully archived race 1617097
+2025-11-06 14:16:56,707 - RaceArchiver - INFO - Successfully archived race 1617096
+2025-11-06 14:16:56,711 - RaceArchiver - INFO - Successfully archived race 1617095
+2025-11-06 14:16:56,717 - RaceArchiver - INFO - Successfully archived race 1617094
+2025-11-06 14:16:56,721 - RaceArchiver - INFO - Successfully archived race 1617093
+2025-11-06 14:16:56,724 - RaceArchiver - INFO - Successfully archived race 1617092
+2025-11-06 14:16:56,728 - RaceArchiver - INFO - Successfully archived race 1617091
+2025-11-06 14:16:56,737 - RaceArchiver - INFO - Successfully archived race 1617090
+2025-11-06 14:16:56,741 - RaceArchiver - INFO - Successfully archived race 1617089
+2025-11-06 14:16:56,746 - RaceArchiver - INFO - Successfully archived race 1617079
+2025-11-06 14:16:56,749 - RaceArchiver - INFO - Successfully archived race 1617078
+2025-11-06 14:16:56,753 - RaceArchiver - INFO - Successfully archived race 1617077
+2025-11-06 14:16:56,756 - RaceArchiver - INFO - Successfully archived race 1617076
+2025-11-06 14:16:56,760 - RaceArchiver - INFO - Successfully archived race 1617075
+2025-11-06 14:16:56,764 - RaceArchiver - INFO - Successfully archived race 1617074
+2025-11-06 14:16:56,767 - RaceArchiver - INFO - Successfully archived race 1617073
+2025-11-06 14:16:56,771 - RaceArchiver - INFO - Successfully archived race 1617072
+2025-11-06 14:16:56,774 - RaceArchiver - INFO - Successfully archived race 1617070
+2025-11-06 14:16:56,778 - RaceArchiver - INFO - Successfully archived race 1617069
+2025-11-06 14:16:56,782 - RaceArchiver - INFO - Successfully archived race 1617068
+2025-11-06 14:16:56,785 - RaceArchiver - INFO - Successfully archived race 1617067
+2025-11-06 14:16:56,788 - RaceArchiver - INFO - Successfully archived race 1617066
+2025-11-06 14:16:56,794 - RaceArchiver - INFO - Successfully archived race 1617065
+2025-11-06 14:16:56,802 - RaceArchiver - INFO - Successfully archived race 1617064
+2025-11-06 14:16:56,806 - RaceArchiver - INFO - Successfully archived race 1607430
+2025-11-06 14:16:56,810 - RaceArchiver - INFO - Successfully archived race 1607429
+2025-11-06 14:16:56,813 - RaceArchiver - INFO - Successfully archived race 1607428
+2025-11-06 14:16:56,817 - RaceArchiver - INFO - Successfully archived race 1607427
+2025-11-06 14:16:56,821 - RaceArchiver - INFO - Successfully archived race 1607426
+2025-11-06 14:16:56,824 - RaceArchiver - INFO - Successfully archived race 1607425
+2025-11-06 14:16:56,827 - RaceArchiver - INFO - Successfully archived race 1607424
+2025-11-06 14:16:56,995 - RaceArchiver - INFO - Successfully archived race 1607423
+2025-11-06 14:16:57,003 - RaceArchiver - INFO - Successfully archived race 1607422
+2025-11-06 14:16:57,010 - RaceArchiver - INFO - Successfully archived race 1607421
+2025-11-06 14:16:57,018 - RaceArchiver - INFO - Successfully archived race 1607420
+2025-11-06 14:16:57,024 - RaceArchiver - INFO - Successfully archived race 1607419
+2025-11-06 14:16:57,030 - RaceArchiver - INFO - Successfully archived race 1607418
+2025-11-06 14:16:57,039 - RaceArchiver - INFO - Successfully archived race 1607417
+2025-11-06 14:16:57,043 - RaceArchiver - INFO - Successfully archived race 1607416
+2025-11-06 14:16:57,047 - RaceArchiver - INFO - Successfully archived race 1607413
+2025-11-06 14:16:57,050 - RaceArchiver - INFO - Successfully archived race 1607412
+2025-11-06 14:16:57,054 - RaceArchiver - INFO - Successfully archived race 1607411
+2025-11-06 14:16:57,063 - RaceArchiver - INFO - Successfully archived race 1607410
+2025-11-06 14:16:57,067 - RaceArchiver - INFO - Successfully archived race 1607409
+2025-11-06 14:16:57,070 - RaceArchiver - INFO - Successfully archived race 1607395
+2025-11-06 14:16:57,072 - RaceArchiver - INFO - Successfully archived race 1607394
+2025-11-06 14:16:57,075 - RaceArchiver - INFO - Successfully archived race 1607393
+2025-11-06 14:16:57,079 - RaceArchiver - INFO - Successfully archived race 1607392
+2025-11-06 14:16:57,082 - RaceArchiver - INFO - Successfully archived race 1607391
+2025-11-06 14:16:57,084 - RaceArchiver - INFO - Successfully archived race 1607390
+2025-11-06 14:16:57,088 - RaceArchiver - INFO - Successfully archived race 1626248
+2025-11-06 14:16:57,092 - RaceArchiver - INFO - Successfully archived race 1626247
+2025-11-06 14:16:57,098 - RaceArchiver - INFO - Successfully archived race 1626246
+2025-11-06 14:16:57,102 - RaceArchiver - INFO - Successfully archived race 1626245
+2025-11-06 14:16:57,106 - RaceArchiver - INFO - Successfully archived race 1617063
+2025-11-06 14:16:57,154 - RaceArchiver - INFO - Successfully archived race 1617062
+2025-11-06 14:16:57,160 - RaceArchiver - INFO - Successfully archived race 1617061
+2025-11-06 14:16:57,163 - RaceArchiver - INFO - Successfully archived race 1617060
+2025-11-06 14:16:57,167 - RaceArchiver - INFO - Successfully archived race 1617059
+2025-11-06 14:16:57,177 - RaceArchiver - INFO - Successfully archived race 1617058
+2025-11-06 14:16:57,181 - RaceArchiver - INFO - Successfully archived race 1617057
+2025-11-06 14:16:57,185 - RaceArchiver - INFO - Successfully archived race 1617056
+2025-11-06 14:16:57,189 - RaceArchiver - INFO - Successfully archived race 1617055
+2025-11-06 14:16:57,192 - RaceArchiver - INFO - Successfully archived race 1617054
+2025-11-06 14:16:57,195 - RaceArchiver - INFO - Successfully archived race 1617053
+2025-11-06 14:16:57,199 - RaceArchiver - INFO - Successfully archived race 1617052
+2025-11-06 14:16:57,203 - RaceArchiver - INFO - Successfully archived race 1617051
+2025-11-06 14:16:57,206 - RaceArchiver - INFO - Successfully archived race 1617050
+2025-11-06 14:16:57,210 - RaceArchiver - INFO - Successfully archived race 1617049
+2025-11-06 14:16:57,213 - RaceArchiver - INFO - Successfully archived race 1617048
+2025-11-06 14:16:57,219 - RaceArchiver - INFO - Successfully archived race 1617047
+2025-11-06 14:16:57,223 - RaceArchiver - INFO - Successfully archived race 1617046
+2025-11-06 14:16:57,227 - RaceArchiver - INFO - Successfully archived race 1617045
+2025-11-06 14:16:57,231 - RaceArchiver - INFO - Successfully archived race 1617044
+2025-11-06 14:16:57,239 - RaceArchiver - INFO - Successfully archived race 1617043
+2025-11-06 14:16:57,245 - RaceArchiver - INFO - Successfully archived race 1617042
+2025-11-06 14:16:57,249 - RaceArchiver - INFO - Successfully archived race 1617041
+2025-11-06 14:16:57,254 - RaceArchiver - INFO - Successfully archived race 1617040
+2025-11-06 14:16:57,257 - RaceArchiver - INFO - Successfully archived race 1617039
+2025-11-06 14:16:57,261 - RaceArchiver - INFO - Successfully archived race 1617038
+2025-11-06 14:16:57,265 - RaceArchiver - INFO - Successfully archived race 1617037
+2025-11-06 14:16:57,268 - RaceArchiver - INFO - Successfully archived race 1607389
+2025-11-06 14:16:57,272 - RaceArchiver - INFO - Successfully archived race 1607388
+2025-11-06 14:16:57,275 - RaceArchiver - INFO - Successfully archived race 1607387
+2025-11-06 14:16:57,278 - RaceArchiver - INFO - Successfully archived race 1607386
+2025-11-06 14:16:57,281 - RaceArchiver - INFO - Successfully archived race 1607385
+2025-11-06 14:16:57,284 - RaceArchiver - INFO - Successfully archived race 1607384
+2025-11-06 14:16:57,288 - RaceArchiver - INFO - Successfully archived race 1607383
+2025-11-06 14:16:57,290 - RaceArchiver - INFO - Successfully archived race 1607382
+2025-11-06 14:16:57,294 - RaceArchiver - INFO - Successfully archived race 1607381
+2025-11-06 14:16:57,296 - RaceArchiver - INFO - Successfully archived race 1607380
+2025-11-06 14:16:57,299 - RaceArchiver - INFO - Successfully archived race 1607379
+2025-11-06 14:16:57,311 - RaceArchiver - INFO - Successfully archived race 1607378
+2025-11-06 14:16:57,314 - RaceArchiver - INFO - Successfully archived race 1607377
+2025-11-06 14:16:57,317 - RaceArchiver - INFO - Successfully archived race 1607376
+2025-11-06 14:16:57,320 - RaceArchiver - INFO - Successfully archived race 1607375
+2025-11-06 14:16:57,323 - RaceArchiver - INFO - Successfully archived race 1607374
+2025-11-06 14:16:57,326 - RaceArchiver - INFO - Successfully archived race 1626181
+2025-11-06 14:16:57,329 - RaceArchiver - INFO - Successfully archived race 1617036
+2025-11-06 14:16:57,333 - RaceArchiver - INFO - Successfully archived race 1617035
+2025-11-06 14:16:57,336 - RaceArchiver - INFO - Successfully archived race 1617034
+2025-11-06 14:16:57,340 - RaceArchiver - INFO - Successfully archived race 1617033
+2025-11-06 14:16:57,343 - RaceArchiver - INFO - Successfully archived race 1617032
+2025-11-06 14:16:57,347 - RaceArchiver - INFO - Successfully archived race 1617031
+2025-11-06 14:16:57,351 - RaceArchiver - INFO - Successfully archived race 1617030
+2025-11-06 14:16:57,356 - RaceArchiver - INFO - Successfully archived race 1617029
+2025-11-06 14:16:57,359 - RaceArchiver - INFO - Successfully archived race 1617028
+2025-11-06 14:16:57,363 - RaceArchiver - INFO - Successfully archived race 1617027
+2025-11-06 14:16:57,373 - RaceArchiver - INFO - Successfully archived race 1617026
+2025-11-06 14:16:57,376 - RaceArchiver - INFO - Successfully archived race 1617025
+2025-11-06 14:16:57,379 - RaceArchiver - INFO - Successfully archived race 1617024
+2025-11-06 14:16:57,383 - RaceArchiver - INFO - Successfully archived race 1617023
+2025-11-06 14:16:57,387 - RaceArchiver - INFO - Successfully archived race 1617022
+2025-11-06 14:16:57,390 - RaceArchiver - INFO - Successfully archived race 1617021
+2025-11-06 14:16:57,393 - RaceArchiver - INFO - Successfully archived race 1607373
+2025-11-06 14:16:57,396 - RaceArchiver - INFO - Successfully archived race 1607372
+2025-11-06 14:16:57,399 - RaceArchiver - INFO - Successfully archived race 1607371
+2025-11-06 14:16:57,403 - RaceArchiver - INFO - Successfully archived race 1607370
+2025-11-06 14:16:57,406 - RaceArchiver - INFO - Successfully archived race 1607369
+2025-11-06 14:16:57,411 - RaceArchiver - INFO - Successfully archived race 1607368
+2025-11-06 14:16:57,415 - RaceArchiver - INFO - Successfully archived race 1607367
+2025-11-06 14:16:57,418 - RaceArchiver - INFO - Successfully archived race 1607366
+2025-11-06 14:16:57,422 - RaceArchiver - INFO - Successfully archived race 1607365
+2025-11-06 14:16:57,426 - RaceArchiver - INFO - Successfully archived race 1607364
+2025-11-06 14:16:57,429 - RaceArchiver - INFO - Successfully archived race 1607363
+2025-11-06 14:16:57,438 - RaceArchiver - INFO - Successfully archived race 1607362
+2025-11-06 14:16:57,442 - RaceArchiver - INFO - Successfully archived race 1607361
+2025-11-06 14:16:57,448 - RaceArchiver - INFO - Successfully archived race 1607360
+2025-11-06 14:16:57,452 - RaceArchiver - INFO - Successfully archived race 1607359
+2025-11-06 14:16:57,456 - RaceArchiver - INFO - Successfully archived race 1607358
+2025-11-06 14:16:57,461 - RaceArchiver - INFO - Successfully archived race 1607357
+2025-11-06 14:16:57,465 - RaceArchiver - INFO - Successfully archived race 1615388
+2025-11-06 14:16:57,468 - RaceArchiver - INFO - Successfully archived race 1615387
+2025-11-06 14:16:57,472 - RaceArchiver - INFO - Successfully archived race 1615386
+2025-11-06 14:16:57,476 - RaceArchiver - INFO - Successfully archived race 1615385
+2025-11-06 14:16:57,479 - RaceArchiver - INFO - Successfully archived race 1615384
+2025-11-06 14:16:57,483 - RaceArchiver - INFO - Successfully archived race 1615383
+2025-11-06 14:16:57,487 - RaceArchiver - INFO - Successfully archived race 1615382
+2025-11-06 14:16:57,490 - RaceArchiver - INFO - Successfully archived race 1615381
+2025-11-06 14:16:57,493 - RaceArchiver - INFO - Successfully archived race 1607356
+2025-11-06 14:16:57,502 - RaceArchiver - INFO - Successfully archived race 1607355
+2025-11-06 14:16:57,506 - RaceArchiver - INFO - Successfully archived race 1607354
+2025-11-06 14:16:57,509 - RaceArchiver - INFO - Successfully archived race 1607353
+2025-11-06 14:16:57,512 - RaceArchiver - INFO - Successfully archived race 1607352
+2025-11-06 14:16:57,516 - RaceArchiver - INFO - Successfully archived race 1607351
+2025-11-06 14:16:57,519 - RaceArchiver - INFO - Successfully archived race 1607350
+2025-11-06 14:16:57,524 - RaceArchiver - INFO - Successfully archived race 1607349
+2025-11-06 14:16:57,528 - RaceArchiver - INFO - Successfully archived race 1607348
+2025-11-06 14:16:57,531 - RaceArchiver - INFO - Successfully archived race 1607347
+2025-11-06 14:16:57,534 - RaceArchiver - INFO - Successfully archived race 1607346
+2025-11-06 14:16:57,538 - RaceArchiver - INFO - Successfully archived race 1607345
+2025-11-06 14:16:57,541 - RaceArchiver - INFO - Successfully archived race 1607344
+2025-11-06 14:16:57,544 - RaceArchiver - INFO - Successfully archived race 1607343
+2025-11-06 14:16:57,547 - RaceArchiver - INFO - Successfully archived race 1607342
+2025-11-06 14:16:57,551 - RaceArchiver - INFO - Successfully archived race 1607341
+2025-11-06 14:16:57,555 - RaceArchiver - INFO - Successfully archived race 1615378
+2025-11-06 14:16:57,558 - RaceArchiver - INFO - Successfully archived race 1607338
+2025-11-06 14:16:57,570 - RaceArchiver - INFO - Successfully archived race 1607337
+2025-11-06 14:16:57,573 - RaceArchiver - INFO - Successfully archived race 1607336
+2025-11-06 14:16:57,576 - RaceArchiver - INFO - Successfully archived race 1607335
+2025-11-06 14:16:57,579 - RaceArchiver - INFO - Successfully archived race 1607333
+2025-11-06 14:16:57,583 - RaceArchiver - INFO - Successfully archived race 1615372
+2025-11-06 14:16:57,586 - RaceArchiver - INFO - Successfully archived race 1615371
+2025-11-06 14:16:57,590 - RaceArchiver - INFO - Successfully archived race 1615370
+2025-11-06 14:16:57,593 - RaceArchiver - INFO - Successfully archived race 1615369
+2025-11-06 14:16:57,597 - RaceArchiver - INFO - Successfully archived race 1615368
+2025-11-06 14:16:57,600 - RaceArchiver - INFO - Successfully archived race 1615367
+2025-11-06 14:16:57,605 - RaceArchiver - INFO - Successfully archived race 1615366
+2025-11-06 14:16:57,609 - RaceArchiver - INFO - Successfully archived race 1615365
+2025-11-06 14:16:57,612 - RaceArchiver - INFO - Successfully archived race 1607324
+2025-11-06 14:16:57,616 - RaceArchiver - INFO - Successfully archived race 1607323
+2025-11-06 14:16:57,620 - RaceArchiver - INFO - Successfully archived race 1607322
+2025-11-06 14:16:57,624 - RaceArchiver - INFO - Successfully archived race 1607321
+2025-11-06 14:16:57,635 - RaceArchiver - INFO - Successfully archived race 1607320
+2025-11-06 14:16:57,638 - RaceArchiver - INFO - Successfully archived race 1607319
+2025-11-06 14:16:57,641 - RaceArchiver - INFO - Successfully archived race 1607318
+2025-11-06 14:16:57,644 - RaceArchiver - INFO - Successfully archived race 1607317
+2025-11-06 14:16:57,649 - RaceArchiver - INFO - Successfully archived race 1607316
+2025-11-06 14:16:57,652 - RaceArchiver - INFO - Successfully archived race 1607315
+2025-11-06 14:16:57,655 - RaceArchiver - INFO - Successfully archived race 1607314
+2025-11-06 14:16:57,663 - RaceArchiver - INFO - Successfully archived race 1607313
+2025-11-06 14:16:57,667 - RaceArchiver - INFO - Successfully archived race 1607312
+2025-11-06 14:16:57,670 - RaceArchiver - INFO - Successfully archived race 1607311
+2025-11-06 14:16:57,673 - RaceArchiver - INFO - Successfully archived race 1607310
+2025-11-06 14:16:57,676 - RaceArchiver - INFO - Successfully archived race 1607309
+2025-11-06 14:16:57,680 - RaceArchiver - INFO - Successfully archived race 1625458
+2025-11-06 14:16:57,683 - RaceArchiver - INFO - Successfully archived race 1625457
+2025-11-06 14:16:57,687 - RaceArchiver - INFO - Successfully archived race 1625456
+2025-11-06 14:16:57,690 - RaceArchiver - INFO - Successfully archived race 1625455
+2025-11-06 14:16:57,699 - RaceArchiver - INFO - Successfully archived race 1625454
+2025-11-06 14:16:57,703 - RaceArchiver - INFO - Successfully archived race 1625453
+2025-11-06 14:16:57,707 - RaceArchiver - INFO - Successfully archived race 1625452
+2025-11-06 14:16:57,711 - RaceArchiver - INFO - Successfully archived race 1615358
+2025-11-06 14:16:57,715 - RaceArchiver - INFO - Successfully archived race 1615357
+2025-11-06 14:16:57,719 - RaceArchiver - INFO - Successfully archived race 1615356
+2025-11-06 14:16:57,723 - RaceArchiver - INFO - Successfully archived race 1615355
+2025-11-06 14:16:57,726 - RaceArchiver - INFO - Successfully archived race 1615354
+2025-11-06 14:16:57,730 - RaceArchiver - INFO - Successfully archived race 1615353
+2025-11-06 14:16:57,734 - RaceArchiver - INFO - Successfully archived race 1615352
+2025-11-06 14:16:57,737 - RaceArchiver - INFO - Successfully archived race 1615351
+2025-11-06 14:16:57,740 - RaceArchiver - INFO - Successfully archived race 1615350
+2025-11-06 14:16:57,744 - RaceArchiver - INFO - Successfully archived race 1615349
+2025-11-06 14:16:57,748 - RaceArchiver - INFO - Successfully archived race 1607308
+2025-11-06 14:16:57,751 - RaceArchiver - INFO - Successfully archived race 1607306
+2025-11-06 14:16:57,762 - RaceArchiver - INFO - Successfully archived race 1607305
+2025-11-06 14:16:57,767 - RaceArchiver - INFO - Successfully archived race 1607304
+2025-11-06 14:16:57,771 - RaceArchiver - INFO - Successfully archived race 1607303
+2025-11-06 14:16:57,774 - RaceArchiver - INFO - Successfully archived race 1607302
+2025-11-06 14:16:57,776 - RaceArchiver - INFO - Successfully archived race 1607301
+2025-11-06 14:16:57,780 - RaceArchiver - INFO - Successfully archived race 1607300
+2025-11-06 14:16:57,783 - RaceArchiver - INFO - Successfully archived race 1607299
+2025-11-06 14:16:57,786 - RaceArchiver - INFO - Successfully archived race 1607298
+2025-11-06 14:16:57,790 - RaceArchiver - INFO - Successfully archived race 1607297
+2025-11-06 14:16:57,793 - RaceArchiver - INFO - Successfully archived race 1607296
+2025-11-06 14:16:57,800 - RaceArchiver - INFO - Successfully archived race 1607295
+2025-11-06 14:16:57,804 - RaceArchiver - INFO - Successfully archived race 1607294
+2025-11-06 14:16:57,807 - RaceArchiver - INFO - Successfully archived race 1607293
+2025-11-06 14:16:57,810 - RaceArchiver - INFO - Successfully archived race 1625285
+2025-11-06 14:16:57,814 - RaceArchiver - INFO - Successfully archived race 1625277
+2025-11-06 14:16:57,818 - RaceArchiver - INFO - Successfully archived race 1625276
+2025-11-06 14:16:57,823 - RaceArchiver - INFO - Successfully archived race 1625275
+2025-11-06 14:16:57,833 - RaceArchiver - INFO - Successfully archived race 1625273
+2025-11-06 14:16:57,842 - RaceArchiver - INFO - Successfully archived race 1625272
+2025-11-06 14:16:57,846 - RaceArchiver - INFO - Successfully archived race 1625271
+2025-11-06 14:16:57,850 - RaceArchiver - INFO - Successfully archived race 1625270
+2025-11-06 14:16:57,854 - RaceArchiver - INFO - Successfully archived race 1625269
+2025-11-06 14:16:57,858 - RaceArchiver - INFO - Successfully archived race 1625268
+2025-11-06 14:16:57,862 - RaceArchiver - INFO - Successfully archived race 1625267
+2025-11-06 14:16:57,870 - RaceArchiver - INFO - Successfully archived race 1625266
+2025-11-06 14:16:57,875 - RaceArchiver - INFO - Successfully archived race 1619819
+2025-11-06 14:16:57,879 - RaceArchiver - INFO - Successfully archived race 1619818
+2025-11-06 14:16:57,883 - RaceArchiver - INFO - Successfully archived race 1619817
+2025-11-06 14:16:57,887 - RaceArchiver - INFO - Successfully archived race 1619816
+2025-11-06 14:16:57,891 - RaceArchiver - INFO - Successfully archived race 1619815
+2025-11-06 14:16:57,895 - RaceArchiver - INFO - Successfully archived race 1618753
+2025-11-06 14:16:57,898 - RaceArchiver - INFO - Successfully archived race 1618752
+2025-11-06 14:16:57,902 - RaceArchiver - INFO - Successfully archived race 1615348
+2025-11-06 14:16:57,912 - RaceArchiver - INFO - Successfully archived race 1615345
+2025-11-06 14:16:57,917 - RaceArchiver - INFO - Successfully archived race 1615344
+2025-11-06 14:16:57,920 - RaceArchiver - INFO - Successfully archived race 1615343
+2025-11-06 14:16:57,923 - RaceArchiver - INFO - Successfully archived race 1615342
+2025-11-06 14:16:57,926 - RaceArchiver - INFO - Successfully archived race 1615341
+2025-11-06 14:16:57,929 - RaceArchiver - INFO - Successfully archived race 1615340
+2025-11-06 14:16:57,932 - RaceArchiver - INFO - Successfully archived race 1615339
+2025-11-06 14:16:57,937 - RaceArchiver - INFO - Successfully archived race 1615338
+2025-11-06 14:16:57,942 - RaceArchiver - INFO - Successfully archived race 1615337
+2025-11-06 14:16:57,945 - RaceArchiver - INFO - Successfully archived race 1615336
+2025-11-06 14:16:57,949 - RaceArchiver - INFO - Successfully archived race 1615335
+2025-11-06 14:16:57,953 - RaceArchiver - INFO - Successfully archived race 1615334
+2025-11-06 14:16:57,956 - RaceArchiver - INFO - Successfully archived race 1615333
+2025-11-06 14:16:57,960 - RaceArchiver - INFO - Successfully archived race 1615332
+2025-11-06 14:16:57,964 - RaceArchiver - INFO - Successfully archived race 1615331
+2025-11-06 14:16:57,968 - RaceArchiver - INFO - Successfully archived race 1615330
+2025-11-06 14:16:57,972 - RaceArchiver - INFO - Successfully archived race 1615324
+2025-11-06 14:16:57,982 - RaceArchiver - INFO - Successfully archived race 1615323
+2025-11-06 14:16:57,988 - RaceArchiver - INFO - Successfully archived race 1615322
+2025-11-06 14:16:57,993 - RaceArchiver - INFO - Successfully archived race 1615321
+2025-11-06 14:16:57,997 - RaceArchiver - INFO - Successfully archived race 1615320
+2025-11-06 14:16:58,001 - RaceArchiver - INFO - Successfully archived race 1615319
+2025-11-06 14:16:58,006 - RaceArchiver - INFO - Successfully archived race 1615318
+2025-11-06 14:16:58,011 - RaceArchiver - INFO - Successfully archived race 1615317
+2025-11-06 14:16:58,016 - RaceArchiver - INFO - Successfully archived race 1615316
+2025-11-06 14:16:58,020 - RaceArchiver - INFO - Successfully archived race 1615315
+2025-11-06 14:16:58,025 - RaceArchiver - INFO - Successfully archived race 1615314
+2025-11-06 14:16:58,030 - RaceArchiver - INFO - Successfully archived race 1615313
+2025-11-06 14:16:58,035 - RaceArchiver - INFO - Successfully archived race 1615312
+2025-11-06 14:16:58,040 - RaceArchiver - INFO - Successfully archived race 1615311
+2025-11-06 14:16:58,045 - RaceArchiver - INFO - Successfully archived race 1615310
+2025-11-06 14:16:58,048 - RaceArchiver - INFO - Successfully archived race 1615309
+2025-11-06 14:16:58,059 - RaceArchiver - INFO - Successfully archived race 1615308
+2025-11-06 14:16:58,063 - RaceArchiver - INFO - Successfully archived race 1615307
+2025-11-06 14:16:58,067 - RaceArchiver - INFO - Successfully archived race 1615306
+2025-11-06 14:16:58,071 - RaceArchiver - INFO - Successfully archived race 1615305
+2025-11-06 14:16:58,074 - RaceArchiver - INFO - Successfully archived race 1615304
+2025-11-06 14:16:58,079 - RaceArchiver - INFO - Successfully archived race 1615303
+2025-11-06 14:16:58,083 - RaceArchiver - INFO - Successfully archived race 1615302
+2025-11-06 14:16:58,086 - RaceArchiver - INFO - Successfully archived race 1615301
+2025-11-06 14:16:58,090 - RaceArchiver - INFO - Successfully archived race 1615300
+2025-11-06 14:16:58,093 - RaceArchiver - INFO - Successfully archived race 1615299
+2025-11-06 14:16:58,096 - RaceArchiver - INFO - Successfully archived race 1615298
+2025-11-06 14:16:58,100 - RaceArchiver - INFO - Successfully archived race 1615297
+2025-11-06 14:16:58,105 - RaceArchiver - INFO - Successfully archived race 1615296
+2025-11-06 14:16:58,109 - RaceArchiver - INFO - Successfully archived race 1615295
+2025-11-06 14:16:58,113 - RaceArchiver - INFO - Successfully archived race 1615294
+2025-11-06 14:16:58,122 - RaceArchiver - INFO - Successfully archived race 1615293
+2025-11-06 14:16:58,125 - RaceArchiver - INFO - Successfully archived race 1615292
+2025-11-06 14:16:58,130 - RaceArchiver - INFO - Successfully archived race 1615291
+2025-11-06 14:16:58,134 - RaceArchiver - INFO - Successfully archived race 1615290
+2025-11-06 14:16:58,138 - RaceArchiver - INFO - Successfully archived race 1615289
+2025-11-06 14:16:58,142 - RaceArchiver - INFO - Successfully archived race 1615288
+2025-11-06 14:16:58,146 - RaceArchiver - INFO - Successfully archived race 1615287
+2025-11-06 14:16:58,150 - RaceArchiver - INFO - Successfully archived race 1615286
+2025-11-06 14:16:58,154 - RaceArchiver - INFO - Successfully archived race 1615285
+2025-11-06 14:16:58,158 - RaceArchiver - INFO - Successfully archived race 1615284
+2025-11-06 14:16:58,162 - RaceArchiver - INFO - Successfully archived race 1615283
+2025-11-06 14:16:58,167 - RaceArchiver - INFO - Successfully archived race 1615282
+2025-11-06 14:16:58,171 - RaceArchiver - INFO - Successfully archived race 1615281
+2025-11-06 14:16:58,175 - RaceArchiver - INFO - Successfully archived race 1615280
+2025-11-06 14:16:58,178 - RaceArchiver - INFO - Successfully archived race 1615279
+2025-11-06 14:16:58,182 - RaceArchiver - INFO - Successfully archived race 1615278
+2025-11-06 14:16:58,191 - RaceArchiver - INFO - Successfully archived race 1615277
+2025-11-06 14:16:58,196 - RaceArchiver - INFO - Successfully archived race 1607292
+2025-11-06 14:16:58,198 - RaceArchiver - INFO - Successfully archived race 1607291
+2025-11-06 14:16:58,201 - RaceArchiver - INFO - Successfully archived race 1607290
+2025-11-06 14:16:58,204 - RaceArchiver - INFO - Successfully archived race 1607289
+2025-11-06 14:16:58,207 - RaceArchiver - INFO - Successfully archived race 1607288
+2025-11-06 14:16:58,209 - RaceArchiver - INFO - Successfully archived race 1607287
+2025-11-06 14:16:58,212 - RaceArchiver - INFO - Successfully archived race 1607286
+2025-11-06 14:16:58,214 - RaceArchiver - INFO - Successfully archived race 1607285
+2025-11-06 14:16:58,217 - RaceArchiver - INFO - Successfully archived race 1607284
+2025-11-06 14:16:58,223 - RaceArchiver - INFO - Successfully archived race 1607283
+2025-11-06 14:16:58,226 - RaceArchiver - INFO - Successfully archived race 1607282
+2025-11-06 14:16:58,229 - RaceArchiver - INFO - Successfully archived race 1607281
+2025-11-06 14:16:58,233 - RaceArchiver - INFO - Successfully archived race 1607280
+2025-11-06 14:16:58,237 - RaceArchiver - INFO - Successfully archived race 1607279
+2025-11-06 14:16:58,240 - RaceArchiver - INFO - Successfully archived race 1607278
+2025-11-06 14:16:58,245 - RaceArchiver - INFO - Successfully archived race 1607277
+2025-11-06 14:16:58,249 - RaceArchiver - INFO - Successfully archived race 1607276
+2025-11-06 14:16:58,253 - RaceArchiver - INFO - Successfully archived race 1607275
+2025-11-06 14:16:58,256 - RaceArchiver - INFO - Successfully archived race 1607274
+2025-11-06 14:16:58,264 - RaceArchiver - INFO - Successfully archived race 1607273
+2025-11-06 14:16:58,270 - RaceArchiver - INFO - Successfully archived race 1607272
+2025-11-06 14:16:58,273 - RaceArchiver - INFO - Successfully archived race 1607271
+2025-11-06 14:16:58,276 - RaceArchiver - INFO - Successfully archived race 1607270
+2025-11-06 14:16:58,279 - RaceArchiver - INFO - Successfully archived race 1607269
+2025-11-06 14:16:58,282 - RaceArchiver - INFO - Successfully archived race 1607268
+2025-11-06 14:16:58,285 - RaceArchiver - INFO - Successfully archived race 1607267
+2025-11-06 14:16:58,288 - RaceArchiver - INFO - Successfully archived race 1607266
+2025-11-06 14:16:58,292 - RaceArchiver - INFO - Successfully archived race 1607265
+2025-11-06 14:16:58,294 - RaceArchiver - INFO - Successfully archived race 1607264
+2025-11-06 14:16:58,297 - RaceArchiver - INFO - Successfully archived race 1607263
+2025-11-06 14:16:58,300 - RaceArchiver - INFO - Successfully archived race 1607262
+2025-11-06 14:16:58,302 - RaceArchiver - INFO - Successfully archived race 1607261
+2025-11-06 14:16:58,305 - RaceArchiver - INFO - Successfully archived race 1607260
+2025-11-06 14:16:58,310 - RaceArchiver - INFO - Successfully archived race 1607259
+2025-11-06 14:16:58,313 - RaceArchiver - INFO - Successfully archived race 1607258
+2025-11-06 14:16:58,315 - RaceArchiver - INFO - Successfully archived race 1607257
+2025-11-06 14:16:58,318 - RaceArchiver - INFO - Successfully archived race 1607256
+2025-11-06 14:16:58,322 - RaceArchiver - INFO - Successfully archived race 1607255
+2025-11-06 14:16:58,325 - RaceArchiver - INFO - Successfully archived race 1607254
+2025-11-06 14:16:58,328 - RaceArchiver - INFO - Successfully archived race 1607253
+2025-11-06 14:16:58,336 - RaceArchiver - INFO - Successfully archived race 1607252
+2025-11-06 14:16:58,339 - RaceArchiver - INFO - Successfully archived race 1607251
+2025-11-06 14:16:58,342 - RaceArchiver - INFO - Successfully archived race 1607250
+2025-11-06 14:16:58,346 - RaceArchiver - INFO - Successfully archived race 1607249
+2025-11-06 14:16:58,348 - RaceArchiver - INFO - Successfully archived race 1607248
+2025-11-06 14:16:58,352 - RaceArchiver - INFO - Successfully archived race 1607247
+2025-11-06 14:16:58,355 - RaceArchiver - INFO - Successfully archived race 1625089
+2025-11-06 14:16:58,358 - RaceArchiver - INFO - Successfully archived race 1615276
+2025-11-06 14:16:58,363 - RaceArchiver - INFO - Successfully archived race 1615275
+2025-11-06 14:16:58,365 - RaceArchiver - INFO - Successfully archived race 1615274
+2025-11-06 14:16:58,368 - RaceArchiver - INFO - Successfully archived race 1615273
+2025-11-06 14:16:58,372 - RaceArchiver - INFO - Successfully archived race 1615272
+2025-11-06 14:16:58,375 - RaceArchiver - INFO - Successfully archived race 1615271
+2025-11-06 14:16:58,379 - RaceArchiver - INFO - Successfully archived race 1615270
+2025-11-06 14:16:58,382 - RaceArchiver - INFO - Successfully archived race 1615269
+2025-11-06 14:16:58,386 - RaceArchiver - INFO - Successfully archived race 1615268
+2025-11-06 14:16:58,389 - RaceArchiver - INFO - Successfully archived race 1615267
+2025-11-06 14:16:58,399 - RaceArchiver - INFO - Successfully archived race 1615266
+2025-11-06 14:16:58,403 - RaceArchiver - INFO - Successfully archived race 1615265
+2025-11-06 14:16:58,406 - RaceArchiver - INFO - Successfully archived race 1615264
+2025-11-06 14:16:58,409 - RaceArchiver - INFO - Successfully archived race 1615263
+2025-11-06 14:16:58,413 - RaceArchiver - INFO - Successfully archived race 1615262
+2025-11-06 14:16:58,416 - RaceArchiver - INFO - Successfully archived race 1607246
+2025-11-06 14:16:58,419 - RaceArchiver - INFO - Successfully archived race 1607245
+2025-11-06 14:16:58,422 - RaceArchiver - INFO - Successfully archived race 1607244
+2025-11-06 14:16:58,425 - RaceArchiver - INFO - Successfully archived race 1607243
+2025-11-06 14:16:58,428 - RaceArchiver - INFO - Successfully archived race 1607242
+2025-11-06 14:16:58,436 - RaceArchiver - INFO - Successfully archived race 1607241
+2025-11-06 14:16:58,439 - RaceArchiver - INFO - Successfully archived race 1607240
+2025-11-06 14:16:58,443 - RaceArchiver - INFO - Successfully archived race 1607239
+2025-11-06 14:16:58,446 - RaceArchiver - INFO - Successfully archived race 1607238
+2025-11-06 14:16:58,449 - RaceArchiver - INFO - Successfully archived race 1607237
+2025-11-06 14:16:58,452 - RaceArchiver - INFO - Successfully archived race 1607236
+2025-11-06 14:16:58,457 - RaceArchiver - INFO - Successfully archived race 1607235
+2025-11-06 14:16:58,466 - RaceArchiver - INFO - Successfully archived race 1607234
+2025-11-06 14:16:58,469 - RaceArchiver - INFO - Successfully archived race 1607233
+2025-11-06 14:16:58,472 - RaceArchiver - INFO - Successfully archived race 1607232
+2025-11-06 14:16:58,478 - RaceArchiver - INFO - Successfully archived race 1607231
+2025-11-06 14:16:58,481 - RaceArchiver - INFO - Successfully archived race 1607230
+2025-11-06 14:16:58,484 - RaceArchiver - INFO - Successfully archived race 1607229
+2025-11-06 14:16:58,488 - RaceArchiver - INFO - Successfully archived race 1607227
+2025-11-06 14:16:58,491 - RaceArchiver - INFO - Successfully archived race 1607226
+2025-11-06 14:16:58,494 - RaceArchiver - INFO - Successfully archived race 1607225
+2025-11-06 14:16:58,497 - RaceArchiver - INFO - Successfully archived race 1607224
+2025-11-06 14:16:58,500 - RaceArchiver - INFO - Successfully archived race 1607223
+2025-11-06 14:16:58,503 - RaceArchiver - INFO - Successfully archived race 1625088
+2025-11-06 14:16:58,507 - RaceArchiver - INFO - Successfully archived race 1617020
+2025-11-06 14:16:58,511 - RaceArchiver - INFO - Successfully archived race 1615261
+2025-11-06 14:16:58,514 - RaceArchiver - INFO - Successfully archived race 1615260
+2025-11-06 14:16:58,517 - RaceArchiver - INFO - Successfully archived race 1615259
+2025-11-06 14:16:58,520 - RaceArchiver - INFO - Successfully archived race 1615258
+2025-11-06 14:16:58,524 - RaceArchiver - INFO - Successfully archived race 1615257
+2025-11-06 14:16:58,534 - RaceArchiver - INFO - Successfully archived race 1615256
+2025-11-06 14:16:58,539 - RaceArchiver - INFO - Successfully archived race 1615255
+2025-11-06 14:16:58,543 - RaceArchiver - INFO - Successfully archived race 1615254
+2025-11-06 14:16:58,546 - RaceArchiver - INFO - Successfully archived race 1615253
+2025-11-06 14:16:58,549 - RaceArchiver - INFO - Successfully archived race 1615252
+2025-11-06 14:16:58,553 - RaceArchiver - INFO - Successfully archived race 1615251
+2025-11-06 14:16:58,557 - RaceArchiver - INFO - Successfully archived race 1615250
+2025-11-06 14:16:58,561 - RaceArchiver - INFO - Successfully archived race 1615249
+2025-11-06 14:16:58,565 - RaceArchiver - INFO - Successfully archived race 1615248
+2025-11-06 14:16:58,571 - RaceArchiver - INFO - Successfully archived race 1615247
+2025-11-06 14:16:58,575 - RaceArchiver - INFO - Successfully archived race 1615246
+2025-11-06 14:16:58,579 - RaceArchiver - INFO - Successfully archived race 1615245
+2025-11-06 14:16:58,583 - RaceArchiver - INFO - Successfully archived race 1615244
+2025-11-06 14:16:58,588 - RaceArchiver - INFO - Successfully archived race 1615243
+2025-11-06 14:16:58,591 - RaceArchiver - INFO - Successfully archived race 1615241
+2025-11-06 14:16:58,595 - RaceArchiver - INFO - Successfully archived race 1615240
+2025-11-06 14:16:58,603 - RaceArchiver - INFO - Successfully archived race 1615239
+2025-11-06 14:16:58,608 - RaceArchiver - INFO - Successfully archived race 1615238
+2025-11-06 14:16:58,610 - RaceArchiver - INFO - Successfully archived race 1607222
+2025-11-06 14:16:58,614 - RaceArchiver - INFO - Successfully archived race 1607221
+2025-11-06 14:16:58,618 - RaceArchiver - INFO - Successfully archived race 1607220
+2025-11-06 14:16:58,621 - RaceArchiver - INFO - Successfully archived race 1607219
+2025-11-06 14:16:58,624 - RaceArchiver - INFO - Successfully archived race 1607218
+2025-11-06 14:16:58,628 - RaceArchiver - INFO - Successfully archived race 1607217
+2025-11-06 14:16:58,631 - RaceArchiver - INFO - Successfully archived race 1607216
+2025-11-06 14:16:58,635 - RaceArchiver - INFO - Successfully archived race 1607215
+2025-11-06 14:16:58,639 - RaceArchiver - INFO - Successfully archived race 1607214
+2025-11-06 14:16:58,641 - RaceArchiver - INFO - Successfully archived race 1607213
+2025-11-06 14:16:58,644 - RaceArchiver - INFO - Successfully archived race 1607212
+2025-11-06 14:16:58,648 - RaceArchiver - INFO - Successfully archived race 1607211
+2025-11-06 14:16:58,652 - RaceArchiver - INFO - Successfully archived race 1607210
+2025-11-06 14:16:58,655 - RaceArchiver - INFO - Successfully archived race 1607209
+2025-11-06 14:16:58,661 - RaceArchiver - INFO - Successfully archived race 1607208
+2025-11-06 14:16:58,664 - RaceArchiver - INFO - Successfully archived race 1607207
+2025-11-06 14:16:58,667 - RaceArchiver - INFO - Successfully archived race 1607206
+2025-11-06 14:16:58,676 - RaceArchiver - INFO - Successfully archived race 1624548
+2025-11-06 14:16:58,682 - RaceArchiver - INFO - Successfully archived race 1615237
+2025-11-06 14:16:58,686 - RaceArchiver - INFO - Successfully archived race 1614257
+2025-11-06 14:16:58,688 - RaceArchiver - INFO - Successfully archived race 1614256
+2025-11-06 14:16:58,691 - RaceArchiver - INFO - Successfully archived race 1614255
+2025-11-06 14:16:58,694 - RaceArchiver - INFO - Successfully archived race 1614254
+2025-11-06 14:16:58,698 - RaceArchiver - INFO - Successfully archived race 1614253
+2025-11-06 14:16:58,701 - RaceArchiver - INFO - Successfully archived race 1614252
+2025-11-06 14:16:58,705 - RaceArchiver - INFO - Successfully archived race 1614251
+2025-11-06 14:16:58,708 - RaceArchiver - INFO - Successfully archived race 1614250
+2025-11-06 14:16:58,711 - RaceArchiver - INFO - Successfully archived race 1614249
+2025-11-06 14:16:58,717 - RaceArchiver - INFO - Successfully archived race 1614248
+2025-11-06 14:16:58,720 - RaceArchiver - INFO - Successfully archived race 1614247
+2025-11-06 14:16:58,723 - RaceArchiver - INFO - Successfully archived race 1614246
+2025-11-06 14:16:58,726 - RaceArchiver - INFO - Successfully archived race 1614245
+2025-11-06 14:16:58,729 - RaceArchiver - INFO - Successfully archived race 1614244
+2025-11-06 14:16:58,733 - RaceArchiver - INFO - Successfully archived race 1614243
+2025-11-06 14:16:58,736 - RaceArchiver - INFO - Successfully archived race 1607205
+2025-11-06 14:16:58,745 - RaceArchiver - INFO - Successfully archived race 1607204
+2025-11-06 14:16:58,751 - RaceArchiver - INFO - Successfully archived race 1607203
+2025-11-06 14:16:58,755 - RaceArchiver - INFO - Successfully archived race 1607202
+2025-11-06 14:16:58,758 - RaceArchiver - INFO - Successfully archived race 1607201
+2025-11-06 14:16:58,762 - RaceArchiver - INFO - Successfully archived race 1607200
+2025-11-06 14:16:58,764 - RaceArchiver - INFO - Successfully archived race 1607199
+2025-11-06 14:16:58,768 - RaceArchiver - INFO - Successfully archived race 1607198
+2025-11-06 14:16:58,772 - RaceArchiver - INFO - Successfully archived race 1619814
+2025-11-06 14:16:58,776 - RaceArchiver - INFO - Successfully archived race 1614240
+2025-11-06 14:16:58,780 - RaceArchiver - INFO - Successfully archived race 1614239
+2025-11-06 14:16:58,783 - RaceArchiver - INFO - Successfully archived race 1614238
+2025-11-06 14:16:58,787 - RaceArchiver - INFO - Successfully archived race 1614237
+2025-11-06 14:16:58,790 - RaceArchiver - INFO - Successfully archived race 1614236
+2025-11-06 14:16:58,793 - RaceArchiver - INFO - Successfully archived race 1614235
+2025-11-06 14:16:58,798 - RaceArchiver - INFO - Successfully archived race 1614234
+2025-11-06 14:16:58,802 - RaceArchiver - INFO - Successfully archived race 1614233
+2025-11-06 14:16:58,816 - RaceArchiver - INFO - Successfully archived race 1614232
+2025-11-06 14:16:58,823 - RaceArchiver - INFO - Successfully archived race 1614231
+2025-11-06 14:16:58,827 - RaceArchiver - INFO - Successfully archived race 1614230
+2025-11-06 14:16:58,830 - RaceArchiver - INFO - Successfully archived race 1614229
+2025-11-06 14:16:58,834 - RaceArchiver - INFO - Successfully archived race 1614228
+2025-11-06 14:16:58,838 - RaceArchiver - INFO - Successfully archived race 1614227
+2025-11-06 14:16:58,842 - RaceArchiver - INFO - Successfully archived race 1614226
+2025-11-06 14:16:58,848 - RaceArchiver - INFO - Successfully archived race 1607197
+2025-11-06 14:16:58,851 - RaceArchiver - INFO - Successfully archived race 1607196
+2025-11-06 14:16:58,855 - RaceArchiver - INFO - Successfully archived race 1607195
+2025-11-06 14:16:58,858 - RaceArchiver - INFO - Successfully archived race 1607194
+2025-11-06 14:16:58,861 - RaceArchiver - INFO - Successfully archived race 1607193
+2025-11-06 14:16:58,864 - RaceArchiver - INFO - Successfully archived race 1607192
+2025-11-06 14:16:58,866 - RaceArchiver - INFO - Successfully archived race 1607191
+2025-11-06 14:16:58,869 - RaceArchiver - INFO - Successfully archived race 1607190
+2025-11-06 14:16:58,872 - RaceArchiver - INFO - Successfully archived race 1624367
+2025-11-06 14:16:58,875 - RaceArchiver - INFO - Successfully archived race 1624365
+2025-11-06 14:16:58,878 - RaceArchiver - INFO - Successfully archived race 1619813
+2025-11-06 14:16:58,889 - RaceArchiver - INFO - Successfully archived race 1619012
+2025-11-06 14:16:58,893 - RaceArchiver - INFO - Successfully archived race 1619011
+2025-11-06 14:16:58,896 - RaceArchiver - INFO - Successfully archived race 1619010
+2025-11-06 14:16:58,900 - RaceArchiver - INFO - Successfully archived race 1619009
+2025-11-06 14:16:58,902 - RaceArchiver - INFO - Successfully archived race 1619008
+2025-11-06 14:16:58,905 - RaceArchiver - INFO - Successfully archived race 1619007
+2025-11-06 14:16:58,908 - RaceArchiver - INFO - Successfully archived race 1614225
+2025-11-06 14:16:58,912 - RaceArchiver - INFO - Successfully archived race 1614224
+2025-11-06 14:16:58,914 - RaceArchiver - INFO - Successfully archived race 1614223
+2025-11-06 14:16:58,917 - RaceArchiver - INFO - Successfully archived race 1614222
+2025-11-06 14:16:58,921 - RaceArchiver - INFO - Successfully archived race 1614221
+2025-11-06 14:16:58,926 - RaceArchiver - INFO - Successfully archived race 1614220
+2025-11-06 14:16:58,929 - RaceArchiver - INFO - Successfully archived race 1614219
+2025-11-06 14:16:58,933 - RaceArchiver - INFO - Successfully archived race 1614218
+2025-11-06 14:16:58,936 - RaceArchiver - INFO - Successfully archived race 1607189
+2025-11-06 14:16:58,940 - RaceArchiver - INFO - Successfully archived race 1607188
+2025-11-06 14:16:58,943 - RaceArchiver - INFO - Successfully archived race 1607187
+2025-11-06 14:16:58,946 - RaceArchiver - INFO - Successfully archived race 1607186
+2025-11-06 14:16:58,949 - RaceArchiver - INFO - Successfully archived race 1607185
+2025-11-06 14:16:58,959 - RaceArchiver - INFO - Successfully archived race 1607184
+2025-11-06 14:16:58,962 - RaceArchiver - INFO - Successfully archived race 1607183
+2025-11-06 14:16:58,965 - RaceArchiver - INFO - Successfully archived race 1607181
+2025-11-06 14:16:58,968 - RaceArchiver - INFO - Successfully archived race 1607180
+2025-11-06 14:16:58,971 - RaceArchiver - INFO - Successfully archived race 1607179
+2025-11-06 14:16:58,974 - RaceArchiver - INFO - Successfully archived race 1607178
+2025-11-06 14:16:58,977 - RaceArchiver - INFO - Successfully archived race 1607177
+2025-11-06 14:16:58,980 - RaceArchiver - INFO - Successfully archived race 1607176
+2025-11-06 14:16:58,982 - RaceArchiver - INFO - Successfully archived race 1607175
+2025-11-06 14:16:58,985 - RaceArchiver - INFO - Successfully archived race 1607174
+2025-11-06 14:16:58,988 - RaceArchiver - INFO - Successfully archived race 1624220
+2025-11-06 14:16:58,991 - RaceArchiver - INFO - Successfully archived race 1624219
+2025-11-06 14:16:58,995 - RaceArchiver - INFO - Successfully archived race 1624218
+2025-11-06 14:16:58,999 - RaceArchiver - INFO - Successfully archived race 1624217
+2025-11-06 14:16:59,002 - RaceArchiver - INFO - Successfully archived race 1624216
+2025-11-06 14:16:59,006 - RaceArchiver - INFO - Successfully archived race 1624215
+2025-11-06 14:16:59,009 - RaceArchiver - INFO - Successfully archived race 1624214
+2025-11-06 14:16:59,012 - RaceArchiver - INFO - Successfully archived race 1618751
+2025-11-06 14:16:59,015 - RaceArchiver - INFO - Successfully archived race 1618750
+2025-11-06 14:16:59,018 - RaceArchiver - INFO - Successfully archived race 1618749
+2025-11-06 14:16:59,028 - RaceArchiver - INFO - Successfully archived race 1618748
+2025-11-06 14:16:59,031 - RaceArchiver - INFO - Successfully archived race 1618747
+2025-11-06 14:16:59,034 - RaceArchiver - INFO - Successfully archived race 1614217
+2025-11-06 14:16:59,038 - RaceArchiver - INFO - Successfully archived race 1614216
+2025-11-06 14:16:59,041 - RaceArchiver - INFO - Successfully archived race 1614215
+2025-11-06 14:16:59,044 - RaceArchiver - INFO - Successfully archived race 1614214
+2025-11-06 14:16:59,047 - RaceArchiver - INFO - Successfully archived race 1614213
+2025-11-06 14:16:59,051 - RaceArchiver - INFO - Successfully archived race 1614212
+2025-11-06 14:16:59,054 - RaceArchiver - INFO - Successfully archived race 1614211
+2025-11-06 14:16:59,057 - RaceArchiver - INFO - Successfully archived race 1614210
+2025-11-06 14:16:59,061 - RaceArchiver - INFO - Successfully archived race 1614204
+2025-11-06 14:16:59,064 - RaceArchiver - INFO - Successfully archived race 1614203
+2025-11-06 14:16:59,067 - RaceArchiver - INFO - Successfully archived race 1614202
+2025-11-06 14:16:59,071 - RaceArchiver - INFO - Successfully archived race 1614201
+2025-11-06 14:16:59,074 - RaceArchiver - INFO - Successfully archived race 1614200
+2025-11-06 14:16:59,078 - RaceArchiver - INFO - Successfully archived race 1614199
+2025-11-06 14:16:59,081 - RaceArchiver - INFO - Successfully archived race 1614198
+2025-11-06 14:16:59,083 - RaceArchiver - INFO - Successfully archived race 1607173
+2025-11-06 14:16:59,087 - RaceArchiver - INFO - Successfully archived race 1607172
+2025-11-06 14:16:59,098 - RaceArchiver - INFO - Successfully archived race 1607171
+2025-11-06 14:16:59,102 - RaceArchiver - INFO - Successfully archived race 1607169
+2025-11-06 14:16:59,106 - RaceArchiver - INFO - Successfully archived race 1607168
+2025-11-06 14:16:59,108 - RaceArchiver - INFO - Successfully archived race 1607167
+2025-11-06 14:16:59,111 - RaceArchiver - INFO - Successfully archived race 1607166
+2025-11-06 14:16:59,115 - RaceArchiver - INFO - Successfully archived race 1607165
+2025-11-06 14:16:59,118 - RaceArchiver - INFO - Successfully archived race 1607164
+2025-11-06 14:16:59,121 - RaceArchiver - INFO - Successfully archived race 1607163
+2025-11-06 14:16:59,124 - RaceArchiver - INFO - Successfully archived race 1607162
+2025-11-06 14:16:59,127 - RaceArchiver - INFO - Successfully archived race 1607161
+2025-11-06 14:16:59,130 - RaceArchiver - INFO - Successfully archived race 1607160
+2025-11-06 14:16:59,134 - RaceArchiver - INFO - Successfully archived race 1607159
+2025-11-06 14:16:59,137 - RaceArchiver - INFO - Successfully archived race 1607158
+2025-11-06 14:16:59,140 - RaceArchiver - INFO - Successfully archived race 1607157
+2025-11-06 14:16:59,143 - RaceArchiver - INFO - Successfully archived race 1607156
+2025-11-06 14:16:59,146 - RaceArchiver - INFO - Successfully archived race 1607155
+2025-11-06 14:16:59,148 - RaceArchiver - INFO - Successfully archived race 1607154
+2025-11-06 14:16:59,151 - RaceArchiver - INFO - Successfully archived race 1607153
+2025-11-06 14:16:59,154 - RaceArchiver - INFO - Successfully archived race 1607152
+2025-11-06 14:16:59,157 - RaceArchiver - INFO - Successfully archived race 1624066
+2025-11-06 14:16:59,167 - RaceArchiver - INFO - Successfully archived race 1624065
+2025-11-06 14:16:59,170 - RaceArchiver - INFO - Successfully archived race 1624064
+2025-11-06 14:16:59,173 - RaceArchiver - INFO - Successfully archived race 1624063
+2025-11-06 14:16:59,176 - RaceArchiver - INFO - Successfully archived race 1624062
+2025-11-06 14:16:59,179 - RaceArchiver - INFO - Successfully archived race 1624061
+2025-11-06 14:16:59,182 - RaceArchiver - INFO - Successfully archived race 1624028
+2025-11-06 14:16:59,185 - RaceArchiver - INFO - Successfully archived race 1624027
+2025-11-06 14:16:59,188 - RaceArchiver - INFO - Successfully archived race 1624026
+2025-11-06 14:16:59,191 - RaceArchiver - INFO - Successfully archived race 1624025
+2025-11-06 14:16:59,194 - RaceArchiver - INFO - Successfully archived race 1624024
+2025-11-06 14:16:59,198 - RaceArchiver - INFO - Successfully archived race 1618746
+2025-11-06 14:16:59,202 - RaceArchiver - INFO - Successfully archived race 1618745
+2025-11-06 14:16:59,204 - RaceArchiver - INFO - Successfully archived race 1618744
+2025-11-06 14:16:59,207 - RaceArchiver - INFO - Successfully archived race 1618743
+2025-11-06 14:16:59,211 - RaceArchiver - INFO - Successfully archived race 1617019
+2025-11-06 14:16:59,214 - RaceArchiver - INFO - Successfully archived race 1614197
+2025-11-06 14:16:59,217 - RaceArchiver - INFO - Successfully archived race 1614196
+2025-11-06 14:16:59,221 - RaceArchiver - INFO - Successfully archived race 1614195
+2025-11-06 14:16:59,224 - RaceArchiver - INFO - Successfully archived race 1614193
+2025-11-06 14:16:59,233 - RaceArchiver - INFO - Successfully archived race 1614192
+2025-11-06 14:16:59,237 - RaceArchiver - INFO - Successfully archived race 1614191
+2025-11-06 14:16:59,239 - RaceArchiver - INFO - Successfully archived race 1614190
+2025-11-06 14:16:59,243 - RaceArchiver - INFO - Successfully archived race 1614189
+2025-11-06 14:16:59,246 - RaceArchiver - INFO - Successfully archived race 1614188
+2025-11-06 14:16:59,249 - RaceArchiver - INFO - Successfully archived race 1614187
+2025-11-06 14:16:59,252 - RaceArchiver - INFO - Successfully archived race 1614186
+2025-11-06 14:16:59,255 - RaceArchiver - INFO - Successfully archived race 1614185
+2025-11-06 14:16:59,259 - RaceArchiver - INFO - Successfully archived race 1614184
+2025-11-06 14:16:59,262 - RaceArchiver - INFO - Successfully archived race 1614183
+2025-11-06 14:16:59,265 - RaceArchiver - INFO - Successfully archived race 1614182
+2025-11-06 14:16:59,268 - RaceArchiver - INFO - Successfully archived race 1614181
+2025-11-06 14:16:59,271 - RaceArchiver - INFO - Successfully archived race 1614180
+2025-11-06 14:16:59,273 - RaceArchiver - INFO - Successfully archived race 1614179
+2025-11-06 14:16:59,277 - RaceArchiver - INFO - Successfully archived race 1614178
+2025-11-06 14:16:59,280 - RaceArchiver - INFO - Successfully archived race 1614177
+2025-11-06 14:16:59,283 - RaceArchiver - INFO - Successfully archived race 1614176
+2025-11-06 14:16:59,286 - RaceArchiver - INFO - Successfully archived race 1614175
+2025-11-06 14:16:59,289 - RaceArchiver - INFO - Successfully archived race 1614174
+2025-11-06 14:16:59,299 - RaceArchiver - INFO - Successfully archived race 1614173
+2025-11-06 14:16:59,302 - RaceArchiver - INFO - Successfully archived race 1614172
+2025-11-06 14:16:59,305 - RaceArchiver - INFO - Successfully archived race 1614171
+2025-11-06 14:16:59,308 - RaceArchiver - INFO - Successfully archived race 1614170
+2025-11-06 14:16:59,310 - RaceArchiver - INFO - Successfully archived race 1614169
+2025-11-06 14:16:59,313 - RaceArchiver - INFO - Successfully archived race 1614164
+2025-11-06 14:16:59,316 - RaceArchiver - INFO - Successfully archived race 1614163
+2025-11-06 14:16:59,319 - RaceArchiver - INFO - Successfully archived race 1614162
+2025-11-06 14:16:59,323 - RaceArchiver - INFO - Successfully archived race 1614161
+2025-11-06 14:16:59,326 - RaceArchiver - INFO - Successfully archived race 1614160
+2025-11-06 14:16:59,329 - RaceArchiver - INFO - Successfully archived race 1614159
+2025-11-06 14:16:59,332 - RaceArchiver - INFO - Successfully archived race 1614158
+2025-11-06 14:16:59,335 - RaceArchiver - INFO - Successfully archived race 1614157
+2025-11-06 14:16:59,339 - RaceArchiver - INFO - Successfully archived race 1614156
+2025-11-06 14:16:59,342 - RaceArchiver - INFO - Successfully archived race 1614155
+2025-11-06 14:16:59,345 - RaceArchiver - INFO - Successfully archived race 1614154
+2025-11-06 14:16:59,348 - RaceArchiver - INFO - Successfully archived race 1614153
+2025-11-06 14:16:59,351 - RaceArchiver - INFO - Successfully archived race 1614152
+2025-11-06 14:16:59,360 - RaceArchiver - INFO - Successfully archived race 1614151
+2025-11-06 14:16:59,363 - RaceArchiver - INFO - Successfully archived race 1614150
+2025-11-06 14:16:59,367 - RaceArchiver - INFO - Successfully archived race 1614149
+2025-11-06 14:16:59,370 - RaceArchiver - INFO - Successfully archived race 1614148
+2025-11-06 14:16:59,373 - RaceArchiver - INFO - Successfully archived race 1614147
+2025-11-06 14:16:59,377 - RaceArchiver - INFO - Successfully archived race 1614146
+2025-11-06 14:16:59,379 - RaceArchiver - INFO - Successfully archived race 1614145
+2025-11-06 14:16:59,383 - RaceArchiver - INFO - Successfully archived race 1614144
+2025-11-06 14:16:59,386 - RaceArchiver - INFO - Successfully archived race 1614143
+2025-11-06 14:16:59,389 - RaceArchiver - INFO - Successfully archived race 1614142
+2025-11-06 14:16:59,393 - RaceArchiver - INFO - Successfully archived race 1614141
+2025-11-06 14:16:59,395 - RaceArchiver - INFO - Successfully archived race 1614140
+2025-11-06 14:16:59,398 - RaceArchiver - INFO - Successfully archived race 1614139
+2025-11-06 14:16:59,401 - RaceArchiver - INFO - Successfully archived race 1614138
+2025-11-06 14:16:59,405 - RaceArchiver - INFO - Successfully archived race 1614137
+2025-11-06 14:16:59,407 - RaceArchiver - INFO - Successfully archived race 1614136
+2025-11-06 14:16:59,411 - RaceArchiver - INFO - Successfully archived race 1614135
+2025-11-06 14:16:59,413 - RaceArchiver - INFO - Successfully archived race 1614134
+2025-11-06 14:16:59,416 - RaceArchiver - INFO - Successfully archived race 1614133
+2025-11-06 14:16:59,426 - RaceArchiver - INFO - Successfully archived race 1614132
+2025-11-06 14:16:59,429 - RaceArchiver - INFO - Successfully archived race 1614131
+2025-11-06 14:16:59,431 - RaceArchiver - INFO - Successfully archived race 1607151
+2025-11-06 14:16:59,434 - RaceArchiver - INFO - Successfully archived race 1607150
+2025-11-06 14:16:59,437 - RaceArchiver - INFO - Successfully archived race 1607149
+2025-11-06 14:16:59,439 - RaceArchiver - INFO - Successfully archived race 1607148
+2025-11-06 14:16:59,442 - RaceArchiver - INFO - Successfully archived race 1607147
+2025-11-06 14:16:59,445 - RaceArchiver - INFO - Successfully archived race 1607146
+2025-11-06 14:16:59,448 - RaceArchiver - INFO - Successfully archived race 1607145
+2025-11-06 14:16:59,450 - RaceArchiver - INFO - Successfully archived race 1607144
+2025-11-06 14:16:59,453 - RaceArchiver - INFO - Successfully archived race 1607143
+2025-11-06 14:16:59,455 - RaceArchiver - INFO - Successfully archived race 1607142
+2025-11-06 14:16:59,458 - RaceArchiver - INFO - Successfully archived race 1607141
+2025-11-06 14:16:59,460 - RaceArchiver - INFO - Successfully archived race 1607140
+2025-11-06 14:16:59,463 - RaceArchiver - INFO - Successfully archived race 1607139
+2025-11-06 14:16:59,466 - RaceArchiver - INFO - Successfully archived race 1607138
+2025-11-06 14:16:59,469 - RaceArchiver - INFO - Successfully archived race 1607137
+2025-11-06 14:16:59,472 - RaceArchiver - INFO - Successfully archived race 1607136
+2025-11-06 14:16:59,474 - RaceArchiver - INFO - Successfully archived race 1607135
+2025-11-06 14:16:59,477 - RaceArchiver - INFO - Successfully archived race 1607134
+2025-11-06 14:16:59,480 - RaceArchiver - INFO - Successfully archived race 1607133
+2025-11-06 14:16:59,482 - RaceArchiver - INFO - Successfully archived race 1607132
+2025-11-06 14:16:59,485 - RaceArchiver - INFO - Successfully archived race 1607131
+2025-11-06 14:16:59,487 - RaceArchiver - INFO - Successfully archived race 1607130
+2025-11-06 14:16:59,496 - RaceArchiver - INFO - Successfully archived race 1607129
+2025-11-06 14:16:59,499 - RaceArchiver - INFO - Successfully archived race 1607128
+2025-11-06 14:16:59,502 - RaceArchiver - INFO - Successfully archived race 1607127
+2025-11-06 14:16:59,504 - RaceArchiver - INFO - Successfully archived race 1607126
+2025-11-06 14:16:59,515 - RaceArchiver - INFO - Successfully archived race 1607125
+2025-11-06 14:16:59,518 - RaceArchiver - INFO - Successfully archived race 1607124
+2025-11-06 14:16:59,521 - RaceArchiver - INFO - Successfully archived race 1607109
+2025-11-06 14:16:59,523 - RaceArchiver - INFO - Successfully archived race 1607108
+2025-11-06 14:16:59,526 - RaceArchiver - INFO - Successfully archived race 1607107
+2025-11-06 14:16:59,528 - RaceArchiver - INFO - Successfully archived race 1607106
+2025-11-06 14:16:59,531 - RaceArchiver - INFO - Successfully archived race 1607105
+2025-11-06 14:16:59,533 - RaceArchiver - INFO - Successfully archived race 1607104
+2025-11-06 14:16:59,535 - RaceArchiver - INFO - Successfully archived race 1607103
+2025-11-06 14:16:59,538 - RaceArchiver - INFO - Successfully archived race 1607102
+2025-11-06 14:16:59,540 - RaceArchiver - INFO - Successfully archived race 1607101
+2025-11-06 14:16:59,542 - RaceArchiver - INFO - Successfully archived race 1607100
+2025-11-06 14:16:59,545 - RaceArchiver - INFO - Successfully archived race 1607099
+2025-11-06 14:16:59,548 - RaceArchiver - INFO - Successfully archived race 1607098
+2025-11-06 14:16:59,551 - RaceArchiver - INFO - Successfully archived race 1607097
+2025-11-06 14:16:59,553 - RaceArchiver - INFO - Successfully archived race 1607096
+2025-11-06 14:16:59,556 - RaceArchiver - INFO - Successfully archived race 1607095
+2025-11-06 14:16:59,558 - RaceArchiver - INFO - Successfully archived race 1607094
+2025-11-06 14:16:59,562 - RaceArchiver - INFO - Successfully archived race 1607093
+2025-11-06 14:16:59,570 - RaceArchiver - INFO - Successfully archived race 1607092
+2025-11-06 14:16:59,576 - RaceArchiver - INFO - Successfully archived race 1607091
+2025-11-06 14:16:59,579 - RaceArchiver - INFO - Successfully archived race 1607090
+2025-11-06 14:16:59,582 - RaceArchiver - INFO - Successfully archived race 1607089
+2025-11-06 14:16:59,585 - RaceArchiver - INFO - Successfully archived race 1607088
+2025-11-06 14:16:59,588 - RaceArchiver - INFO - Successfully archived race 1623847
+2025-11-06 14:16:59,591 - RaceArchiver - INFO - Successfully archived race 1623846
+2025-11-06 14:16:59,594 - RaceArchiver - INFO - Successfully archived race 1623845
+2025-11-06 14:16:59,597 - RaceArchiver - INFO - Successfully archived race 1623844
+2025-11-06 14:16:59,603 - RaceArchiver - INFO - Successfully archived race 1623843
+2025-11-06 14:16:59,607 - RaceArchiver - INFO - Successfully archived race 1623842
+2025-11-06 14:16:59,610 - RaceArchiver - INFO - Successfully archived race 1623816
+2025-11-06 14:16:59,613 - RaceArchiver - INFO - Successfully archived race 1623815
+2025-11-06 14:16:59,616 - RaceArchiver - INFO - Successfully archived race 1623814
+2025-11-06 14:16:59,619 - RaceArchiver - INFO - Successfully archived race 1619811
+2025-11-06 14:16:59,622 - RaceArchiver - INFO - Successfully archived race 1619810
+2025-11-06 14:16:59,625 - RaceArchiver - INFO - Successfully archived race 1619809
+2025-11-06 14:16:59,629 - RaceArchiver - INFO - Successfully archived race 1619808
+2025-11-06 14:16:59,632 - RaceArchiver - INFO - Successfully archived race 1619807
+2025-11-06 14:16:59,635 - RaceArchiver - INFO - Successfully archived race 1614124
+2025-11-06 14:16:59,647 - RaceArchiver - INFO - Successfully archived race 1614123
+2025-11-06 14:16:59,650 - RaceArchiver - INFO - Successfully archived race 1614122
+2025-11-06 14:16:59,653 - RaceArchiver - INFO - Successfully archived race 1614121
+2025-11-06 14:16:59,656 - RaceArchiver - INFO - Successfully archived race 1614120
+2025-11-06 14:16:59,660 - RaceArchiver - INFO - Successfully archived race 1614119
+2025-11-06 14:16:59,663 - RaceArchiver - INFO - Successfully archived race 1614118
+2025-11-06 14:16:59,667 - RaceArchiver - INFO - Successfully archived race 1614117
+2025-11-06 14:16:59,670 - RaceArchiver - INFO - Successfully archived race 1614116
+2025-11-06 14:16:59,676 - RaceArchiver - INFO - Successfully archived race 1614115
+2025-11-06 14:16:59,679 - RaceArchiver - INFO - Successfully archived race 1614114
+2025-11-06 14:16:59,682 - RaceArchiver - INFO - Successfully archived race 1614113
+2025-11-06 14:16:59,685 - RaceArchiver - INFO - Successfully archived race 1614112
+2025-11-06 14:16:59,688 - RaceArchiver - INFO - Successfully archived race 1614111
+2025-11-06 14:16:59,691 - RaceArchiver - INFO - Successfully archived race 1614110
+2025-11-06 14:16:59,694 - RaceArchiver - INFO - Successfully archived race 1614109
+2025-11-06 14:16:59,697 - RaceArchiver - INFO - Successfully archived race 1614108
+2025-11-06 14:16:59,700 - RaceArchiver - INFO - Successfully archived race 1614107
+2025-11-06 14:16:59,703 - RaceArchiver - INFO - Successfully archived race 1614106
+2025-11-06 14:16:59,707 - RaceArchiver - INFO - Successfully archived race 1614105
+2025-11-06 14:16:59,715 - RaceArchiver - INFO - Successfully archived race 1614104
+2025-11-06 14:16:59,718 - RaceArchiver - INFO - Successfully archived race 1614103
+2025-11-06 14:16:59,722 - RaceArchiver - INFO - Successfully archived race 1614102
+2025-11-06 14:16:59,725 - RaceArchiver - INFO - Successfully archived race 1614101
+2025-11-06 14:16:59,728 - RaceArchiver - INFO - Successfully archived race 1614100
+2025-11-06 14:16:59,732 - RaceArchiver - INFO - Successfully archived race 1614099
+2025-11-06 14:16:59,735 - RaceArchiver - INFO - Successfully archived race 1614098
+2025-11-06 14:16:59,738 - RaceArchiver - INFO - Successfully archived race 1614097
+2025-11-06 14:16:59,742 - RaceArchiver - INFO - Successfully archived race 1614096
+2025-11-06 14:16:59,746 - RaceArchiver - INFO - Successfully archived race 1614095
+2025-11-06 14:16:59,750 - RaceArchiver - INFO - Successfully archived race 1614094
+2025-11-06 14:16:59,752 - RaceArchiver - INFO - Successfully archived race 1607087
+2025-11-06 14:16:59,755 - RaceArchiver - INFO - Successfully archived race 1607086
+2025-11-06 14:16:59,758 - RaceArchiver - INFO - Successfully archived race 1607085
+2025-11-06 14:16:59,761 - RaceArchiver - INFO - Successfully archived race 1607084
+2025-11-06 14:16:59,764 - RaceArchiver - INFO - Successfully archived race 1607083
+2025-11-06 14:16:59,767 - RaceArchiver - INFO - Successfully archived race 1607082
+2025-11-06 14:16:59,770 - RaceArchiver - INFO - Successfully archived race 1607081
+2025-11-06 14:16:59,773 - RaceArchiver - INFO - Successfully archived race 1607080
+2025-11-06 14:16:59,782 - RaceArchiver - INFO - Successfully archived race 1607079
+2025-11-06 14:16:59,785 - RaceArchiver - INFO - Successfully archived race 1607078
+2025-11-06 14:16:59,788 - RaceArchiver - INFO - Successfully archived race 1607076
+2025-11-06 14:16:59,791 - RaceArchiver - INFO - Successfully archived race 1607075
+2025-11-06 14:16:59,793 - RaceArchiver - INFO - Successfully archived race 1607074
+2025-11-06 14:16:59,796 - RaceArchiver - INFO - Successfully archived race 1607073
+2025-11-06 14:16:59,798 - RaceArchiver - INFO - Successfully archived race 1607072
+2025-11-06 14:16:59,801 - RaceArchiver - INFO - Successfully archived race 1607071
+2025-11-06 14:16:59,804 - RaceArchiver - INFO - Successfully archived race 1607070
+2025-11-06 14:16:59,808 - RaceArchiver - INFO - Successfully archived race 1607069
+2025-11-06 14:16:59,812 - RaceArchiver - INFO - Successfully archived race 1607068
+2025-11-06 14:16:59,815 - RaceArchiver - INFO - Successfully archived race 1607067
+2025-11-06 14:16:59,819 - RaceArchiver - INFO - Successfully archived race 1607066
+2025-11-06 14:16:59,822 - RaceArchiver - INFO - Successfully archived race 1607065
+2025-11-06 14:16:59,824 - RaceArchiver - INFO - Successfully archived race 1607064
+2025-11-06 14:16:59,827 - RaceArchiver - INFO - Successfully archived race 1607063
+2025-11-06 14:16:59,830 - RaceArchiver - INFO - Successfully archived race 1607062
+2025-11-06 14:16:59,832 - RaceArchiver - INFO - Successfully archived race 1607061
+2025-11-06 14:16:59,835 - RaceArchiver - INFO - Successfully archived race 1607060
+2025-11-06 14:16:59,838 - RaceArchiver - INFO - Successfully archived race 1607059
+2025-11-06 14:16:59,841 - RaceArchiver - INFO - Successfully archived race 1607058
+2025-11-06 14:16:59,850 - RaceArchiver - INFO - Successfully archived race 1607057
+2025-11-06 14:16:59,853 - RaceArchiver - INFO - Successfully archived race 1607056
+2025-11-06 14:16:59,856 - RaceArchiver - INFO - Successfully archived race 1623338
+2025-11-06 14:16:59,859 - RaceArchiver - INFO - Successfully archived race 1614093
+2025-11-06 14:16:59,862 - RaceArchiver - INFO - Successfully archived race 1614092
+2025-11-06 14:16:59,864 - RaceArchiver - INFO - Successfully archived race 1614091
+2025-11-06 14:16:59,868 - RaceArchiver - INFO - Successfully archived race 1614090
+2025-11-06 14:16:59,870 - RaceArchiver - INFO - Successfully archived race 1614089
+2025-11-06 14:16:59,874 - RaceArchiver - INFO - Successfully archived race 1614088
+2025-11-06 14:16:59,877 - RaceArchiver - INFO - Successfully archived race 1614087
+2025-11-06 14:16:59,881 - RaceArchiver - INFO - Successfully archived race 1614086
+2025-11-06 14:16:59,884 - RaceArchiver - INFO - Successfully archived race 1614085
+2025-11-06 14:16:59,887 - RaceArchiver - INFO - Successfully archived race 1614084
+2025-11-06 14:16:59,891 - RaceArchiver - INFO - Successfully archived race 1614083
+2025-11-06 14:16:59,895 - RaceArchiver - INFO - Successfully archived race 1614082
+2025-11-06 14:16:59,898 - RaceArchiver - INFO - Successfully archived race 1614081
+2025-11-06 14:16:59,901 - RaceArchiver - INFO - Successfully archived race 1614080
+2025-11-06 14:16:59,904 - RaceArchiver - INFO - Successfully archived race 1614079
+2025-11-06 14:16:59,907 - RaceArchiver - INFO - Successfully archived race 1614078
+2025-11-06 14:16:59,916 - RaceArchiver - INFO - Successfully archived race 1607055
+2025-11-06 14:16:59,920 - RaceArchiver - INFO - Successfully archived race 1607054
+2025-11-06 14:16:59,923 - RaceArchiver - INFO - Successfully archived race 1607053
+2025-11-06 14:16:59,926 - RaceArchiver - INFO - Successfully archived race 1607052
+2025-11-06 14:16:59,929 - RaceArchiver - INFO - Successfully archived race 1607051
+2025-11-06 14:16:59,933 - RaceArchiver - INFO - Successfully archived race 1607050
+2025-11-06 14:16:59,936 - RaceArchiver - INFO - Successfully archived race 1607049
+2025-11-06 14:16:59,940 - RaceArchiver - INFO - Successfully archived race 1607048
+2025-11-06 14:16:59,943 - RaceArchiver - INFO - Successfully archived race 1607047
+2025-11-06 14:16:59,947 - RaceArchiver - INFO - Successfully archived race 1607046
+2025-11-06 14:16:59,950 - RaceArchiver - INFO - Successfully archived race 1607045
+2025-11-06 14:16:59,952 - RaceArchiver - INFO - Successfully archived race 1607044
+2025-11-06 14:16:59,955 - RaceArchiver - INFO - Successfully archived race 1607043
+2025-11-06 14:16:59,958 - RaceArchiver - INFO - Successfully archived race 1607042
+2025-11-06 14:16:59,960 - RaceArchiver - INFO - Successfully archived race 1607041
+2025-11-06 14:16:59,966 - RaceArchiver - INFO - Successfully archived race 1607040
+2025-11-06 14:16:59,984 - RaceArchiver - INFO - Successfully archived race 1622387
+2025-11-06 14:17:00,009 - RaceArchiver - INFO - Successfully archived race 1622386
+2025-11-06 14:17:00,020 - RaceArchiver - INFO - Successfully archived race 1613035
+2025-11-06 14:17:00,045 - RaceArchiver - INFO - Successfully archived race 1613034
+2025-11-06 14:17:00,058 - RaceArchiver - INFO - Successfully archived race 1613033
+2025-11-06 14:17:00,077 - RaceArchiver - INFO - Successfully archived race 1613032
+2025-11-06 14:17:00,092 - RaceArchiver - INFO - Successfully archived race 1613031
+2025-11-06 14:17:00,107 - RaceArchiver - INFO - Successfully archived race 1613030
+2025-11-06 14:17:00,119 - RaceArchiver - INFO - Successfully archived race 1613029
+2025-11-06 14:17:00,136 - RaceArchiver - INFO - Successfully archived race 1613028
+2025-11-06 14:17:00,150 - RaceArchiver - INFO - Successfully archived race 1613027
+2025-11-06 14:17:00,165 - RaceArchiver - INFO - Successfully archived race 1613026
+2025-11-06 14:17:00,178 - RaceArchiver - INFO - Successfully archived race 1613025
+2025-11-06 14:17:00,192 - RaceArchiver - INFO - Successfully archived race 1613024
+2025-11-06 14:17:00,201 - RaceArchiver - INFO - Successfully archived race 1613023
+2025-11-06 14:17:00,213 - RaceArchiver - INFO - Successfully archived race 1613022
+2025-11-06 14:17:00,225 - RaceArchiver - INFO - Successfully archived race 1613021
+2025-11-06 14:17:00,233 - RaceArchiver - INFO - Successfully archived race 1613020
+2025-11-06 14:17:00,249 - RaceArchiver - INFO - Successfully archived race 1607039
+2025-11-06 14:17:00,261 - RaceArchiver - INFO - Successfully archived race 1607038
+2025-11-06 14:17:00,275 - RaceArchiver - INFO - Successfully archived race 1607037
+2025-11-06 14:17:00,290 - RaceArchiver - INFO - Successfully archived race 1607036
+2025-11-06 14:17:00,298 - RaceArchiver - INFO - Successfully archived race 1607035
+2025-11-06 14:17:00,312 - RaceArchiver - INFO - Successfully archived race 1607034
+2025-11-06 14:17:00,323 - RaceArchiver - INFO - Successfully archived race 1607033
+2025-11-06 14:17:00,328 - RaceArchiver - INFO - Successfully archived race 1607032
+2025-11-06 14:17:00,340 - RaceArchiver - INFO - Successfully archived race 1620907
+2025-11-06 14:17:00,356 - RaceArchiver - INFO - Successfully archived race 1613016
+2025-11-06 14:17:00,371 - RaceArchiver - INFO - Successfully archived race 1607022
+2025-11-06 14:17:00,379 - RaceArchiver - INFO - Successfully archived race 1607020
+2025-11-06 14:17:00,390 - RaceArchiver - INFO - Successfully archived race 1607019
+2025-11-06 14:17:00,399 - RaceArchiver - INFO - Successfully archived race 1607018
+2025-11-06 14:17:00,411 - RaceArchiver - INFO - Successfully archived race 1613011
+2025-11-06 14:17:00,423 - RaceArchiver - INFO - Successfully archived race 1613010
+2025-11-06 14:17:00,446 - RaceArchiver - INFO - Successfully archived race 1613009
+2025-11-06 14:17:00,459 - RaceArchiver - INFO - Successfully archived race 1613008
+2025-11-06 14:17:00,478 - RaceArchiver - INFO - Successfully archived race 1613007
+2025-11-06 14:17:00,491 - RaceArchiver - INFO - Successfully archived race 1613006
+2025-11-06 14:17:00,504 - RaceArchiver - INFO - Successfully archived race 1613005
+2025-11-06 14:17:00,514 - RaceArchiver - INFO - Successfully archived race 1613004
+2025-11-06 14:17:00,523 - RaceArchiver - INFO - Successfully archived race 1607016
+2025-11-06 14:17:00,531 - RaceArchiver - INFO - Successfully archived race 1607015
+2025-11-06 14:17:00,543 - RaceArchiver - INFO - Successfully archived race 1607014
+2025-11-06 14:17:00,553 - RaceArchiver - INFO - Successfully archived race 1607013
+2025-11-06 14:17:00,564 - RaceArchiver - INFO - Successfully archived race 1607012
+2025-11-06 14:17:00,573 - RaceArchiver - INFO - Successfully archived race 1607011
+2025-11-06 14:17:00,590 - RaceArchiver - INFO - Successfully archived race 1607010
+2025-11-06 14:17:00,605 - RaceArchiver - INFO - Successfully archived race 1607009
+2025-11-06 14:17:00,614 - RaceArchiver - INFO - Successfully archived race 1607008
+2025-11-06 14:17:00,622 - RaceArchiver - INFO - Successfully archived race 1607007
+2025-11-06 14:17:00,629 - RaceArchiver - INFO - Successfully archived race 1607006
+2025-11-06 14:17:00,641 - RaceArchiver - INFO - Successfully archived race 1607005
+2025-11-06 14:17:00,662 - RaceArchiver - INFO - Successfully archived race 1607004
+2025-11-06 14:17:00,668 - RaceArchiver - INFO - Successfully archived race 1607003
+2025-11-06 14:17:00,679 - RaceArchiver - INFO - Successfully archived race 1607002
+2025-11-06 14:17:00,691 - RaceArchiver - INFO - Successfully archived race 1607001
+2025-11-06 14:17:00,691 - RaceArchiver - INFO - Archived 1303 races, 0 failed, 0 already archived
+2025-11-06 14:17:02,016 - RaceArchiver - INFO - Deleted 1303 archived races older than 2025-11-06
+2025-11-06 14:25:55,241 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): aspiturf.com:443
+2025-11-06 14:25:56,641 - urllib3.connectionpool - DEBUG - https://aspiturf.com:443 "GET /api/api/jour?uid=EhBCnKDamDfLkYJJjhWLf47xT7j1&jour=2025-11-06 HTTP/11" 200 None
+2025-11-06 14:26:02,097 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 86.7% missing values', 'Feature che_by_type_recent_perf has 86.7% missing values', 'Feature che_by_type_consistency has 86.7% missing values', 'Feature che_by_type_trend has 86.7% missing values', 'Feature che_by_type_pct_top3 has 86.7% missing values', 'Feature che_by_type_nb_courses has 86.7% missing values', 'Feature che_by_type_total_races has 86.7% missing values', 'Feature che_by_type_dnf_rate has 86.7% missing values']
+2025-11-06 14:26:02,265 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 90.9% missing values', 'Feature che_by_type_recent_perf has 90.9% missing values', 'Feature che_by_type_consistency has 90.9% missing values', 'Feature che_by_type_trend has 90.9% missing values', 'Feature che_by_type_pct_top3 has 90.9% missing values', 'Feature che_by_type_nb_courses has 90.9% missing values', 'Feature che_by_type_total_races has 90.9% missing values', 'Feature che_by_type_dnf_rate has 90.9% missing values']
+2025-11-06 15:16:45,993 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-06 15:16:48,216 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-06 15:16:48,216 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 14 horses
+2025-11-06 15:16:48,217 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (14, 280)
+2025-11-06 15:16:48,217 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-06 15:16:48,218 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-06 15:16:48,218 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 14/14 non-null values (100.0%)
+2025-11-06 15:16:48,218 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-06 15:16:48,218 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 14/14 non-null values (100.0%)
+2025-11-06 15:16:48,218 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Paris-Vincennes', 'Paris-Vincennes', 'Paris-Vincennes']
+2025-11-06 15:16:48,218 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 14/14 non-null values (100.0%)
+2025-11-06 15:16:48,218 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [32, 33, 13]
+2025-11-06 15:16:48,218 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 14/14 non-null values (100.0%)
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [8, 4, 2]
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 14/14 non-null values (100.0%)
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [13, 12, 7]
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 14/14 non-null values (100.0%)
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [42628000, 30300500, 59663300]
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 14/14 non-null values (100.0%)
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [5, 4, 5]
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 14/14 non-null values (100.0%)
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [15.0, 4.0, 6.0]
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - comp: 1618804
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - hippo: Paris-Vincennes
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - dist: 2100
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - typec: Attelé
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - partant: 14
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-06 15:16:48,219 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Kokote', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 32}
+2025-11-06 15:16:48,220 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'Learn To Fly', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 33}
+2025-11-06 15:16:48,220 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'East Asia', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 13}
+2025-11-06 15:16:48,220 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-06 15:16:48,220 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-06 15:16:48,220 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 14 horses: [1576750, 1665539, 1578262, 1553537, 1585391, 1565653, 1666500, 1553531, 1688648, 1661600, 1578244, 1571244, 1561739, 1562064]
+2025-11-06 15:16:48,222 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 14 horses: [1576750, 1665539, 1578262, 1553537, 1585391, 1565653, 1666500, 1553531, 1688648, 1661600, 1578244, 1571244, 1561739, 1562064]
+2025-11-06 15:17:08,823 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 20.60s, found 120 total records
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 120 total historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576750: 12 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1665539: 14 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578262: 5 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553537: 10 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1585391: 5 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1565653: 13 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1666500: 7 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553531: 12 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1688648: 4 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1661600: 7 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578244: 4 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1571244: 4 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561739: 9 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1562064: 14 historical races found
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - Retrieved 120 total historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576750: 12 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1665539: 14 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578262: 5 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553537: 10 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1585391: 5 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1565653: 13 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1666500: 7 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553531: 12 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1688648: 4 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1661600: 7 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578244: 4 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1571244: 4 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561739: 9 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1562064: 14 historical races
+2025-11-06 15:17:08,829 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-06 15:17:08,830 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-06 15:17:08,830 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 14/14 horses
+2025-11-06 15:17:08,830 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['1,332,125', '918,197', '4,589,485']
+2025-11-06 15:17:08,830 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=2,560,695, max=12,615,550
+2025-11-06 15:17:08,830 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-06 15:17:08,830 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/14
+2025-11-06 15:17:08,831 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-06 15:17:08,831 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: 1.845, recent perf: 6.52
+2025-11-06 15:17:08,831 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: -1.451
+2025-11-06 15:17:08,831 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 5/14
+2025-11-06 15:17:08,831 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-06 15:17:08,831 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/14
+2025-11-06 15:17:08,832 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/14
+2025-11-06 15:17:08,832 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-06 15:17:08,832 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 2100m
+2025-11-06 15:17:08,832 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 3/14
+2025-11-06 15:17:08,832 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-06 15:17:08,832 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-06 15:17:08,832 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 120
+2025-11-06 15:17:08,832 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 14/14
+2025-11-06 15:17:08,832 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 8.6
+2025-11-06 15:17:08,845 - race_prediction.quinte_prediction_storage - INFO - Stored 14 horses for Quinté race 1618804
+2025-11-06 15:18:33,296 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): aspiturf.com:443
+2025-11-06 15:18:34,160 - urllib3.connectionpool - DEBUG - https://aspiturf.com:443 "GET /api/api/jour?uid=EhBCnKDamDfLkYJJjhWLf47xT7j1&jour=2025-11-06 HTTP/11" 200 None
+2025-11-06 15:18:39,845 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 86.7% missing values', 'Feature che_by_type_recent_perf has 86.7% missing values', 'Feature che_by_type_consistency has 86.7% missing values', 'Feature che_by_type_trend has 86.7% missing values', 'Feature che_by_type_pct_top3 has 86.7% missing values', 'Feature che_by_type_nb_courses has 86.7% missing values', 'Feature che_by_type_total_races has 86.7% missing values', 'Feature che_by_type_dnf_rate has 86.7% missing values']
+2025-11-06 15:18:40,015 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 90.9% missing values', 'Feature che_by_type_recent_perf has 90.9% missing values', 'Feature che_by_type_consistency has 90.9% missing values', 'Feature che_by_type_trend has 90.9% missing values', 'Feature che_by_type_pct_top3 has 90.9% missing values', 'Feature che_by_type_nb_courses has 90.9% missing values', 'Feature che_by_type_total_races has 90.9% missing values', 'Feature che_by_type_dnf_rate has 90.9% missing values']
+2025-11-06 15:19:20,325 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 15:19:20,327 - RaceArchiver - INFO - Database structure verified
+2025-11-06 15:55:29,333 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-06 15:55:31,979 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-06 15:55:31,979 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 14 horses
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (14, 280)
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 14/14 non-null values (100.0%)
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 14/14 non-null values (100.0%)
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Paris-Vincennes', 'Paris-Vincennes', 'Paris-Vincennes']
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 14/14 non-null values (100.0%)
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [32, 33, 13]
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 14/14 non-null values (100.0%)
+2025-11-06 15:55:31,980 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [8, 4, 2]
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 14/14 non-null values (100.0%)
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [13, 12, 7]
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 14/14 non-null values (100.0%)
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [42628000, 30300500, 59663300]
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 14/14 non-null values (100.0%)
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [5, 4, 5]
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 14/14 non-null values (100.0%)
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [15.0, 4.0, 6.0]
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - comp: 1618804
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - hippo: Paris-Vincennes
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - dist: 2100
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - typec: Attelé
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - partant: 14
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-06 15:55:31,981 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Kokote', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 32}
+2025-11-06 15:55:31,982 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'Learn To Fly', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 33}
+2025-11-06 15:55:31,982 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'East Asia', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 13}
+2025-11-06 15:55:31,982 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-06 15:55:31,982 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-06 15:55:31,982 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 14 horses: [1576750, 1665539, 1578262, 1553537, 1585391, 1565653, 1666500, 1553531, 1688648, 1661600, 1578244, 1571244, 1561739, 1562064]
+2025-11-06 15:55:31,985 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 14 horses: [1576750, 1665539, 1578262, 1553537, 1585391, 1565653, 1666500, 1553531, 1688648, 1661600, 1578244, 1571244, 1561739, 1562064]
+2025-11-06 15:55:37,599 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 15:55:37,602 - RaceArchiver - INFO - Database structure verified
+2025-11-06 15:55:49,396 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 15:55:49,398 - RaceArchiver - INFO - Database structure verified
+2025-11-06 15:55:54,547 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 15:55:54,550 - RaceArchiver - INFO - Database structure verified
+2025-11-06 15:55:56,275 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 24.29s, found 120 total records
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 120 total historical races
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576750: 12 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1665539: 14 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578262: 5 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553537: 10 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1585391: 5 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1565653: 13 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1666500: 7 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553531: 12 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1688648: 4 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1661600: 7 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578244: 4 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1571244: 4 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561739: 9 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1562064: 14 historical races found
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - Retrieved 120 total historical races
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576750: 12 historical races
+2025-11-06 15:55:56,282 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1665539: 14 historical races
+2025-11-06 15:55:56,283 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578262: 5 historical races
+2025-11-06 15:55:56,283 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553537: 10 historical races
+2025-11-06 15:55:56,283 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1585391: 5 historical races
+2025-11-06 15:55:56,283 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1565653: 13 historical races
+2025-11-06 15:55:56,283 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1666500: 7 historical races
+2025-11-06 15:55:56,283 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553531: 12 historical races
+2025-11-06 15:55:56,283 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1688648: 4 historical races
+2025-11-06 15:55:56,283 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1661600: 7 historical races
+2025-11-06 15:55:56,283 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578244: 4 historical races
+2025-11-06 15:55:56,290 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1571244: 4 historical races
+2025-11-06 15:55:56,290 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561739: 9 historical races
+2025-11-06 15:55:56,290 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1562064: 14 historical races
+2025-11-06 15:55:56,290 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-06 15:55:56,290 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-06 15:55:56,290 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 14/14 horses
+2025-11-06 15:55:56,291 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['1,332,125', '918,197', '4,589,485']
+2025-11-06 15:55:56,291 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=2,560,695, max=12,615,550
+2025-11-06 15:55:56,291 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-06 15:55:56,291 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/14
+2025-11-06 15:55:56,292 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-06 15:55:56,292 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: 1.845, recent perf: 6.52
+2025-11-06 15:55:56,292 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: -1.451
+2025-11-06 15:55:56,292 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 5/14
+2025-11-06 15:55:56,292 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-06 15:55:56,292 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/14
+2025-11-06 15:55:56,292 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/14
+2025-11-06 15:55:56,293 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-06 15:55:56,293 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 2100m
+2025-11-06 15:55:56,293 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 3/14
+2025-11-06 15:55:56,293 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-06 15:55:56,293 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-06 15:55:56,293 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 120
+2025-11-06 15:55:56,293 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 14/14
+2025-11-06 15:55:56,293 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 8.6
+2025-11-06 15:55:56,313 - race_prediction.quinte_prediction_storage - INFO - Stored 14 horses for Quinté race 1618804
+2025-11-06 15:55:56,785 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 15:55:56,788 - RaceArchiver - INFO - Database structure verified
+2025-11-06 15:56:10,420 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 15:56:10,426 - RaceArchiver - INFO - Database structure verified
+2025-11-06 15:56:10,509 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 15:56:10,511 - RaceArchiver - INFO - Database structure verified
+2025-11-06 15:57:21,637 - model_training.features.couple_embedding - INFO - Epoch 1/4 - Train Loss: 0.6066 - Valid Loss: 0.6002 - Train Acc: 0.7099 - Valid Acc: 0.7138
+2025-11-06 15:57:21,794 - model_training.features.couple_embedding - INFO - Epoch 2/4 - Train Loss: 0.5887 - Valid Loss: 0.5994 - Train Acc: 0.7249 - Valid Acc: 0.7138
+2025-11-06 15:57:21,921 - model_training.features.couple_embedding - INFO - Epoch 3/4 - Train Loss: 0.5858 - Valid Loss: 0.5988 - Train Acc: 0.7249 - Valid Acc: 0.7138
+2025-11-06 15:57:22,045 - model_training.features.couple_embedding - INFO - Epoch 4/4 - Train Loss: 0.5826 - Valid Loss: 0.5968 - Train Acc: 0.7249 - Valid Acc: 0.7138
+2025-11-06 21:32:38,809 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251106.log
+2025-11-06 21:32:38,810 - RaceArchiver - INFO - Database structure verified
+2025-11-06 23:09:28,748 - race_prediction.quinte_prediction_storage - INFO - Quinté prediction storage initialized at data/hippique2.db
+2025-11-06 23:09:31,300 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE ANALYSIS DEBUG ===
+2025-11-06 23:09:31,300 - race_prediction.competitive_field_analyzer - INFO - Analyzing competitive field for race with 14 horses
+2025-11-06 23:09:31,300 - race_prediction.competitive_field_analyzer - INFO - Race data shape: (14, 280)
+2025-11-06 23:09:31,300 - race_prediction.competitive_field_analyzer - INFO - Available columns: ['id', 'comp', 'jour', 'hippo', 'reun', 'prix', 'prixnom', 'typec', 'partant', 'dist', 'handi', 'groupe', 'quinte', 'natpis', 'meteo', 'corde', 'temperature', 'forceVent', 'directionVent', 'nebulosite', 'prediction_results', 'actual_results', 'created_at', 'updated_at', 'processed_data', 'cheque', 'handi_raw', 'reclam', 'sex', 'tempscourse', 'handicap_level_score', 'cl', 'numero', 'cheval', 'age', 'cotedirect', 'coteprob', 'recence', 'ecar', 'defoeil', 'defoeilPrec', 'musiqueche', 'musiquejoc', 'entraineur', 'coursescheval', 'victoirescheval', 'placescheval', 'dernierealloc', 'derniernbpartants', 'dernieredist', 'derniereplace', 'dernierecote', 'dernierEnt', 'proprietaire', 'poidmont', 'pourcVictJockHippo', 'pourcPlaceJockHippo', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'tempstot', 'vha', 'recordG', 'txreclam', 'dernierTxreclam', 'gainsCarriere', 'gainsAnneeEnCours', 'handicapDistance', 'handicapPoids', 'TxVictCouple', 'nbVictCouple', 'nbPlaceCouple', 'idche', 'idJockey', 'idEntraineur', 'defFirstTime', 'oeilFirstTime', 'oeil', 'dernierOeil', 'ratio_victoires', 'ratio_places', 'gains_par_course', 'efficacite_couple', 'regularite_couple', 'progression_couple', 'perf_cheval_hippo', 'perf_jockey_hippo', 'trainer_victoires', 'trainer_places', 'trainer_courses', 'trainer_winrate', 'trainer_placerate', 'trainer_quality_score', 'trainer_experience_level', 'handicap_poids', 'handicap_dist', 'prec_handicap_poids', 'prec_handicap_dist', 'handicap_poids_change', 'handicap_poids_increased', 'handicap_poids_decreased', 'handicap_dist_change', 'handicap_dist_increased', 'handicap_dist_decreased', 'total_handicap', 'handicap_momentum', 'last_race_position', 'last_race_distance', 'distance_change', 'distance_change_pct', 'distance_increased', 'distance_decreased', 'same_distance', 'corde_change', 'corde_improved', 'corde_worsened', 'last_race_top3', 'last_race_won', 'blinkers_first_time', 'has_blinkers', 'has_standard_blinkers', 'has_australian_blinkers', 'blinkers_added', 'blinkers_removed', 'blinkers_type_changed', 'blinkers_any_change', 'blinkers_high_impact_change', 'shoeing_first_time', 'fully_shod', 'front_shod_only', 'back_shod_only', 'barefoot', 'shoeing_changed', 'barefoot_to_shod', 'shod_to_barefoot', 'major_shoeing_change', 'shoeing_complexity', 'multiple_equipment_changes', 'equipment_momentum_score', 'high_equipment_momentum', 'multiple_first_time_changes', 'equipment_optimization_score', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_position_normalized', 'last_race_odds_normalized', 'last_race_field_size_factor', 'distance_consistency', 'vha_normalized', 'claiming_tax_trend', 'class_stability', 'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_trend', 'che_global_pct_top3', 'che_global_nb_courses', 'che_global_total_races', 'che_global_dnf_rate', 'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3', 'che_weighted_nb_courses', 'che_weighted_total_races', 'che_weighted_dnf_rate', 'che_weighted_trend', 'che_bytype_avg_pos', 'che_bytype_recent_perf', 'che_bytype_consistency', 'che_bytype_trend', 'che_bytype_pct_top3', 'che_bytype_nb_courses', 'che_bytype_total_races', 'che_bytype_dnf_rate', 'joc_global_avg_pos', 'joc_global_recent_perf', 'joc_global_consistency', 'joc_global_trend', 'joc_global_pct_top3', 'joc_global_nb_courses', 'joc_global_total_races', 'joc_global_dnf_rate', 'joc_weighted_avg_pos', 'joc_weighted_recent_perf', 'joc_weighted_consistency', 'joc_weighted_pct_top3', 'joc_weighted_nb_courses', 'joc_weighted_total_races', 'joc_weighted_dnf_rate', 'joc_weighted_trend', 'joc_bytype_avg_pos', 'joc_bytype_recent_perf', 'joc_bytype_consistency', 'joc_bytype_trend', 'joc_bytype_pct_top3', 'joc_bytype_nb_courses', 'joc_bytype_total_races', 'joc_bytype_dnf_rate', 'che_form_momentum', 'che_improving_form', 'che_declining_form', 'che_high_consistency', 'che_recent_quality', 'che_elite_performer', 'che_regular_placer', 'joc_form_momentum', 'joc_improving_form', 'joc_high_consistency', 'joc_elite_performer', 'synergy_both_improving', 'synergy_both_consistent', 'synergy_both_elite', 'overall_momentum_score', 'high_momentum', 'class_drop_pct', 'purse_per_starter', 'purse_ratio', 'moving_up_in_class', 'class_shock_indicator', 'handicap_level_change', 'time_per_distance', 'time_vs_record', 'pace_rating', 'speed_figure_proxy', 'market_confidence_shift', 'last_race_improvement', 'bounce_risk', 'layoff_distance_interaction', 'trainer_change', 'connection_stability', 'field_size_change', 'distance_comfort', 'competition_level_shift', 'recence_x_class_drop', 'trainer_change_x_recence', 'distance_change_x_recence', 'che_by_type_avg_pos', 'che_by_type_recent_perf', 'che_by_type_consistency', 'che_by_type_trend', 'che_by_type_pct_top3', 'che_by_type_nb_courses', 'che_by_type_total_races', 'che_by_type_dnf_rate', 'joc_by_type_avg_pos', 'joc_by_type_recent_perf', 'joc_by_type_consistency', 'joc_by_type_trend', 'joc_by_type_pct_top3', 'joc_by_type_nb_courses', 'joc_by_type_total_races', 'joc_by_type_dnf_rate', 'quinte_career_starts', 'quinte_win_rate', 'quinte_top5_rate', 'avg_quinte_position', 'days_since_last_quinte', 'quinte_handicap_specialist', 'quinte_conditions_specialist', 'quinte_large_field_ability', 'quinte_track_condition_fit', 'is_handicap_quinte', 'handicap_division', 'purse_level_category', 'field_size_category', 'track_condition_PH', 'track_condition_DUR', 'track_condition_PS', 'track_condition_PSF', 'weather_clear', 'weather_rain', 'weather_cloudy', 'post_position_bias', 'post_position_track_bias', 'raw_tabnet_prediction', 'predicted_position_tabnet', 'raw_rf_prediction', 'predicted_position_rf', 'predicted_position_base']
+2025-11-06 23:09:31,300 - race_prediction.competitive_field_analyzer - INFO - === CRITICAL COLUMNS ANALYSIS ===
+2025-11-06 23:09:31,300 - race_prediction.competitive_field_analyzer - INFO - ✅ recordG: 14/14 non-null values (100.0%)
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [0.0, 0.0, 0.0]
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - ✅ hippo: 14/14 non-null values (100.0%)
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO -    Sample values: ['Paris-Vincennes', 'Paris-Vincennes', 'Paris-Vincennes']
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - ✅ coursescheval: 14/14 non-null values (100.0%)
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [32, 33, 13]
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - ✅ victoirescheval: 14/14 non-null values (100.0%)
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [8, 4, 2]
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - ✅ placescheval: 14/14 non-null values (100.0%)
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [13, 12, 7]
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - ✅ gainsCarriere: 14/14 non-null values (100.0%)
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [42628000, 30300500, 59663300]
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - ✅ age: 14/14 non-null values (100.0%)
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [5, 4, 5]
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - ✅ derniereplace: 14/14 non-null values (100.0%)
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO -    Sample values: [15.0, 4.0, 6.0]
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - === RACE METADATA ===
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - comp: 1618804
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - hippo: Paris-Vincennes
+2025-11-06 23:09:31,301 - race_prediction.competitive_field_analyzer - INFO - dist: 2100
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO - typec: Attelé
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO - partant: 14
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO - === SAMPLE RACE DATA ===
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO - Sample data (columns: ['numero', 'cheval', 'recordG', 'hippo', 'coursescheval']):
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO -   Horse 0: {'numero': 1, 'cheval': 'Kokote', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 32}
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO -   Horse 1: {'numero': 2, 'cheval': 'Learn To Fly', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 33}
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO -   Horse 2: {'numero': 3, 'cheval': 'East Asia', 'recordG': 0.0, 'hippo': 'Paris-Vincennes', 'coursescheval': 13}
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO - === END COMPETITIVE ANALYSIS DEBUG ===
+
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO - === RETRIEVING HISTORICAL DATA ===
+2025-11-06 23:09:31,302 - race_prediction.competitive_field_analyzer - INFO - Fetching historical data for 14 horses: [1576750, 1665539, 1578262, 1553537, 1585391, 1565653, 1666500, 1553531, 1688648, 1661600, 1578244, 1571244, 1561739, 1562064]
+2025-11-06 23:09:31,303 - race_prediction.competitive_field_analyzer - INFO - Batch querying historical data for 14 horses: [1576750, 1665539, 1578262, 1553537, 1585391, 1565653, 1666500, 1553531, 1688648, 1661600, 1578244, 1571244, 1561739, 1562064]
+2025-11-06 23:09:52,182 - race_prediction.competitive_field_analyzer - INFO - Batch query completed in 20.88s, found 120 total records
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - Batch query retrieved 120 total historical races
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS PER HORSE ===
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576750: 12 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1665539: 14 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578262: 5 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553537: 10 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1585391: 5 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1565653: 13 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1666500: 7 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553531: 12 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1688648: 4 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1661600: 7 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578244: 4 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1571244: 4 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561739: 9 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1562064: 14 historical races found
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - Retrieved 120 total historical races
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - === COMPETITIVE RACE COUNTS BY HORSE ===
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1576750: 12 historical races
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1665539: 14 historical races
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578262: 5 historical races
+2025-11-06 23:09:52,190 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553537: 10 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1585391: 5 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1565653: 13 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1666500: 7 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1553531: 12 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1688648: 4 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1661600: 7 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1578244: 4 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1571244: 4 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1561739: 9 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - 🏇 Horse 1562064: 14 historical races
+2025-11-06 23:09:52,191 - race_prediction.competitive_field_analyzer - INFO - === END HISTORICAL DATA RETRIEVAL ===
+
+2025-11-06 23:09:52,193 - race_prediction.competitive_field_analyzer - INFO - === EARNINGS QUALITY ANALYSIS ===
+2025-11-06 23:09:52,194 - race_prediction.competitive_field_analyzer - INFO - Valid earnings data: 14/14 horses
+2025-11-06 23:09:52,194 - race_prediction.competitive_field_analyzer - INFO - Sample earnings per race: ['1,332,125', '918,197', '4,589,485']
+2025-11-06 23:09:52,194 - race_prediction.competitive_field_analyzer - INFO - Field earnings stats: avg=2,560,695, max=12,615,550
+2025-11-06 23:09:52,196 - race_prediction.competitive_field_analyzer - INFO - === TRACK SPECIALIZATION ANALYSIS ===
+2025-11-06 23:09:52,196 - race_prediction.competitive_field_analyzer - INFO - Horses with reliable venue data (3+ races): 0/14
+2025-11-06 23:09:52,201 - race_prediction.competitive_field_analyzer - INFO - === FORM MOMENTUM ANALYSIS ===
+2025-11-06 23:09:52,201 - race_prediction.competitive_field_analyzer - INFO - Field avg horse trend: 1.845, recent perf: 6.52
+2025-11-06 23:09:52,201 - race_prediction.competitive_field_analyzer - INFO - Field avg jockey trend: -1.451
+2025-11-06 23:09:52,202 - race_prediction.competitive_field_analyzer - INFO - Horses with improving form: 5/14
+2025-11-06 23:09:52,202 - race_prediction.competitive_field_analyzer - INFO - === HOT CONNECTIONS ANALYSIS ===
+2025-11-06 23:09:52,202 - race_prediction.competitive_field_analyzer - INFO - Jockeys with wins today: 0/14
+2025-11-06 23:09:52,203 - race_prediction.competitive_field_analyzer - INFO - Trainers with wins today: 0/14
+2025-11-06 23:09:52,203 - race_prediction.competitive_field_analyzer - INFO - === DISTANCE COMFORT ANALYSIS ===
+2025-11-06 23:09:52,203 - race_prediction.competitive_field_analyzer - INFO - Current race distance: 2100m
+2025-11-06 23:09:52,203 - race_prediction.competitive_field_analyzer - INFO - Horses with similar recent distance: 3/14
+2025-11-06 23:09:52,203 - race_prediction.competitive_field_analyzer - INFO - === REALISTIC COMPETITIVE SCORING ===
+2025-11-06 23:09:52,204 - race_prediction.competitive_field_analyzer - INFO - 📊 COMPETITIVE ANALYSIS SUMMARY:
+2025-11-06 23:09:52,204 - race_prediction.competitive_field_analyzer - INFO -    Total competitive races: 120
+2025-11-06 23:09:52,204 - race_prediction.competitive_field_analyzer - INFO -    Horses with historical data: 14/14
+2025-11-06 23:09:52,204 - race_prediction.competitive_field_analyzer - INFO -    Average races per horse: 8.6
+2025-11-06 23:09:52,232 - race_prediction.quinte_prediction_storage - INFO - Stored 14 horses for Quinté race 1618804

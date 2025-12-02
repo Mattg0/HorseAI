@@ -2,17 +2,17 @@
 GENERAL FEATURE AUDIT REPORT (TabNet Features)
 ================================================================================
 
-Dataset: 63 horses, 44 features
+Dataset: 47 horses, 44 features
 
 
 RACE-LEVEL ANALYSIS
 
    race_id  horses  missing_pct   zero_pct
-0  1626413      14          0.0  41.233766
-1  1626414      13          0.0  45.629371
-2  1626415      12          0.0  45.643939
-3  1626416      12          0.0  53.598485
-4  1626417      12          0.0  46.780303
+0  1607439       6          0.0  26.893939
+1  1607440       9          0.0  44.191919
+2  1607441      11          0.0  28.925620
+3  1607442      10          0.0  35.454545
+4  1607443      11          0.0  51.446281
 
 1. MISSING VALUES
 
@@ -20,7 +20,7 @@ No missing values
 
 2. CONSTANT FEATURES
 
-Constant: ['coteprob', 'handicapDistance', 'gainsAnneeEnCours', 'gains_par_course', 'blinkers_first_time', 'blinkers_high_impact_change', 'moving_up_in_class', 'speed_figure_proxy', 'market_confidence_shift', 'trainer_change', 'earnings_per_race', 'earnings_trend', 'vha_normalized', 'claiming_tax_trend', 'class_stability']
+Constant: ['handicapDistance', 'barefoot_to_shod', 'major_shoeing_change', 'moving_up_in_class', 'speed_figure_proxy', 'trainer_change', 'earnings_trend']
 
 Low variance: []
 
@@ -30,22 +30,22 @@ Low variance: []
 
 4. SKEWED FEATURES
 
-['pourcVictChevalHippo', 'perf_cheval_hippo', 'class_drop_pct', 'purse_ratio', 'distance_consistency']
+['claiming_tax_trend', 'class_stability']
 
 5. OUTLIER HEAVY FEATURES
 
-['age', 'nbVictCouple', 'TxVictCouple', 'barefoot_to_shod', 'major_shoeing_change', 'recence_x_class_drop', 'last_race_odds_normalized']
+['nbVictCouple', 'placescheval', 'TxVictCouple', 'pourcVictChevalHippo', 'coursescheval', 'gains_par_course', 'perf_cheval_hippo', 'blinkers_high_impact_change', 'equipment_momentum_score', 'market_confidence_shift', 'recence_x_class_drop', 'earnings_per_race']
 
 6. HIGHLY CORRELATED PAIRS
 
-[['pourcPlaceChevalHippo', 'perf_cheval_hippo'], ['class_drop_pct', 'purse_ratio']]
+[['placescheval', 'coursescheval'], ['pourcPlaceChevalHippo', 'perf_cheval_hippo'], ['gains_par_course', 'earnings_per_race'], ['blinkers_first_time', 'equipment_optimization_score'], ['class_drop_pct', 'purse_ratio'], ['claiming_tax_trend', 'class_stability']]
 
 8. LOGICAL ISSUES
 
-handicapDistance: 63 negative values (may be invalid)
-gainsAnneeEnCours: 63 negative values (may be invalid)
-last_race_position_normalized: 1 negative values (may be invalid)
+handicapDistance: 47 negative values (may be invalid)
+last_race_position_normalized: 2 negative values (may be invalid)
+claiming_tax_trend: 1 negative values (may be invalid)
 
 9. ZERO PATTERNS
 
-['coteprob', 'nbVictCouple', 'victoirescheval', 'TxVictCouple', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'gains_par_course', 'perf_cheval_hippo', 'blinkers_first_time', 'blinkers_high_impact_change', 'barefoot_to_shod', 'major_shoeing_change', 'equipment_momentum_score', 'purse_ratio', 'moving_up_in_class', 'career_strike_rate', 'earnings_per_race', 'earnings_trend', 'last_race_odds_normalized', 'vha_normalized', 'claiming_tax_trend']
+['nbVictCouple', 'TxVictCouple', 'pourcVictChevalHippo', 'pourcPlaceChevalHippo', 'perf_cheval_hippo', 'blinkers_first_time', 'blinkers_high_impact_change', 'barefoot_to_shod', 'major_shoeing_change', 'equipment_momentum_score', 'equipment_optimization_score', 'purse_ratio', 'moving_up_in_class', 'earnings_trend', 'claiming_tax_trend']

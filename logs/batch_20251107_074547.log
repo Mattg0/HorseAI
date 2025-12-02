@@ -1,0 +1,702 @@
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+🚀 Starting batch prediction job: batch_20251107_074547
+   Total races: 821
+   Workers: 3
+   Chunk size: 50
+   Memory limit: 4096.0MB
+   Database: 2years
+
+✓ Loaded 21 selected features from models/2025-11-02/2years_061730/feature_selector.json
+[5%] Loading races from database...
+[15%] Loaded 821 races, starting predictions...
+[20%] Processing chunk 1/17 (Mem: 757MB)...
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+2025-11-07 07:46:09,628 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:09,630 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:46:09,630 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:09,635 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:09,636 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:46:09,636 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:09,637 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:09,646 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:09,651 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:09,651 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:46:09,651 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:09,659 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:46:48,349 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:48,349 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:46:48,350 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:48,353 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:48,363 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:48,364 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:46:48,364 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:48,366 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:46:48,382 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:46:48,382 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:46:48,382 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:46:48,395 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:47:21,678 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:21,679 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:47:21,679 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:21,682 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:21,688 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:21,690 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:47:21,690 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:21,699 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:21,708 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:21,711 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:47:21,711 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:21,715 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:47:49,369 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:49,370 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:47:49,370 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:49,372 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:49,374 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:49,374 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:49,374 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:47:49,374 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:49,374 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:47:49,374 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:49,376 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:47:49,376 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:48:07,249 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:07,249 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:48:07,249 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:07,255 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:07,256 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:07,257 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:48:07,257 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:07,259 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:07,259 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:07,260 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:48:07,260 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:07,263 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:48:38,280 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:38,280 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:48:38,280 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:38,283 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:48:38,330 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:38,330 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:48:38,330 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:38,333 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:38,338 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:38,338 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:48:38,338 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:48:38,341 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:49:06,888 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:06,889 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:49:06,889 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:06,891 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:06,894 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:49:06,894 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:06,894 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:06,899 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:06,900 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:06,902 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:49:06,902 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:06,912 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:49:25,975 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:25,980 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:49:25,980 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:25,981 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:25,982 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:49:25,982 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:25,983 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:25,983 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:49:25,983 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:25,985 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:25,985 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:25,985 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:49:54,659 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:54,660 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:49:54,660 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:54,664 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:49:54,705 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:54,706 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:49:54,706 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:54,709 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:54,712 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:54,713 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:49:54,713 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:49:54,716 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:50:22,916 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:22,917 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:50:22,917 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:22,921 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:22,921 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:50:22,921 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:22,924 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:22,924 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:22,928 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:22,929 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:50:22,929 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:22,931 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:50:50,380 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:50,381 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:50:50,381 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:50,383 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:50:50,409 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:50,410 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:50:50,410 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:50,413 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:50,415 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:50,415 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:50:50,415 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:50:50,418 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:51:12,579 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:12,579 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:51:12,579 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:12,581 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:12,589 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:12,589 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:51:12,589 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:12,589 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:12,590 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:51:12,590 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:12,591 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:12,592 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:51:29,596 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:29,597 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:51:29,597 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:29,598 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:29,598 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:51:29,598 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:29,600 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:29,600 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:29,602 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:29,602 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:51:29,602 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:29,604 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:51:46,621 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:46,622 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:51:46,622 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:46,622 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:46,622 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:51:46,622 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:46,624 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:46,624 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:46,629 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:46,630 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:51:46,630 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:51:46,633 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:52:10,776 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:10,776 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:10,777 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:52:10,777 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:10,777 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:52:10,777 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:10,780 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:10,780 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:10,781 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:10,781 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:52:10,781 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:10,793 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:52:35,545 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:35,546 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:52:35,546 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:35,550 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:52:50,652 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:50,652 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:52:50,652 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:52:50,654 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:53:03,621 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:53:03,622 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:53:03,622 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:53:03,624 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:53:13,786 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:53:13,786 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:53:13,786 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:53:13,788 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+2025-11-07 07:53:21,134 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:53:21,134 - core.orchestrators.feature_selector - INFO - Dropped 111 features for rf model
+2025-11-07 07:53:21,134 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-07 07:53:21,137 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/sklearn/ensemble/_base.py:168: UserWarning: Loky-backed parallel loops cannot be called in a multiprocessing, setting n_jobs=1
+  n_jobs = min(effective_n_jobs(n_jobs), n_estimators)
+✓ Loaded 21 selected features from models/2025-11-02/2years_061730/feature_selector.json
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 176,380 (from 18 horses)
+  📊 Processing 18 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 176,380 (from 18 horses)
+  📊 Processing 18 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 155,471 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 155,471 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 108,833 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 108,833 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 203,600 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 203,600 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 218,450 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 218,450 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 162,984 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 162,984 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 157,984 (from 10 horses)
+  📊 Processing 10 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 157,984 (from 10 horses)
+  📊 Processing 10 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 133,550 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 133,550 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 166,115 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 166,115 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 98,194 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 98,194 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 166,693 (from 7 horses)
+  📊 Processing 7 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 166,693 (from 7 horses)
+  📊 Processing 7 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 151,250 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 151,250 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 111,730 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 111,730 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 6 horses)
+  📊 Processing 6 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 6 horses)
+  📊 Processing 6 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 172,957 (from 5 horses)
+  📊 Processing 5 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 172,957 (from 5 horses)
+  📊 Processing 5 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 227,442 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 227,442 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+✓ Loaded 21 selected features from models/2025-11-02/2years_061730/feature_selector.json
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 109,143 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 109,143 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 165,583 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 165,583 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 72,583 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 72,583 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 215,333 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 215,333 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 108,846 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 108,846 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 189,840 (from 7 horses)
+  📊 Processing 7 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 189,840 (from 7 horses)
+  📊 Processing 7 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 239,657 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 239,657 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 218,086 (from 10 horses)
+  📊 Processing 10 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 218,086 (from 10 horses)
+  📊 Processing 10 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 136,697 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 136,697 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 121,816 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 121,816 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 201,200 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 201,200 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 103,394 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 103,394 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 171,875 (from 6 horses)
+  📊 Processing 6 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 171,875 (from 6 horses)
+  📊 Processing 6 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 206,750 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 206,750 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+✓ Loaded 21 selected features from models/2025-11-02/2years_061730/feature_selector.json
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 101,720 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 101,720 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 95,228 (from 6 horses)
+  📊 Processing 6 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 95,228 (from 6 horses)
+  📊 Processing 6 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 131,536 (from 7 horses)
+  📊 Processing 7 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 131,536 (from 7 horses)
+  📊 Processing 7 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 118,762 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 118,762 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 130,232 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 130,232 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 223,085 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 223,085 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 112,364 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 112,364 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 140,357 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 140,357 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 237,635 (from 8 horses)
+  📊 Processing 8 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 237,635 (from 8 horses)
+  📊 Processing 8 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 7 horses)
+  📊 Processing 7 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 7 horses)
+  📊 Processing 7 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 222,650 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 222,650 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 70,033 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 70,033 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 131,927 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 251 → 226 (25 removed)
+🏇 Field mean earnings per race: 131,927 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Traceback (most recent call last):
+  File "/Users/mattg0/Docs/HorseAIv2/scripts/batch_predict.py", line 303, in run_batch_prediction
+    results = predict_races_fast(
+              ^^^^^^^^^^^^^^^^^^^
+  File "/Users/mattg0/Docs/HorseAIv2/race_prediction/race_predict.py", line 2169, in predict_races_fast
+    return predictor.predict_from_db(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mattg0/Docs/HorseAIv2/race_prediction/race_predict.py", line 1302, in predict_from_db
+    results = self.predict_races_batch(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mattg0/Docs/HorseAIv2/race_prediction/race_predict.py", line 1185, in predict_races_batch
+    progress_callback(progress, f"Processing chunk {chunk_idx + 1}/{num_chunks}{mem_str}...")
+  File "/Users/mattg0/Docs/HorseAIv2/scripts/batch_predict.py", line 297, in progress_callback
+    job.update_progress(percent, message, processed=processed)
+  File "/Users/mattg0/Docs/HorseAIv2/scripts/batch_predict.py", line 121, in update_progress
+    cursor.execute(f"""
+sqlite3.OperationalError: database is locked
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/mattg0/Docs/HorseAIv2/scripts/batch_predict.py", line 443, in <module>
+    main()
+  File "/Users/mattg0/Docs/HorseAIv2/scripts/batch_predict.py", line 429, in main
+    run_batch_prediction(
+  File "/Users/mattg0/Docs/HorseAIv2/scripts/batch_predict.py", line 338, in run_batch_prediction
+    job.fail(error_msg)
+  File "/Users/mattg0/Docs/HorseAIv2/scripts/batch_predict.py", line 152, in fail
+    cursor.execute("""
+sqlite3.OperationalError: database is locked

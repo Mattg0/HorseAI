@@ -1,0 +1,15 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,11,1457923,7,Disp.Art 27,15.0,4.862664429998398,8.94604,8.815,1
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,4,1384818,8,A. Desmottes,60.0,5.2209632617950446,11.148027,8.09,2
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,8,1372582,9,F. Héon,58.0,5.408222361373902,11.228519,8.46,3
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,14,1490898,7,N. Bazire,2.0,5.517779361605645,3.6851957,8.275,4
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,3,1473111,7,JM. Roubaud,5.9,5.686571295261383,7.110475,7.7,5
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,5,1389868,8,AP. Grimault,9.8,5.879522254943848,8.676815,7.63,6
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,1,1473075,7,C. Thomain,10.0,5.884608862638474,6.8707256,8.09,7
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,13,1470146,7,D. Héon,21.0,6.035651738405228,6.3976784,8.46,8
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,12,1460581,7,N. Bazire,17.0,6.1990421125888835,8.486947,8.21,9
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,2,1490567,7,B. Marie,55.0,6.328470005035401,9.9298,8.065,10
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,6,1381857,8,JG. Van Eeckhaute,47.0,6.412003664016725,10.386691,8.09,11
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,10,1491965,7,E. Varin,21.0,6.555786328554154,9.545242,8.54,12
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,9,1505177,7,D. De Jésus Reis,37.0,6.966554341793061,9.623695,9.205,13
+1618773,2025-10-31,Paris-Vincennes,1,5,Prix Barbara,7,1461024,7,M. Izzo,70.0,7.1165089774131784,12.743393,8.675,14

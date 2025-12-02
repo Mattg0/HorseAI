@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_position_uncalibrated,raw_rf_prediction,raw_tabnet_prediction,predicted_position_base,predicted_rank
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),3,1512124,6,HE. Bondo,3.1,1.0,4.617775,5.6020675,3.6458454,5.6020675,4.617775,5.2083507,1
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),6,1563400,6,C. Eriksson,3.5,1.2713884115219116,4.3049545,7.1112366,4.192107,7.1112366,4.3049545,5.988724,2
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),9,1550283,6,HE. Bondo,10.0,3.3679966926574707,5.647987,8.16628,3.9374294,8.16628,5.647987,7.1589627,3
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),13,1558514,6,GV. Gundersen,19.0,4.003955841064453,6.689485,7.6723995,5.4594254,7.6723995,6.689485,7.279234,4
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),14,1530290,6,S. Minopoli,18.0,4.102505207061768,6.632304,8.811737,5.557975,8.811737,6.632304,7.9399643,5
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),2,1548863,6,L. Peschet,19.0,4.147087097167969,6.7927403,7.921632,5.6025567,7.921632,6.7927403,7.4700756,6
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),5,1522565,6,D. Locqueneux,24.0,5.144362449645996,7.1376896,8.66625,5.6383786,8.66625,7.1376896,8.054827,7
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),11,1648147,6,H. Lonborg,15.0,5.1522603034973145,6.4542522,10.381008,6.60773,10.381008,6.4542522,8.810307,8
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),7,1512004,6,T. Duvaldestin,30.0,5.163581848144531,7.2459826,8.639815,5.657598,8.639815,7.2459826,8.082283,9
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),1,1552286,6,S. Ernault,60.0,5.295034408569336,8.2767725,8.265605,5.7890506,8.265605,8.2767725,8.270072,10
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),8,1505733,6,M. Ionescu,101.0,5.393904685974121,9.862514,11.23973,5.8788643,11.23973,9.862514,10.688844,11
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),10,1557347,6,D. Persson,33.0,5.508432865142822,7.5224566,9.276574,6.002449,9.276574,7.5224566,8.574927,12
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),15,1574330,6,D. Persson,21.0,5.6865315437316895,6.7947297,9.204731,6.1805477,9.204731,6.7947297,8.24073,13
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),4,1530339,6,N. Bazire,26.0,6.2359724044799805,6.8632245,10.380048,6.7299886,10.380048,6.8632245,8.973318,14
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),12,1544790,6,HE. Bondo,47.0,6.745218753814697,8.88488,10.163936,7.239235,10.163936,8.88488,9.652313,15
+1622859,2025-11-14,Paris-Vincennes,1,4,Prix de la Ville de Fontenay-sous-Bois (Prix Mizar),16,1505596,6,M. Ionescu,132.0,8.655933380126953,15.484038,11.441339,9.140893,11.441339,15.484038,13.058418,16

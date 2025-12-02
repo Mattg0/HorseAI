@@ -58,94 +58,89 @@ class QuinteBlendOptimizer:
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f"[{timestamp}] {message}")
 
-    def find_latest_prediction_file(self, predictions_dir: str = 'predictions') -> str:
+    def get_available_prediction_dates(self) -> List[str]:
         """
-        Find the latest quinté prediction file.
-
-        Args:
-            predictions_dir: Directory containing prediction files
+        Get list of dates with predictions in quinte_predictions table.
 
         Returns:
-            Path to latest prediction file
+            List of prediction dates (sorted descending)
         """
-        pred_path = Path(predictions_dir)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
 
-        if not pred_path.exists():
-            raise FileNotFoundError(f"Predictions directory not found: {predictions_dir}")
-
-        # Look for quinté prediction files
-        csv_files = list(pred_path.glob("quinte_predictions_*.csv"))
-        json_files = list(pred_path.glob("quinte_predictions_*.json"))
-
-        all_files = csv_files + json_files
-
-        if not all_files:
-            raise FileNotFoundError(f"No quinté prediction files found in {predictions_dir}")
-
-        # Get most recent file
-        latest_file = max(all_files, key=lambda f: f.stat().st_mtime)
-
-        return str(latest_file)
-
-    def load_predictions(self, file_path: str) -> pd.DataFrame:
+        query = """
+        SELECT DISTINCT race_date
+        FROM quinte_predictions
+        WHERE race_date IS NOT NULL
+        ORDER BY race_date DESC
         """
-        Load predictions from CSV or JSON file.
+        cursor.execute(query)
+        dates = [row[0] for row in cursor.fetchall()]
+        conn.close()
+
+        self.log_info(f"Found predictions for {len(dates)} dates")
+        return dates
+
+    def load_predictions(self, race_date: str = None, race_comps: List[str] = None) -> pd.DataFrame:
+        """
+        Load predictions from quinte_predictions table.
 
         Args:
-            file_path: Path to prediction file
+            race_date: Specific date to load predictions for (YYYY-MM-DD)
+            race_comps: Specific race IDs to load
 
         Returns:
             DataFrame with predictions including rf_predicted_position and tabnet_predicted_position
         """
-        self.log_info(f"Loading predictions from {file_path}...")
+        self.log_info(f"Loading predictions from quinte_predictions table...")
 
-        file_path_obj = Path(file_path)
+        conn = sqlite3.connect(self.db_path)
 
-        if file_path_obj.suffix == '.csv':
-            df = pd.read_csv(file_path)
-        elif file_path_obj.suffix == '.json':
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-
-            # JSON structure is list of races, each with 'predictions' array
-            # Flatten to get all predictions
-            all_predictions = []
-            if isinstance(data, list):
-                for race in data:
-                    if 'predictions' in race:
-                        all_predictions.extend(race['predictions'])
-                    else:
-                        # Fallback: if no 'predictions' key, assume race itself is the prediction
-                        all_predictions.append(race)
-            else:
-                # If data is a dict or something else, try to convert directly
-                all_predictions = data
-
-            df = pd.DataFrame(all_predictions)
+        if race_comps:
+            # Load specific races
+            race_comps_str = [str(rc) for rc in race_comps]
+            placeholders = ','.join('?' * len(race_comps_str))
+            query = f"""
+            SELECT
+                race_id as comp,
+                horse_number as numero,
+                quinte_rf_prediction as rf_predicted_position,
+                quinte_tabnet_prediction as tabnet_predicted_position,
+                predicted_rank
+            FROM quinte_predictions
+            WHERE race_id IN ({placeholders})
+            ORDER BY race_id, predicted_rank
+            """
+            df = pd.read_sql_query(query, conn, params=race_comps_str)
+        elif race_date:
+            # Load specific date
+            query = """
+            SELECT
+                race_id as comp,
+                horse_number as numero,
+                quinte_rf_prediction as rf_predicted_position,
+                quinte_tabnet_prediction as tabnet_predicted_position,
+                predicted_rank
+            FROM quinte_predictions
+            WHERE race_date = ?
+            ORDER BY race_id, predicted_rank
+            """
+            df = pd.read_sql_query(query, conn, params=(race_date,))
         else:
-            raise ValueError(f"Unsupported file format: {file_path_obj.suffix}")
+            # Load all predictions
+            query = """
+            SELECT
+                race_id as comp,
+                horse_number as numero,
+                quinte_rf_prediction as rf_predicted_position,
+                quinte_tabnet_prediction as tabnet_predicted_position,
+                predicted_rank
+            FROM quinte_predictions
+            ORDER BY race_date DESC, race_id, predicted_rank
+            """
+            df = pd.read_sql_query(query, conn)
 
-        # Check for required columns (support both naming conventions)
-        required_base = ['comp', 'numero']
-
-        # Check base columns first
-        missing_base = [col for col in required_base if col not in df.columns]
-        if missing_base:
-            raise ValueError(f"Missing required columns: {missing_base}")
-
-        # Check for RF predictions (try both column names)
-        if 'rf_predicted_position' not in df.columns:
-            if 'predicted_position_rf' in df.columns:
-                df = df.rename(columns={'predicted_position_rf': 'rf_predicted_position'})
-            else:
-                raise ValueError("Missing RF prediction column (expected 'rf_predicted_position' or 'predicted_position_rf')")
-
-        # Check for TabNet predictions (try both column names)
-        if 'tabnet_predicted_position' not in df.columns:
-            if 'predicted_position_tabnet' in df.columns:
-                df = df.rename(columns={'predicted_position_tabnet': 'tabnet_predicted_position'})
-            else:
-                raise ValueError("Missing TabNet prediction column (expected 'tabnet_predicted_position' or 'predicted_position_tabnet')")
+        conn.close()
 
         self.log_info(f"Loaded {len(df)} predictions for {df['comp'].nunique()} races")
 
@@ -315,12 +310,13 @@ class QuinteBlendOptimizer:
 
         return metrics
 
-    def optimize(self, prediction_file: str, weight_step: float = 0.1) -> pd.DataFrame:
+    def optimize(self, race_date: str = None, race_comps: List[str] = None, weight_step: float = 0.1) -> pd.DataFrame:
         """
         Test different blend weights and find optimal combination.
 
         Args:
-            prediction_file: Path to prediction CSV or JSON file
+            race_date: Specific date to load predictions for (YYYY-MM-DD)
+            race_comps: Specific race IDs to load
             weight_step: Step size for weight testing (e.g., 0.1 = test 0.0, 0.1, 0.2, ...)
 
         Returns:
@@ -328,8 +324,8 @@ class QuinteBlendOptimizer:
         """
         self.log_info(f"Starting blend optimization with step size {weight_step}")
 
-        # Load predictions
-        df_predictions = self.load_predictions(prediction_file)
+        # Load predictions from database
+        df_predictions = self.load_predictions(race_date=race_date, race_comps=race_comps)
 
         # Load actual results
         race_comps = df_predictions['comp'].unique().tolist()
@@ -386,12 +382,17 @@ class QuinteBlendOptimizer:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description='Optimize RF/TabNet blend weights for quinté predictions'
+        description='Optimize RF/TabNet blend weights for quinté predictions from database'
     )
     parser.add_argument(
-        '--predictions',
+        '--date',
         type=str,
-        help='Path to prediction CSV or JSON file (auto-finds latest if not specified)'
+        help='Race date to optimize (YYYY-MM-DD). If not specified, uses all predictions.'
+    )
+    parser.add_argument(
+        '--race-ids',
+        nargs='+',
+        help='Specific race IDs to optimize (space-separated)'
     )
     parser.add_argument(
         '--step',
@@ -421,17 +422,17 @@ def main():
     # Initialize optimizer
     optimizer = QuinteBlendOptimizer(config_path=args.config)
 
-    # Find or use specified prediction file
-    if args.predictions:
-        prediction_file = args.predictions
+    if args.date:
+        print(f"\nOptimizing predictions for date: {args.date}")
+    elif args.race_ids:
+        print(f"\nOptimizing predictions for {len(args.race_ids)} races")
     else:
-        prediction_file = optimizer.find_latest_prediction_file(args.output)
-
-    print(f"\nUsing prediction file: {prediction_file}")
+        print("\nOptimizing all predictions in database")
 
     # Run optimization
     df_results = optimizer.optimize(
-        prediction_file=prediction_file,
+        race_date=args.date,
+        race_comps=args.race_ids,
         weight_step=args.step
     )
 

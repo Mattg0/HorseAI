@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,raw_rf_prediction,raw_tabnet_prediction,predicted_position_base,predicted_rank
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),2,1438113,8,J. Corbanie,3.1,2.5229337,4.48673,3.083207,3.083207,4.48673,3.3639116,1
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),10,1403008,8,P. Le Moel,4.2,4.124901,5.9266357,7.1118846,7.1118846,5.9266357,6.874835,2
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),11,1388158,8,H. Le Bec,21.0,4.870716,7.543493,8.261452,8.261452,7.543493,8.11786,3
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),7,1433341,8,Mme M. Törnqvist,8.0,5.103333,6.1574817,6.966184,6.966184,6.1574817,6.804444,4
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),5,1430400,8,CA. Mallet,21.0,5.945108,7.9255953,7.9271145,7.9271145,7.9255953,7.9268107,5
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),8,1415077,8,M. Varin,41.0,6.413968,8.043766,9.442573,9.442573,8.043766,9.162811,6
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),9,1381857,8,JG. Van Eeckhaute,38.0,6.4863405,9.05797,11.248717,11.248717,9.05797,10.810568,7
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),13,1384898,8,J. Vanmeerbeck,30.0,6.868578,8.082842,9.42692,9.42692,8.082842,9.158104,8
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),15,1379073,8,Mlle VM. Goetz,22.0,6.966673,8.160051,9.571109,9.571109,8.160051,9.2888975,9
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),14,1381710,8,S. Ernault,19.0,7.031575,7.8337116,9.760864,9.760864,7.8337116,9.375434,10
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),16,1403037,8,G. Beaufils,10.0,7.052782,5.9454722,10.268269,10.268269,5.9454722,9.403709,11
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),6,1407560,8,C. Chalon,69.0,7.258127,10.6567745,10.296747,10.296747,10.6567745,10.368753,12
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),3,1430278,8,AG. Maillard,99.0,7.2733035,11.098826,12.378008,12.378008,11.098826,12.122172,13
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),4,1430596,8,J. Westholm,14.0,7.4155693,7.289282,10.536962,10.536962,7.289282,9.887425,14
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),1,1406634,8,D. Bonne,55.0,7.5491366,9.641797,10.171445,10.171445,9.641797,10.0655155,15
+1611846,2025-09-28,Paris-Vincennes,1,4,Grand Prix du Portugal (Prix d'Argelès),12,1458863,8,B. Marie,49.0,7.6721582,10.264944,11.134046,11.134046,10.264944,10.960226,16

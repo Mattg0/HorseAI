@@ -1,0 +1,15 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,12,1646868,5,M. Abrivard,3.0,4.018908543610573,4.495532,8.01,1
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,10,1685646,4,T. Le Beller,3.3,4.204081328392029,2.8291523,6.8,2
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,9,1575465,5,T. Raffegeau,11.0,5.225898979091644,4.9678497,8.09,3
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,2,1661355,4,T. Partaix,15.0,5.466688733196259,6.2077765,8.21,4
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,14,1586206,5,S. Guarato,19.0,5.513776417732239,5.484117,8.475,5
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,3,1560712,5,J. Dubois,16.0,5.652900782871246,5.9578624,8.605,6
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,13,1580046,5,E. Letouzé,20.0,5.818952894496919,6.543949,8.755,7
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,1,1666502,4,D. Locqueneux,30.0,6.020580479621888,9.571504,10.15,8
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,4,1581928,5,T. Lamare,41.0,6.160214025592804,9.361528,8.66,9
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,8,1552859,5,S. Roger,27.0,6.177540363407134,8.185288,8.985,10
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,5,1587768,5,D. Locqueneux,80.0,6.358190242385864,10.975644,8.61,11
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,7,1670342,4,LC. Abrivard,10.0,6.57126969408989,8.3284645,8.87,12
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,6,1682345,4,E. Raulline,141.0,6.64121125946045,11.597223,8.96,13
+1615258,2025-10-17,Paris-Vincennes,1,4,Prix Gudrun,11,1558197,5,LC. Abrivard,34.0,7.048311661005021,7.7087445,9.82,14

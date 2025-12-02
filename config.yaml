@@ -3,59 +3,58 @@ base:
   rootdir: /Users/mattg0/Docs/HorseAIv2/
 blend:
   default_weights:
-    accuracy: 13.83
-    description: TabNet default for unmatched scenarios
-    rf_weight: 0.0
-    tabnet_weight: 1.0
-  description: Optimal blend weights for 2-model system (RF, TabNet)
+    rf_weight: 0.9
+    tabnet_weight: 0.1
+    accuracy: 15.49034175334324
+    description: Default optimal weights from automated analysis
+  description: Optimal blend weights from automated analysis (2025-11-27)
   dynamic_weights:
-  - accuracy: 22.2
-    condition:
-      typec: "Mont\xE9"
-    description: "TabNet only for Mont\xE9 races"
+  - condition:
+      typec: Cross-country
     weights:
-      rf_weight: 0.0
-      tabnet_weight: 1.0
-  - accuracy: 20.0
-    condition:
+      rf_weight: 0.9
+      tabnet_weight: 0.1
+    accuracy: 47.82608695652174
+    description: Cross-country races - 32.3% improvement
+  - condition:
+      dist_min: 1500
+      dist_max: 2000
+    weights:
+      rf_weight: 0.9
+      tabnet_weight: 0.1
+    accuracy: 27.61904761904762
+    description: Distance 1500-2000m - 12.1% improvement
+  - condition:
       partant_max: 8
-    description: "TabNet only for small fields (\u22648 horses)"
-    weights:
-      rf_weight: 0.0
-      tabnet_weight: 1.0
-  - accuracy: 19.1
-    condition:
-      dist_max: 2500
-      dist_min: 2000
-    description: TabNet-heavy for medium distances (2000-2500m)
-    weights:
-      rf_weight: 0.2
-      tabnet_weight: 0.8
-  - accuracy: 11.3
-    condition:
-      partant_max: 16
-      partant_min: 13
-    description: RF-heavy for large fields (13-16 horses)
-    weights:
-      rf_weight: 0.6
-      tabnet_weight: 0.4
-  - accuracy: 11.1
-    condition:
-      typec: "Attel\xE9"
-    description: "RF-heavy for Attel\xE9 races"
-    weights:
-      rf_weight: 0.6
-      tabnet_weight: 0.4
-  - accuracy: 5.9
-    condition:
-      partant_min: 17
-    description: RF only for very large fields (>16 horses)
     weights:
       rf_weight: 1.0
       tabnet_weight: 0.0
-  optimal_mae: 11.78
-  rf_weight: 0.0
-  tabnet_weight: 1.0
+    accuracy: 25.217391304347824
+    description: "Field size Small (\u22648) - 9.7% improvement"
+  - condition:
+      typec: Steeple-chase
+    weights:
+      rf_weight: 0.9
+      tabnet_weight: 0.1
+    accuracy: 24.503311258278146
+    description: Steeple-chase races - 9.0% improvement
+  - condition:
+      typec: Haies
+    weights:
+      rf_weight: 0.7
+      tabnet_weight: 0.3
+    accuracy: 22.413793103448278
+    description: Haies races - 6.9% improvement
+  - condition:
+      typec: Plat
+    weights:
+      rf_weight: 1.0
+      tabnet_weight: 0.0
+    accuracy: 21.47093712930012
+    description: Plat races - 6.0% improvement
+  optimal_mae: 3.5702165332546385
+  rf_weight: 0.9
+  tabnet_weight: 0.1
   use_dynamic_weights: true
 cache:
   base_path: cache
@@ -87,7 +86,7 @@ databases:
   description: MySQL datasource
   host: localhost
   name: mysql
-  password: welcome123
+  password: welcome123!
   type: mysql
   user: turfai
 dataset:
@@ -125,8 +124,8 @@ llm_url:
   local: http://localhost:1234
 models:
   latest_models:
-    rf: 2025-10-28/2years_132603
-    rf_quinte: 2025-10-26/2years_120713_quinte_rf
-    tabnet: 2025-10-28/2years_132622
-    tabnet_quinte: 2025-10-26/2years_120713_quinte_tabnet
+    rf: 2025-11-13/2years_144333
+    rf_quinte: 2025-11-30/15quinte_incremental_155420
+    tabnet: 2025-11-13/2years_144333
+    tabnet_quinte: 2025-11-13/2years_092954_quinte_tabnet
   model_dir: ./models

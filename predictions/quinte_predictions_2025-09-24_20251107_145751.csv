@@ -1,0 +1,17 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,predicted_rank
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,13,1437164,7,C. Jariel,12.0,4.751607087135315,5.1967254,8.6,1
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,8,1430387,8,A. Chavatte,0.0,4.770406262207031,5.4543304,7.155,2
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,10,1497360,7,M. Sassier,1.9,4.931758013916015,4.146843,7.77,3
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,1,1572676,5,T. Lamare,0.0,5.019897226810455,8.056409,6.95,4
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,14,1508812,6,T. Duvaldestin,4.0,5.19210452413559,2.5740302,8.01,5
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,2,1510765,6,T. Le Beller,10.0,5.245424232387542,4.307316,8.29,6
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,4,1438306,8,T. Raffegeau,109.0,5.466256915473938,11.453244,9.56,7
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,3,1491964,7,E. Varin,11.0,5.790648276042938,7.5817733,8.445,8
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,9,1463732,7,AP. Grimault,42.0,6.189744031238557,8.392457,8.955,9
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,7,1430635,7,M. Mottier,19.0,6.230645185661316,9.924608,8.645,10
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,5,1380598,8,S. Hardy,92.0,6.658056319236755,10.857545,9.175,11
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,12,1388348,8,N. Bazire,33.0,6.806086231994629,10.994902,9.405,12
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,16,1318509,10,N. Bazire,170.0,6.954985218048096,12.678466,9.25,13
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,6,1430681,8,Mlle C. Beiléard,93.0,7.2017479333877565,11.571652,9.11,14
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,11,1289057,10,C. Clin,186.0,7.468185492038727,12.067903,9.43,15
+1610765,2025-09-24,Lisieux,1,1,Grand National du Trot de Lisieux,15,1393225,8,C. Bigeon,187.0,7.507814637374878,15.047247,9.645,16

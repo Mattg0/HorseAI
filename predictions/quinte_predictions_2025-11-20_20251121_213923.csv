@@ -1,0 +1,16 @@
+comp,jour,hippo,reun,prix,prixnom,numero,idche,age,entraineur,cotedirect,predicted_position,predicted_position_tabnet,predicted_position_rf,raw_rf_prediction,raw_tabnet_prediction,predicted_position_base,predicted_rank
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,10,1451535,7,MB. Svedberg,1.7,3.8345423,4.64972,6.0300493,6.0300493,4.64972,5.4779177,1
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,15,1490438,7,HE. Bondo,5.8,3.8715699,5.4786944,5.56556,5.56556,5.4786944,5.530814,2
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,5,1301540,10,PY. Rochard,28.0,4.6874847,7.9077806,8.932644,8.932644,7.9077806,8.522699,3
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,7,1430499,8,C. Dreux,44.0,5.266629,7.8472266,7.308109,7.308109,7.8472266,7.523756,4
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,13,1448161,8,R. Lagadeuc,21.0,5.8531837,7.451396,8.039477,8.039477,7.451396,7.804245,5
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,4,1509241,7,D. Locqueneux,14.0,5.8940616,7.0472174,9.335334,9.335334,7.0472174,8.420088,6
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,11,1389890,8,D. Locqueneux,28.0,6.20566,7.7524753,9.607064,9.607064,7.7524753,8.865229,7
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,2,1293303,10,B. Robin,222.0,6.2101536,11.246273,11.321131,11.321131,11.246273,11.291188,8
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,8,1474742,7,A. Pereira,48.0,6.337115,8.293249,9.559536,9.559536,8.293249,9.053021,9
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,1,1373471,9,J. Guelpa,169.0,6.44822,10.808674,10.705938,10.705938,10.808674,10.747033,10
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,9,1505466,7,Y. Lacombe,28.0,6.958437,8.828365,10.68213,10.68213,8.828365,9.940624,11
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,14,1496268,7,M. Varin,14.0,7.6146297,6.3863335,12.663843,12.663843,6.3863335,10.15284,12
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,6,1406647,8,M. Varin,200.0,7.6731157,11.461141,10.628562,10.628562,11.461141,10.961594,13
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,3,1495043,7,A. Ojanperä,16.0,7.8303194,6.7514014,12.899775,12.899775,6.7514014,10.440426,14
+1622990,2025-11-20,Paris-Vincennes,1,1,Prix de Sillé-le-Guillaume,12,1360241,9,N. Devigne,155.0,8.049006,11.522741,11.482472,11.482472,11.522741,11.498581,15
