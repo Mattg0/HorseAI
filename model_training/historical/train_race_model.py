@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from tensorflow.keras.callbacks import EarlyStopping
 import platform
@@ -106,7 +106,7 @@ class HorseRaceModel:
         
         if self.orchestrator.should_use_batch_processing(total_records):
             self.log_info(f"Using memory-efficient batch processing for {total_records:,} records")
-            
+
             # Load historical data with batch processing
             df_historical = self.orchestrator.load_historical_races_batched(
                 limit=limit,
@@ -114,17 +114,19 @@ class HorseRaceModel:
                 date_filter=date_filter,
                 use_cache=True
             )
-            
-            # Prepare complete dataset with batch processing
-            self.log_info("Preparing complete feature set with batch processing...")
+
+            # Prepare complete dataset with batch processing + 
+            # ral calculations
+            self.log_info("Preparing complete feature set with batch processing and temporal calculations (no leakage)...")
             self.complete_df = self.orchestrator.prepare_complete_dataset_batched(
                 df_historical,
-                use_cache=True
+                use_cache=True,
+                use_temporal=True  # CRITICAL: Prevents data leakage in career stats
             )
-            
+
         else:
             self.log_info("Using standard processing for smaller dataset")
-            
+
             # Load historical data (standard way)
             df_historical = self.orchestrator.load_historical_races(
                 limit=limit,
@@ -132,14 +134,32 @@ class HorseRaceModel:
                 date_filter=date_filter,
                 use_cache=True
             )
-            
-            # Prepare complete dataset (standard way)
-            self.log_info("Preparing complete feature set...")
+
+            # Prepare complete dataset (standard way) + temporal calculations
+            self.log_info("Preparing complete feature set with temporal calculations (no leakage)...")
             self.complete_df = self.orchestrator.prepare_complete_dataset(
                 df_historical,
-                use_cache=True
+                use_cache=True,
+                use_temporal=True  # CRITICAL: Prevents data leakage in career stats
             )
         
+        # Apply feature cleanup to remove leaking features
+        self.log_info("Applying feature cleanup to remove data leakage...")
+        from core.data_cleaning.feature_cleanup import FeatureCleaner
+        cleaner = FeatureCleaner()
+
+        # Store original columns for comparison
+        original_columns = len(self.complete_df.columns)
+
+        # Clean features (removes leaking career stats and useless features)
+        self.complete_df = cleaner.clean_features(self.complete_df)
+
+        # Apply transformations (log transforms for skewed features)
+        self.complete_df = cleaner.apply_transformations(self.complete_df)
+
+        cleaned_columns = len(self.complete_df.columns)
+        self.log_info(f"Feature cleanup complete: {original_columns} → {cleaned_columns} features ({original_columns - cleaned_columns} removed)")
+
         # Log memory usage summary if available
         memory_summary = self.orchestrator.get_memory_summary()
         if memory_summary:
@@ -227,22 +247,27 @@ class HorseRaceModel:
         return self.training_results
 
     def _train_rf_model(self, X_train, y_train, X_test, y_test) -> Dict[str, Any]:
-        """Train Random Forest model with provided split data."""
+        """Train XGBoost model with provided split data (previously Random Forest)."""
 
-        # Create calibrated RF model
-        base_rf = RandomForestRegressor(
-            n_estimators=100,
-            max_depth=None,
-            min_samples_split=2,
-            min_samples_leaf=1,
+        # Create XGBoost model
+        base_xgb = XGBRegressor(
+            n_estimators=150,  # Slightly more than RF's 100
+            max_depth=6,  # XGBoost default - prevents overfitting
+            learning_rate=0.1,  # XGBoost default
+            subsample=0.8,  # Row sampling for regularization
+            colsample_bytree=0.8,  # Feature sampling for diversity
+            reg_alpha=0.1,  # L1 regularization
+            reg_lambda=1.0,  # L2 regularization
             random_state=42,
-            n_jobs=-1
+            n_jobs=-1,
+            tree_method='hist',  # Faster training on large datasets
+            objective='reg:squarederror'
         )
 
-        self.rf_model = CalibratedRegressor(
-            base_regressor=base_rf,
-            clip_min=1.0  # Race positions start at 1
-        )
+        # NOTE: Switched from RandomForest to XGBoost to fix prediction compression
+        # XGBoost better handles feature interactions and field size variations
+        # See XGBOOST_MIGRATION.md for details
+        self.rf_model = base_xgb  # Keep name for backward compatibility
 
         # Train the model with provided data
         self.rf_model.fit(X_train, y_train)
@@ -258,11 +283,11 @@ class HorseRaceModel:
         test_rmse = np.sqrt(mean_squared_error(y_test, test_preds))
         test_r2 = r2_score(y_test, test_preds)
 
-        # Get feature importance from the base RF model
+        # Get feature importance from the RF model
         feature_importance = None
         feature_names = list(X_train.columns) if hasattr(X_train, 'columns') else None
-        if hasattr(self.rf_model, 'base_regressor') and hasattr(self.rf_model.base_regressor, 'feature_importances_'):
-            feature_importance = self.rf_model.base_regressor.feature_importances_.tolist()
+        if hasattr(self.rf_model, 'feature_importances_'):
+            feature_importance = self.rf_model.feature_importances_.tolist()
 
         return {
             'model_type': 'RandomForest',
@@ -290,17 +315,25 @@ class HorseRaceModel:
 
     
     def _train_tabnet_model_domain(self, complete_df, test_size=0.2, random_state=42) -> Dict[str, Any]:
-        """Train TabNet model using domain features (no embeddings)."""
+        """
+        Train TabNet model using domain features with automatic feature selection.
+
+        Uses 3-phase training:
+        1. Initial training on all features to get importance (50 epochs)
+        2. Automatic feature selection (removes sparse, correlated, uses importance)
+        3. Final training on selected features (200 epochs)
+        """
         try:
             print(f"[DEBUG-TABNET] Initializing TabNet model with domain features...")
-            
+            print(f"[DEBUG-TABNET] Using 3-phase training with automatic feature selection")
+
             # Extract TabNet-specific features using new pipeline
             X_tabnet, y_tabnet = self.orchestrator.extract_tabnet_features(complete_df)
-            
+
             print(f"[DEBUG-TABNET] TabNet feature extraction completed")
             print(f"[DEBUG-TABNET] Features shape: {X_tabnet.shape}")
             print(f"[DEBUG-TABNET] Target shape: {y_tabnet.shape}")
-            
+
             # Get TabNet config from legacy_alternative_models section
             import yaml
             try:
@@ -311,83 +344,166 @@ class HorseRaceModel:
             except Exception as e:
                 print(f"[DEBUG-TABNET] Could not load TabNet config: {e}, using defaults")
                 tabnet_config = {}
-            
+
             # Only override learning rate if specified, let TabNet use its defaults
             tabnet_params = {}
             if 'learning_rate' in tabnet_config:
                 tabnet_params['optimizer_params'] = {'lr': tabnet_config['learning_rate']}
-            
-            tabnet_model = TabNetModel(verbose=self.verbose)
-            
+
             # Split data for TabNet
             X_train, X_test, y_train, y_test = train_test_split(
                 X_tabnet, y_tabnet, test_size=test_size, random_state=random_state
             )
-            
-            print(f"[DEBUG-TABNET] Training set: {X_train.shape[0]:,} samples, {X_train.shape[1]} features")
-            print(f"[DEBUG-TABNET] Test set: {X_test.shape[0]:,} samples")
-            
-            # Scale the data for TabNet manually since we're using pre-processed data
-            print(f"[DEBUG-TABNET] Scaling features for TabNet...")
-            from sklearn.preprocessing import StandardScaler
-            tabnet_model.scaler = StandardScaler()
-            X_train_scaled = tabnet_model.scaler.fit_transform(X_train)
-            X_test_scaled = tabnet_model.scaler.transform(X_test)
-            
-            # Set feature columns for the TabNet model (needed for saving)
-            # Use actual feature names from domain features
-            feature_columns = list(X_tabnet.columns) if hasattr(X_tabnet, 'columns') else [f"feature_{i}" for i in range(X_tabnet.shape[1])]
-            tabnet_model.feature_columns = feature_columns
-            
-            print(f"[DEBUG-TABNET] TabNet features: {feature_columns}")
-            
-            # Train TabNet using its internal _train_tabnet_model method with scaled data
-            print(f"[DEBUG-TABNET] Starting TabNet training...")
-            training_result = tabnet_model._train_tabnet_model(
-                X_train_scaled, y_train, X_test_scaled, y_test, tabnet_params=tabnet_params
+
+            # Split train into train/val for feature selection
+            X_train_main, X_val, y_train_main, y_val = train_test_split(
+                X_train, y_train, test_size=0.1, random_state=random_state
             )
-            
+
+            print(f"[DEBUG-TABNET] Training set: {X_train_main.shape[0]:,} samples, {X_train_main.shape[1]} features")
+            print(f"[DEBUG-TABNET] Validation set: {X_val.shape[0]:,} samples")
+            print(f"[DEBUG-TABNET] Test set: {X_test.shape[0]:,} samples")
+
+            # ===== PHASE 1: Initial Training for Feature Importance =====
+            print(f"\n[DEBUG-TABNET] ========================================")
+            print(f"[DEBUG-TABNET] PHASE 1: INITIAL TRAINING (50 epochs)")
+            print(f"[DEBUG-TABNET] ========================================")
+            print(f"[DEBUG-TABNET] Training on ALL {X_train_main.shape[1]} features to extract importance...")
+
+            # Scale data
+            from sklearn.preprocessing import StandardScaler
+            scaler_initial = StandardScaler()
+            X_train_scaled_initial = scaler_initial.fit_transform(X_train_main)
+            X_val_scaled_initial = scaler_initial.transform(X_val)
+
+            # Initial quick training
+            tabnet_initial = TabNetModel(verbose=False)
+            tabnet_params_initial = tabnet_params.copy()
+            tabnet_params_initial['max_epochs'] = 50
+            tabnet_params_initial['patience'] = 10
+
+            training_result_initial = tabnet_initial._train_tabnet_model(
+                X_train_scaled_initial, y_train_main,
+                X_val_scaled_initial, y_val,
+                tabnet_params=tabnet_params_initial
+            )
+
+            # Extract feature importances
+            feature_importances = tabnet_initial.tabnet_model.feature_importances_
+
+            from sklearn.metrics import mean_absolute_error
+            val_mae_initial = mean_absolute_error(y_val, tabnet_initial.tabnet_model.predict(X_val_scaled_initial))
+            print(f"[DEBUG-TABNET] Phase 1 complete - Validation MAE: {val_mae_initial:.4f}")
+
+            # ===== PHASE 2: Automatic Feature Selection =====
+            print(f"\n[DEBUG-TABNET] ========================================")
+            print(f"[DEBUG-TABNET] PHASE 2: AUTOMATIC FEATURE SELECTION")
+            print(f"[DEBUG-TABNET] ========================================")
+
+            from core.feature_selection.tabnet_feature_selector import TabNetFeatureSelector
+
+            # Determine target features based on model size
+            target_features = 45 if X_train_main.shape[1] < 100 else 46
+
+            selector = TabNetFeatureSelector(
+                sparse_threshold=0.7,
+                correlation_threshold=0.95,
+                target_features=target_features
+            )
+
+            # Select features
+            X_train_selected = selector.fit_transform(X_train_main, feature_importances)
+            X_val_selected = selector.transform(X_val)
+            X_test_selected = selector.transform(X_test)
+
+            # Get selected feature names
+            selected_feature_names = selector.selected_features
+
+            print(f"[DEBUG-TABNET] Feature selection complete:")
+            print(f"[DEBUG-TABNET]   Original: {X_train_main.shape[1]} features")
+            print(f"[DEBUG-TABNET]   Selected: {len(selected_feature_names)} features")
+            print(f"[DEBUG-TABNET]   Reduction: {(1 - len(selected_feature_names)/X_train_main.shape[1])*100:.1f}%")
+
+            # ===== PHASE 3: Final Training on Selected Features =====
+            print(f"\n[DEBUG-TABNET] ========================================")
+            print(f"[DEBUG-TABNET] PHASE 3: FINAL TRAINING (200 epochs)")
+            print(f"[DEBUG-TABNET] ========================================")
+            print(f"[DEBUG-TABNET] Training on {len(selected_feature_names)} selected features...")
+
+            # Scale selected features
+            tabnet_model = TabNetModel(verbose=self.verbose)
+            tabnet_model.scaler = StandardScaler()
+
+            # Combine train_main and val for final training
+            X_train_final = pd.concat([X_train_selected, X_val_selected])
+            y_train_final = pd.concat([pd.Series(y_train_main), pd.Series(y_val)])
+
+            X_train_scaled = tabnet_model.scaler.fit_transform(X_train_final)
+            X_test_scaled = tabnet_model.scaler.transform(X_test_selected)
+
+            # Set feature columns
+            tabnet_model.feature_columns = selected_feature_names
+
+            # Final training with full epochs
+            tabnet_params_final = tabnet_params.copy()
+            tabnet_params_final['max_epochs'] = 200
+            tabnet_params_final['patience'] = 20
+
+            training_result = tabnet_model._train_tabnet_model(
+                X_train_scaled, y_train_final.values,
+                X_test_scaled, y_test,
+                tabnet_params=tabnet_params_final
+            )
+
             # Set training results for saving
             tabnet_model.training_results = training_result
-            
+
+            # Store the feature selector in the model for saving
+            tabnet_model.feature_selector = selector
+
             # Make predictions using trained model on scaled test data
             print(f"[DEBUG-TABNET] Generating TabNet predictions...")
             predictions = tabnet_model.tabnet_model.predict(X_test_scaled)
-            
+
             # Calculate metrics
             from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
             mae = mean_absolute_error(y_test, predictions)
             rmse = np.sqrt(mean_squared_error(y_test, predictions))
             r2 = r2_score(y_test, predictions)
-            
-            print(f"[DEBUG-TABNET] === TABNET DOMAIN FEATURES PERFORMANCE ===")
-            print(f"[DEBUG-TABNET] Features used: {len(feature_columns)} domain features")
-            print(f"[DEBUG-TABNET] Test MAE: {mae:.4f}")
+
+            print(f"\n[DEBUG-TABNET] ========================================")
+            print(f"[DEBUG-TABNET] TABNET TRAINING COMPLETE")
+            print(f"[DEBUG-TABNET] ========================================")
+            print(f"[DEBUG-TABNET] Features: {X_train_main.shape[1]} → {len(selected_feature_names)} (selected)")
+            print(f"[DEBUG-TABNET] Test MAE:  {mae:.4f}")
             print(f"[DEBUG-TABNET] Test RMSE: {rmse:.4f}")
-            print(f"[DEBUG-TABNET] Test R²: {r2:.4f}")
-            print(f"[DEBUG-TABNET] ==========================================")
-            
+            print(f"[DEBUG-TABNET] Test R²:   {r2:.4f}")
+            print(f"[DEBUG-TABNET] ========================================")
+
             # Store TabNet model
             self.tabnet_model = tabnet_model
-            
+
             return {
                 'status': 'success',
-                'model_type': 'TabNet_Domain',
-                'train_samples': len(X_train),
+                'model_type': 'TabNet_Domain_Selected',
+                'train_samples': len(X_train_final),
                 'test_samples': len(X_test),
-                'features_used': len(feature_columns),
-                'features': len(feature_columns),  # Compatibility field
-                'n_features': len(feature_columns),  # Compatibility field
-                'n_epochs': training_result.get('n_epochs', 'N/A'),  # Pass through epoch info
-                'feature_names': feature_columns,
+                'original_features': X_train_main.shape[1],
+                'selected_features': len(selected_feature_names),
+                'features_used': len(selected_feature_names),
+                'features': len(selected_feature_names),  # Compatibility field
+                'n_features': len(selected_feature_names),  # Compatibility field
+                'n_epochs': training_result.get('n_epochs', 'N/A'),
+                'feature_names': selected_feature_names,
                 'test_mae': float(mae),
                 'test_rmse': float(rmse),
                 'test_r2': float(r2),
                 'training_result': training_result,
                 'test_predictions': predictions.tolist() if hasattr(predictions, 'tolist') else list(predictions),
-                'test_targets': y_test.tolist()
+                'test_targets': y_test.tolist(),
+                'feature_selection': selector.get_feature_summary()
             }
-            
+
         except Exception as e:
             print(f"[DEBUG-TABNET] TabNet training failed: {e}")
             import traceback
@@ -516,11 +632,31 @@ class HorseRaceModel:
                 'embedding_dim': getattr(orchestrator, 'embedding_dim', 16)
             }
 
+        # Extract feature names from training results
+        rf_feature_columns = None
+        tabnet_feature_columns = None
+
+        if self.training_results:
+            # Extract RF feature names
+            rf_results = self.training_results.get('rf_results', {})
+            if 'feature_names' in rf_results:
+                rf_feature_columns = rf_results['feature_names']
+                print(f"  📋 Extracted {len(rf_feature_columns)} RF feature names from training results")
+
+            # Extract TabNet feature names
+            tabnet_results = self.training_results.get('tabnet_results', {})
+            if tabnet_results and tabnet_results.get('status') == 'success':
+                if 'feature_names' in tabnet_results:
+                    tabnet_feature_columns = tabnet_results['feature_names']
+                    print(f"  📋 Extracted {len(tabnet_feature_columns)} TabNet feature names from training results")
+
         # Get the model manager and save models
         model_manager = get_model_manager()
         saved_paths = model_manager.save_models(
             rf_model=self.rf_model,
-            feature_state=feature_state
+            feature_state=feature_state,
+            rf_feature_columns=rf_feature_columns,
+            tabnet_feature_columns=tabnet_feature_columns
         )
         
         # Save TabNet model separately (standalone)

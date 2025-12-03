@@ -4,10 +4,19 @@ import pandas as pd
 import json
 import joblib
 import time
+import gc
+import sqlite3
 from pathlib import Path
 from typing import Dict, List, Union, Any, Optional, Tuple
 import logging
 from datetime import datetime
+
+# Optional psutil for memory monitoring
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 # Import the optimized orchestrator and utilities
 from utils.env_setup import AppConfig
@@ -15,7 +24,7 @@ from core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator
 from utils.model_manager import get_model_manager
 from core.calculators.static_feature_calculator import FeatureCalculator
 from sklearn.preprocessing import StandardScaler
-from .enhanced_prediction_blender import EnhancedPredictionBlender
+from race_prediction.enhanced_prediction_blender import EnhancedPredictionBlender
 
 # TabNet imports
 try:
@@ -32,7 +41,71 @@ except ImportError:
     ALTERNATIVE_MODELS_AVAILABLE = False
 
 # Prediction storage imports
-from .simple_prediction_storage import SimplePredictionStorage, extract_prediction_data_from_competitive_analysis
+from race_prediction.simple_prediction_storage import SimplePredictionStorage, extract_prediction_data_from_competitive_analysis
+
+
+def get_memory_usage() -> Dict[str, float]:
+    """Get current memory usage in MB."""
+    if not PSUTIL_AVAILABLE:
+        # Return dummy values if psutil not available
+        return {
+            'rss_mb': 0.0,
+            'vms_mb': 0.0,
+            'percent': 0.0
+        }
+
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    return {
+        'rss_mb': memory_info.rss / 1024 / 1024,  # Resident Set Size
+        'vms_mb': memory_info.vms / 1024 / 1024,  # Virtual Memory Size
+        'percent': process.memory_percent()
+    }
+
+
+def cleanup_memory():
+    """Aggressively cleanup memory."""
+    gc.collect()
+    # Force garbage collection of all generations
+    for _ in range(3):
+        gc.collect(generation=2)
+
+
+# Global predictor for multiprocessing workers (one per process)
+_worker_predictor = None
+_worker_db_name = None
+_worker_verbose = False
+
+
+def _init_worker(db_name: str, verbose: bool):
+    """Initialize a worker process with its own predictor instance."""
+    global _worker_predictor, _worker_db_name, _worker_verbose
+    _worker_db_name = db_name
+    _worker_verbose = verbose
+    # Create predictor instance for this worker
+    _worker_predictor = None  # Lazy initialization on first use
+
+
+def _worker_predict_race(race_df: pd.DataFrame) -> pd.DataFrame:
+    """Worker function for multiprocessing - uses global predictor."""
+    global _worker_predictor
+
+    # Lazy initialization: create predictor on first use
+    if _worker_predictor is None:
+        _worker_predictor = RacePredictor(
+            db_name=_worker_db_name,
+            verbose=False,  # Disable verbose in workers
+            enable_prediction_storage=False  # Disable storage in workers (main process will handle it)
+        )
+
+    # Predict the race
+    try:
+        result = _worker_predictor.predict_race(race_df)
+        return result
+    except Exception as e:
+        # Return empty result on error
+        print(f"Worker error: {e}")
+        return race_df.copy()
 
 
 class RacePredictor:
@@ -42,7 +115,8 @@ class RacePredictor:
     """
 
     def __init__(self, model_path: str = None, db_name: str = None, verbose: bool = False,
-                 enable_prediction_storage: bool = True):
+                 enable_prediction_storage: bool = True, enable_feature_export: bool = False,
+                 feature_export_min_races: int = 5):
         """
         Initialize the optimized race predictor.
 
@@ -51,10 +125,24 @@ class RacePredictor:
             db_name: Database name from config (defaults to active_db)
             verbose: Whether to print verbose output
             enable_prediction_storage: Whether to enable comprehensive prediction storage
+            enable_feature_export: Whether to export X features for analysis
+            feature_export_min_races: Minimum races to accumulate before exporting (default: 5)
         """
         # Initialize config
         self.config = AppConfig()
         self.verbose = verbose
+
+        # Feature export settings
+        self.enable_feature_export = enable_feature_export
+        self.feature_export_min_races = feature_export_min_races
+        self.feature_buffer = []  # Buffer to accumulate features from multiple races
+
+        # Cache for prepared features to avoid duplicate work
+        self._cached_tabnet_features = None
+
+        # Cache for feature alignment to avoid repeated set operations
+        self._rf_common_features_cache = None
+        self._tabnet_available_features_cache = None
 
         # Set database
         if db_name is None:
@@ -238,21 +326,11 @@ class RacePredictor:
             'temperature', 'forceVent', 'idche', 'idJockey', 'numero', 'gainsCarriere'
         ]
 
-        # CRITICAL FIX: Log values before/after conversion to debug data loss
+        # Convert numeric fields
         for field in numeric_fields:
             if field in race_df.columns:
-                # DEBUG: Log original values for critical fields
-                if field in ['cotedirect', 'coteprob', 'gainsCarriere'] and self.verbose:
-                    original_values = race_df[field].head(5).tolist()
-                    print(f"  DEBUG {field} BEFORE conversion: {original_values}")
-
                 # Convert to numeric, coercing errors to NaN
                 race_df[field] = pd.to_numeric(race_df[field], errors='coerce').fillna(0)
-
-                # DEBUG: Log converted values
-                if field in ['cotedirect', 'coteprob', 'gainsCarriere'] and self.verbose:
-                    converted_values = race_df[field].head(5).tolist()
-                    print(f"  DEBUG {field} AFTER conversion: {converted_values}")
 
         # Ensure target column is NOT present during prediction
         if 'final_position' in race_df.columns:
@@ -260,18 +338,39 @@ class RacePredictor:
             if self.verbose:
                 print("  ⚠️  Removed 'final_position' column from prediction data")
 
-        # Step 3: Apply FeatureCalculator FIRST (matching training pipeline exactly)
-        # Training uses: FeatureCalculator.calculate_all_features(df_historical)
-        # This includes musique preprocessing and confidence-weighted earnings calculations
+        # Step 3: Apply FeatureCalculator WITH TEMPORAL MODE (matching training pipeline exactly)
+        # Training uses: FeatureCalculator.calculate_all_features(df_historical, use_temporal=True)
+        # CRITICAL: use_temporal=True prevents data leakage in career statistics
         if self.verbose:
-            print("  🔧 Applying FeatureCalculator (same as training)...")
+            print("  🔧 Applying FeatureCalculator with temporal calculations (no leakage)...")
 
         prep_start = time.time()
-        df_with_features = FeatureCalculator.calculate_all_features(race_df)
+        # CRITICAL FIX: Use temporal calculations to prevent data leakage
+        df_with_features = FeatureCalculator.calculate_all_features(
+            race_df,
+            use_temporal=True,  # SAME AS TRAINING - prevents data leakage
+            db_path=self.db_path
+        )
         prep_time = time.time() - prep_start
 
         if self.verbose:
-            print(f"  ✅ FeatureCalculator applied: {prep_time:.2f}s")
+            print(f"  ✅ FeatureCalculator applied (temporal mode): {prep_time:.2f}s")
+
+        # Step 3.5: Apply feature cleanup (same as training)
+        if self.verbose:
+            print("  🔧 Applying feature cleanup (removing leaking features)...")
+
+        from core.data_cleaning.feature_cleanup import FeatureCleaner
+        cleaner = FeatureCleaner()
+
+        # Clean features (removes leaking career stats)
+        df_with_features = cleaner.clean_features(df_with_features)
+
+        # Apply transformations (log transforms)
+        df_with_features = cleaner.apply_transformations(df_with_features)
+
+        if self.verbose:
+            print(f"  ✅ Feature cleanup applied: {len(df_with_features.columns)} features")
 
         # Step 4: Use orchestrator's TabNet preparation (matching training pipeline exactly)
         # Training uses: orchestrator.prepare_tabnet_features(df_with_features)
@@ -310,19 +409,23 @@ class RacePredictor:
                 expected_features = self.rf_model.base_regressor.feature_names_in_
 
         if expected_features is not None:
-            # Align features with training
-            aligned_X = pd.DataFrame(0, index=range(len(X)), columns=expected_features)
-            common_features = set(X.columns) & set(expected_features)
+            # Align features with training - OPTIMIZED VERSION
+            # Use cached common features if available (avoids set operations)
+            if self._rf_common_features_cache is None:
+                self._rf_common_features_cache = list(set(expected_features))
 
-            for feature in common_features:
-                # Clean empty strings and non-numeric values before assignment
-                feature_values = X[feature].replace(['', None, 'NULL'], 0).fillna(0)
-                try:
-                    aligned_X[feature] = pd.to_numeric(feature_values, errors='coerce').fillna(0)
-                except Exception as e:
-                    if self.verbose:
-                        print(f"Warning: Could not convert feature {feature} to numeric, using 0s: {e}")
-                    aligned_X[feature] = 0
+            # Filter to available features
+            common_features = [f for f in self._rf_common_features_cache if f in X.columns]
+
+            # Use reindex for fast alignment (much faster than DataFrame init + loop)
+            aligned_X = X[common_features].reindex(columns=expected_features, fill_value=0)
+
+            # Clean all columns at once (vectorized)
+            aligned_X = aligned_X.replace(['', None, 'NULL'], 0).fillna(0)
+
+            # Ensure numeric dtypes (vectorized)
+            for col in aligned_X.columns:
+                aligned_X[col] = pd.to_numeric(aligned_X[col], errors='coerce').fillna(0)
 
             X_for_prediction = aligned_X
 
@@ -501,6 +604,7 @@ class RacePredictor:
         self.tabnet_model = None
         self.tabnet_scaler = None
         self.tabnet_feature_columns = None
+        self.tabnet_feature_selector = None
 
         if not TABNET_AVAILABLE:
             if self.verbose:
@@ -542,6 +646,21 @@ class RacePredictor:
                         config = json.load(f)
                         self.tabnet_feature_columns = config.get('feature_columns', [])
 
+                # Load feature selector if it exists
+                try:
+                    from core.feature_selection.tabnet_feature_selector import TabNetFeatureSelector
+                    feature_selector_file = tabnet_path / "feature_selector.json"
+                    if feature_selector_file.exists():
+                        self.tabnet_feature_selector = TabNetFeatureSelector.load(str(feature_selector_file))
+                        if self.verbose:
+                            print(f"Loaded TabNet feature selector: {len(self.tabnet_feature_selector.selected_features)} selected features")
+                    else:
+                        if self.verbose:
+                            print(f"No feature selector found (using all features)")
+                except Exception as e:
+                    if self.verbose:
+                        print(f"Warning: Could not load feature selector: {e}")
+
                 if self.verbose:
                     print(f"Loaded TabNet model from: {tabnet_model_file}")
                     if self.tabnet_feature_columns:
@@ -556,6 +675,7 @@ class RacePredictor:
             self.tabnet_model = None
             self.tabnet_scaler = None
             self.tabnet_feature_columns = None
+            self.tabnet_feature_selector = None
     
     def _load_alternative_models(self):
         """Load alternative models (TabNet only for 2-model system)."""
@@ -696,20 +816,49 @@ class RacePredictor:
             if self.verbose:
                 print("TabNet model not available")
             return None
-            
+
         try:
             # Prepare TabNet-specific features using new pipeline
             X_tabnet, complete_df = self.prepare_tabnet_features(race_df)
+
+            # Cache features for potential reuse (e.g., feature export)
+            self._cached_tabnet_features = (X_tabnet, complete_df)
+
             if X_tabnet is None or X_tabnet.empty:
                 if self.verbose:
                     print("Warning: No TabNet features prepared")
                 return None
             
-            # Validate feature consistency with training
-            if self.tabnet_feature_columns:
+            # Determine which features to use based on whether we have feature selection
+            if self.tabnet_feature_selector is not None:
+                # Use feature selection pipeline
+                if self.verbose:
+                    print(f"Using TabNet feature selection pipeline...")
+
+                # Get original features from selector (features before selection)
+                expected_features = self.tabnet_feature_selector.original_features
+                available_features = [col for col in expected_features if col in X_tabnet.columns]
+                missing_features = [col for col in expected_features if col not in X_tabnet.columns]
+
+                if missing_features and self.verbose:
+                    print(f"Warning: Missing {len(missing_features)}/{len(expected_features)} original features")
+
+                # Create aligned DataFrame with original features - OPTIMIZED
+                aligned_X = X_tabnet[available_features].reindex(columns=expected_features, fill_value=0.0)
+
+                if self.verbose:
+                    print(f"TabNet features before selection: {aligned_X.shape}")
+
+                # Apply feature selection
+                X_df = self.tabnet_feature_selector.transform(aligned_X)
+                if self.verbose:
+                    print(f"TabNet features after selection: {X_df.shape} ({len(expected_features)} → {len(X_df.columns)})")
+
+            elif self.tabnet_feature_columns:
+                # No feature selection - use model's expected features directly
                 available_features = [col for col in self.tabnet_feature_columns if col in X_tabnet.columns]
                 missing_features = [col for col in self.tabnet_feature_columns if col not in X_tabnet.columns]
-                
+
                 if missing_features and self.verbose:
                     print(f"Warning: Missing TabNet features: {len(missing_features)}/{len(self.tabnet_feature_columns)}")
 
@@ -725,39 +874,20 @@ class RacePredictor:
                     if self.verbose:
                         print(f"Warning: Insufficient feature match ({feature_match_ratio:.2f} < 0.70)")
                     return None
-                    
-                # Create aligned DataFrame with all training features
-                # Fill missing features with zeros to maintain exact feature order from training
-                aligned_X = pd.DataFrame(0.0, index=range(len(X_tabnet)), columns=self.tabnet_feature_columns)
 
-                # DEBUG: Log critical features before alignment
-                if self.verbose:
-                    for feat in ['cotedirect', 'coteprob', 'gainsAnneeEnCours']:
-                        if feat in X_tabnet.columns:
-                            print(f"  DEBUG: X_tabnet[{feat}] before align: {X_tabnet[feat].head(3).tolist()}")
-                        if feat in available_features:
-                            print(f"  DEBUG: {feat} IN available_features ✅")
-                        else:
-                            print(f"  DEBUG: {feat} NOT in available_features ❌")
-
-                # Fill available features with actual values
-                for feature in available_features:
-                    aligned_X[feature] = X_tabnet[feature]
-
-                # DEBUG: Log critical features after alignment
-                if self.verbose:
-                    for feat in ['cotedirect', 'coteprob', 'gainsAnneeEnCours']:
-                        if feat in aligned_X.columns:
-                            print(f"  DEBUG: aligned_X[{feat}] after align: {aligned_X[feat].head(3).tolist()}")
+                # Create aligned DataFrame with all training features - OPTIMIZED
+                aligned_X = X_tabnet[available_features].reindex(columns=self.tabnet_feature_columns, fill_value=0.0)
 
                 if self.verbose:
                     print(f"TabNet features aligned: {aligned_X.shape}")
                 X_df = aligned_X
-                X = X_df.values
             else:
-                # Use all available features - keep as DataFrame for scaler
+                # Use all available features
                 X_df = X_tabnet
-                X = X_df.values
+                if self.verbose:
+                    print(f"Using all available features: {X_df.shape}")
+
+            X = X_df.values
 
             # Scale features using training scaler
             if self.tabnet_scaler is not None:
@@ -769,40 +899,13 @@ class RacePredictor:
                 if self.verbose:
                     print("Warning: No TabNet scaler available")
                 
-            # Generate predictions with diagnostics
+            # Generate predictions
             tabnet_preds = self.tabnet_model.predict(X_scaled)
-
-            # CRITICAL DEBUGGING: Log raw prediction values AND features
-            if self.verbose:
-                print(f"🔍 TABNET PREDICTION DIAGNOSTICS:")
-                print(f"   Input features shape: {X_scaled.shape}")
-                print(f"   Input features range: {X_scaled.min():.3f} to {X_scaled.max():.3f}")
-
-                # Find which features have extreme values
-                max_vals_per_feature = np.max(np.abs(X_scaled), axis=0)
-                extreme_feature_idx = np.where(max_vals_per_feature > 1000)[0]
-                if len(extreme_feature_idx) > 0:
-                    print(f"   🚨 EXTREME FEATURE VALUES FOUND:")
-                    for idx in extreme_feature_idx:
-                        feature_name = self.tabnet_feature_columns[idx] if self.tabnet_feature_columns and idx < len(self.tabnet_feature_columns) else f"feature_{idx}"
-                        print(f"      Feature {idx} ({feature_name}): max_abs = {max_vals_per_feature[idx]:.0f}")
-                        print(f"      Values: {X_scaled[:, idx]}")
-
-                print(f"   Raw predictions shape: {tabnet_preds.shape}")
-                print(f"   Raw predictions range: {tabnet_preds.min():.3f} to {tabnet_preds.max():.3f}")
-                print(f"   Raw predictions sample: {tabnet_preds.flatten()[:5]}")
-
-                # Check for extreme values
-                extreme_count = np.sum(np.abs(tabnet_preds) > 100)
-                if extreme_count > 0:
-                    print(f"   ⚠️  WARNING: {extreme_count} predictions have absolute value > 100")
-                    print(f"   ⚠️  Extreme values: {tabnet_preds[np.abs(tabnet_preds) > 100]}")
 
             if len(tabnet_preds.shape) > 1:
                 tabnet_preds = tabnet_preds.flatten()
 
             if self.verbose:
-                print(f"   Final predictions after flatten: {tabnet_preds[:5]}")
                 print(f"TabNet prediction: {len(tabnet_preds)} predictions generated")
 
             return tabnet_preds
@@ -861,6 +964,474 @@ class RacePredictor:
                 print(f"Error preparing alternative model predictions: {e}")
         
         return predictions
+
+    def _capture_features_for_export(self, race_df: pd.DataFrame, X_tabnet: pd.DataFrame,
+                                     race_metadata: dict):
+        """
+        Capture TabNet features from current race for later export.
+
+        Args:
+            race_df: Original race data
+            X_tabnet: TabNet feature matrix (unscaled)
+            race_metadata: Race metadata (comp, hippo, etc.)
+        """
+        if not self.enable_feature_export:
+            return
+
+        race_id = race_metadata.get('comp', 'unknown')
+
+        # Prepare feature record with metadata (TabNet features only)
+        feature_record = {
+            'race_id': race_id,
+            'hippo': race_metadata.get('hippo', ''),
+            'date': race_metadata.get('date', ''),
+            'partants': len(race_df),
+            'X_features': X_tabnet.to_dict('records') if X_tabnet is not None else [],
+            'feature_names': list(X_tabnet.columns) if X_tabnet is not None else [],
+            'feature_count': len(X_tabnet.columns) if X_tabnet is not None else 0
+        }
+
+        self.feature_buffer.append(feature_record)
+
+        if self.verbose:
+            feature_count = feature_record['feature_count']
+            print(f"📊 Captured {feature_count} TabNet features for race {race_id} ({len(self.feature_buffer)}/{self.feature_export_min_races})")
+
+        # Export if we've reached the minimum
+        if len(self.feature_buffer) >= self.feature_export_min_races:
+            self._export_features()
+
+    def _export_features(self):
+        """Export accumulated features to JSON file."""
+        if not self.feature_buffer:
+            return
+
+        try:
+            output_file = 'X_general_features.json'
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+            export_data = {
+                'export_timestamp': timestamp,
+                'total_races': len(self.feature_buffer),
+                'total_horses': sum(record['partants'] for record in self.feature_buffer),
+                'races': self.feature_buffer
+            }
+
+            with open(output_file, 'w') as f:
+                json.dump(export_data, f, indent=2, default=str)
+
+            if self.verbose:
+                print(f"✅ Exported {len(self.feature_buffer)} races features to {output_file}")
+
+            # Clear buffer after export
+            self.feature_buffer = []
+
+        except Exception as e:
+            if self.verbose:
+                print(f"⚠️ Error exporting features: {e}")
+
+    def get_feature_buffer_status(self) -> dict:
+        """Get current status of feature buffer."""
+        return {
+            'enabled': self.enable_feature_export,
+            'buffered_races': len(self.feature_buffer),
+            'min_races': self.feature_export_min_races,
+            'ready_to_export': len(self.feature_buffer) >= self.feature_export_min_races
+        }
+
+    def force_export_features(self):
+        """Force export of features even if minimum not reached."""
+        if self.feature_buffer:
+            self._export_features()
+
+    def load_races_from_db(self, race_ids: List[str] = None, date: str = None,
+                           limit: int = None) -> List[pd.DataFrame]:
+        """
+        Efficiently load multiple races from database.
+
+        Args:
+            race_ids: List of specific race IDs to load
+            date: Load all races from specific date (YYYY-MM-DD)
+            limit: Maximum number of races to load
+
+        Returns:
+            List of race DataFrames
+        """
+        import sqlite3
+
+        conn = sqlite3.connect(self.db_path)
+
+        try:
+            if race_ids:
+                # Load specific races
+                placeholders = ','.join(['?'] * len(race_ids))
+                query = f"""
+                    SELECT * FROM daily_race
+                    WHERE comp IN ({placeholders})
+                """
+                params = race_ids
+            elif date:
+                # Load races from specific date
+                query = "SELECT * FROM daily_race WHERE jour = ?"
+                params = (date,)
+            else:
+                # Load all races (with optional limit)
+                query = "SELECT * FROM daily_race"
+                params = ()
+
+            if limit:
+                query += f" LIMIT {limit}"
+
+            df = pd.read_sql_query(query, conn, params=params)
+
+            if len(df) == 0:
+                return []
+
+            # Expand participants for each race
+            races = []
+            for _, race_row in df.iterrows():
+                try:
+                    participants_json = race_row.get('participants', '[]')
+                    participants = json.loads(participants_json)
+
+                    # Create race dataframe with participant data
+                    race_data = []
+                    for participant in participants:
+                        row = {**race_row.to_dict(), **participant}
+                        row.pop('participants', None)
+                        race_data.append(row)
+
+                    if race_data:
+                        race_df = pd.DataFrame(race_data)
+                        races.append(race_df)
+
+                except Exception as e:
+                    if self.verbose:
+                        print(f"Warning: Could not parse race {race_row.get('comp')}: {e}")
+                    continue
+
+            if self.verbose:
+                print(f"Loaded {len(races)} races from database")
+
+            return races
+
+        finally:
+            conn.close()
+
+    def predict_races_batch(self, races: List[pd.DataFrame], n_jobs: int = 4,
+                            chunk_size: int = 50, max_memory_mb: float = 4096,
+                            verbose: bool = None, progress_callback=None) -> List[pd.DataFrame]:
+        """
+        Predict multiple races in parallel using multiprocessing with memory management.
+
+        Args:
+            races: List of race DataFrames
+            n_jobs: Number of parallel jobs (default: 4, use -1 for all cores)
+            chunk_size: Number of races to process per chunk (default: 50)
+            max_memory_mb: Maximum memory usage in MB before forcing cleanup (default: 4GB)
+            verbose: Override instance verbosity
+            progress_callback: Optional callback(percent, message) for progress updates
+
+        Returns:
+            List of prediction DataFrames
+
+        Example:
+            races = [race1_df, race2_df, race3_df, ...]
+            results = predictor.predict_races_batch(races, n_jobs=8, chunk_size=50)
+        """
+        if verbose is None:
+            verbose = self.verbose
+
+        if verbose:
+            mem_usage = get_memory_usage()
+            print(f"🚀 Batch predicting {len(races)} races with {n_jobs} workers...")
+            print(f"   Initial memory: {mem_usage['rss_mb']:.1f} MB ({mem_usage['percent']:.1f}%)")
+            print(f"   Chunk size: {chunk_size} races")
+
+        import multiprocessing as mp
+
+        # Determine number of workers
+        if n_jobs == -1:
+            n_jobs = mp.cpu_count()
+        n_jobs = min(n_jobs, mp.cpu_count())
+
+        if n_jobs == 1 or len(races) == 1:
+            # Sequential processing for single job or single race
+            results = []
+            for idx, race in enumerate(races):
+                if progress_callback:
+                    progress = 20 + int((idx / len(races)) * 75)
+                    progress_callback(progress, f"Processing race {idx + 1}/{len(races)}...")
+                results.append(self.predict_race(race))
+            return results
+
+        # Process in chunks to manage memory
+        start_time = time.time()
+        all_results = []
+
+        # Calculate number of chunks
+        num_chunks = (len(races) + chunk_size - 1) // chunk_size
+
+        for chunk_idx in range(num_chunks):
+            chunk_start = chunk_idx * chunk_size
+            chunk_end = min((chunk_idx + 1) * chunk_size, len(races))
+            chunk_races = races[chunk_start:chunk_end]
+
+            # Update progress: 20% to 95% based on chunk completion
+            if progress_callback:
+                progress = 20 + int((chunk_idx / num_chunks) * 75)
+                mem_info = get_memory_usage()
+                mem_str = f" (Mem: {mem_info['rss_mb']:.0f}MB)" if PSUTIL_AVAILABLE else ""
+                progress_callback(progress, f"Processing chunk {chunk_idx + 1}/{num_chunks}{mem_str}...")
+
+            if verbose:
+                print(f"\n📦 Processing chunk {chunk_idx + 1}/{num_chunks} ({len(chunk_races)} races)...")
+
+            # Check memory before processing
+            mem_before = get_memory_usage()
+            if mem_before['rss_mb'] > max_memory_mb and PSUTIL_AVAILABLE:
+                if verbose:
+                    print(f"⚠️  Memory usage high ({mem_before['rss_mb']:.1f} MB), forcing cleanup...")
+                cleanup_memory()
+                mem_after = get_memory_usage()
+                if verbose:
+                    freed = mem_before['rss_mb'] - mem_after['rss_mb']
+                    print(f"✅ Freed {freed:.1f} MB (now at {mem_after['rss_mb']:.1f} MB)")
+
+            # Parallel processing for chunk
+            chunk_start_time = time.time()
+
+            # Limit workers to chunk size for small chunks
+            chunk_workers = min(n_jobs, len(chunk_races))
+
+            # Use pool with initializer for efficient worker setup
+            with mp.Pool(
+                processes=chunk_workers,
+                initializer=_init_worker,
+                initargs=(self.db_name, False)
+            ) as pool:
+                chunk_results = pool.map(_worker_predict_race, chunk_races)
+
+            chunk_time = time.time() - chunk_start_time
+            all_results.extend(chunk_results)
+
+            if verbose:
+                mem_after = get_memory_usage()
+                print(f"✅ Chunk complete: {len(chunk_races)} races in {chunk_time:.2f}s")
+                if PSUTIL_AVAILABLE:
+                    print(f"   Memory: {mem_after['rss_mb']:.1f} MB ({mem_after['percent']:.1f}%)")
+
+            # Cleanup after each chunk
+            cleanup_memory()
+
+        total_time = time.time() - start_time
+
+        if verbose:
+            mem_final = get_memory_usage()
+            print(f"\n{'='*60}")
+            print(f"✅ Batch prediction complete!")
+            print(f"   Total: {len(races)} races in {total_time:.2f}s")
+            print(f"   Average: {total_time/len(races):.2f}s per race")
+            if PSUTIL_AVAILABLE:
+                print(f"   Final memory: {mem_final['rss_mb']:.1f} MB ({mem_final['percent']:.1f}%)")
+            print(f"{'='*60}")
+
+        return all_results
+
+    def predict_from_db(self, race_ids: List[str] = None, date: str = None,
+                       limit: int = None, n_jobs: int = 4,
+                       chunk_size: int = 50, max_memory_mb: float = 4096,
+                       store_to_db: bool = True, progress_callback=None) -> List[pd.DataFrame]:
+        """
+        Load races from database and predict in batch with memory management.
+
+        Args:
+            race_ids: List of specific race IDs to predict
+            date: Predict all races from specific date
+            limit: Maximum number of races to predict
+            n_jobs: Number of parallel workers (use -1 for all cores)
+            chunk_size: Number of races to process per chunk (default: 50)
+            max_memory_mb: Maximum memory usage in MB (default: 4GB)
+            store_to_db: Whether to store predictions back to database
+            progress_callback: Optional callback(percent, message) for progress updates
+
+        Returns:
+            List of prediction DataFrames
+
+        Example:
+            # Predict all races from a date with memory management
+            results = predictor.predict_from_db(date='2025-10-15', n_jobs=8, chunk_size=50)
+
+            # Predict 1000 races with strict memory limit
+            results = predictor.predict_from_db(limit=1000, n_jobs=8,
+                                               chunk_size=30, max_memory_mb=2048)
+        """
+        start_time = time.time()
+
+        if progress_callback:
+            progress_callback(5, "Loading races from database...")
+
+        if self.verbose:
+            mem_start = get_memory_usage()
+            print(f"🔥 Memory-safe batch prediction pipeline starting...")
+            if PSUTIL_AVAILABLE:
+                print(f"   Initial memory: {mem_start['rss_mb']:.1f} MB ({mem_start['percent']:.1f}%)")
+
+        # Step 1: Load races from database in streaming mode
+        load_start = time.time()
+        races = self.load_races_from_db(race_ids=race_ids, date=date, limit=limit)
+        load_time = time.time() - load_start
+
+        if not races:
+            if self.verbose:
+                print("No races found")
+            if progress_callback:
+                progress_callback(100, "No races found")
+            return []
+
+        if progress_callback:
+            progress_callback(15, f"Loaded {len(races)} races, starting predictions...")
+
+        if self.verbose:
+            mem_after_load = get_memory_usage()
+            print(f"✅ Loaded {len(races)} races in {load_time:.2f}s")
+            if PSUTIL_AVAILABLE:
+                print(f"   Memory after load: {mem_after_load['rss_mb']:.1f} MB")
+
+        # Step 2: Batch predict with multiprocessing and memory management
+        results = self.predict_races_batch(
+            races,
+            n_jobs=n_jobs,
+            chunk_size=chunk_size,
+            max_memory_mb=max_memory_mb,
+            verbose=self.verbose,
+            progress_callback=progress_callback  # Pass through progress callback
+        )
+
+        # Clear races from memory
+        del races
+        cleanup_memory()
+
+        # Step 3: Store to database if requested (in chunks to save memory)
+        if store_to_db and results:
+            if progress_callback:
+                progress_callback(95, "Storing predictions to database...")
+
+            store_start = time.time()
+            self._store_predictions_batch(results)
+            store_time = time.time() - store_start
+
+            if self.verbose:
+                print(f"✅ Stored {len(results)} races in {store_time:.2f}s")
+
+        total_time = time.time() - start_time
+
+        if progress_callback:
+            progress_callback(100, f"Complete! Processed {len(results)} races in {total_time:.1f}s")
+
+        if self.verbose:
+            mem_final = get_memory_usage()
+            print(f"\n{'='*60}")
+            print(f"🎉 BATCH PREDICTION COMPLETE")
+            print(f"{'='*60}")
+            print(f"  Races processed: {len(results)}")
+            print(f"  Total time: {total_time:.2f}s")
+            print(f"  Average: {total_time/len(results):.3f}s per race")
+            print(f"  Throughput: {len(results)/total_time:.1f} races/second")
+            if PSUTIL_AVAILABLE:
+                print(f"  Final memory: {mem_final['rss_mb']:.1f} MB ({mem_final['percent']:.1f}%)")
+            print(f"{'='*60}\n")
+
+        return results
+
+    def _store_predictions_batch(self, predictions: List[pd.DataFrame]):
+        """Store predictions for multiple races in batch (optimized)."""
+        if not self.simple_storage:
+            return
+
+        stored = 0
+        failed = 0
+        for pred_df in predictions:
+            try:
+                # Get race metadata
+                race_id = pred_df['comp'].iloc[0] if 'comp' in pred_df.columns else None
+                if not race_id:
+                    failed += 1
+                    continue
+
+                # Extract prediction data for race_predictions table
+                predictions_data = []
+                for _, row in pred_df.iterrows():
+                    horse_data = {
+                        'horse_id': row.get('idche'),
+                        'rf_prediction': row.get('predicted_position_rf'),
+                        'tabnet_prediction': row.get('predicted_position_tabnet'),
+                        'ensemble_prediction': row.get('predicted_position'),
+                        'final_prediction': row.get('predicted_position'),
+                        'ensemble_weight_rf': row.get('ensemble_weight_rf', 0.0),
+                        'ensemble_weight_tabnet': row.get('ensemble_weight_tabnet', 0.0)
+                    }
+                    predictions_data.append(horse_data)
+
+                # Store to race_predictions table
+                self.simple_storage.store_race_predictions(race_id, predictions_data)
+
+                # Also update daily_race.prediction_results field
+                # Extract columns for daily_race storage
+                output_columns = [
+                    'numero', 'idche', 'nom', 'predicted_position',
+                    'predicted_position_rf', 'predicted_position_tabnet',
+                    'predicted_position_uncalibrated',  # For calibration debugging
+                    'raw_rf_prediction',  # For debugging RF calibration compression
+                    'predicted_rank', 'ensemble_weight_rf', 'ensemble_weight_tabnet'
+                ]
+
+                # Only include columns that exist in pred_df
+                available_columns = [col for col in output_columns if col in pred_df.columns]
+                prediction_results = pred_df[available_columns].to_dict(orient='records')
+
+                # Get predicted_arriv
+                predicted_arriv = pred_df['predicted_arriv'].iloc[0] if 'predicted_arriv' in pred_df.columns else None
+
+                # Create metadata
+                metadata = {
+                    'comp': race_id,
+                    'hippo': pred_df['hippo'].iloc[0] if 'hippo' in pred_df.columns else None,
+                    'prix': pred_df['prix'].iloc[0] if 'prix' in pred_df.columns else None,
+                    'jour': pred_df['jour'].iloc[0] if 'jour' in pred_df.columns else None,
+                    'typec': pred_df['typec'].iloc[0] if 'typec' in pred_df.columns else None,
+                    'participants_count': len(prediction_results),
+                    'predicted_arriv': predicted_arriv
+                }
+
+                # Create full prediction data structure
+                prediction_data = {
+                    'metadata': metadata,
+                    'predictions': prediction_results,
+                    'predicted_arriv': predicted_arriv
+                }
+
+                # Update daily_race table
+                conn = sqlite3.connect(self.db_path)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE daily_race SET prediction_results = ?, updated_at = ? WHERE comp = ?",
+                    (json.dumps(prediction_data), datetime.now().isoformat(), race_id)
+                )
+                conn.commit()
+                conn.close()
+
+                stored += 1
+
+            except Exception as e:
+                failed += 1
+                if self.verbose:
+                    print(f"Warning: Failed to store predictions for race {race_id}: {e}")
+                    import traceback
+                    print(traceback.format_exc())
+
+        if self.verbose or failed > 0:
+            print(f"Storage: {stored}/{len(predictions)} races successful, {failed} failed")
 
     def predict_race(self, race_df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -940,15 +1511,27 @@ class RacePredictor:
                     print(f"✅ {model}: {type(preds)} shape {preds.shape}")
                 # Don't show None models to avoid confusion
 
-        # Step 7: Prepare race metadata and apply dynamic weights
+        # Step 6.5: Capture features for export (if enabled)
         race_metadata = {
             'distance': race_df.get('dist', [0]).iloc[0] if 'dist' in race_df.columns else 1600,
             'dist': race_df.get('dist', [0]).iloc[0] if 'dist' in race_df.columns else 1600,
             'typec': race_df.get('typec', ['P']).iloc[0] if 'typec' in race_df.columns else 'P',
             'field_size': len(race_df),
             'hippo': race_df.get('hippo', ['']).iloc[0] if 'hippo' in race_df.columns else '',
-            'comp': race_df.get('comp', ['']).iloc[0] if 'comp' in race_df.columns else ''
+            'comp': race_df.get('comp', ['']).iloc[0] if 'comp' in race_df.columns else '',
+            'date': race_df.get('jour', ['']).iloc[0] if 'jour' in race_df.columns else ''
         }
+
+        # Capture features for analysis (accumulates 5+ races before export)
+        if self.enable_feature_export:
+            # Reuse cached TabNet features to avoid duplicate preparation
+            if self._cached_tabnet_features is not None:
+                X_tabnet_unscaled, _ = self._cached_tabnet_features
+                self._capture_features_for_export(race_df, X_tabnet_unscaled, race_metadata)
+            elif self.verbose:
+                print("Warning: No cached TabNet features available for export")
+
+        # Step 7: Prepare race metadata and apply dynamic weights
 
         # Apply dynamic weights based on race characteristics
         if self.verbose:
@@ -964,36 +1547,6 @@ class RacePredictor:
         if self.verbose:
             print(f"Dynamic weights applied: RF={rf_weight:.2f}, TabNet={tabnet_weight:.2f}")
             print(f"=== END DYNAMIC WEIGHTING ===\n")
-
-        # Debug: Show race data structure before competitive analysis
-        if self.verbose:
-            print(f"\n=== RACE DATA DEBUG BEFORE COMPETITIVE ANALYSIS ===")
-            print(f"race_df shape: {race_df.shape}")
-            print(f"race_df columns ({len(race_df.columns)}): {list(race_df.columns)}")
-
-            # Check critical competitive columns
-            critical_cols = ['recordG', 'hippo', 'coursescheval', 'victoirescheval', 'placescheval', 'gainsCarriere', 'age']
-            print(f"\n=== CRITICAL COLUMNS CHECK ===")
-            for col in critical_cols:
-                if col in race_df.columns:
-                    non_null = race_df[col].notna().sum()
-                    print(f"✅ {col}: {non_null}/{len(race_df)} non-null ({non_null/len(race_df)*100:.1f}%)")
-                    if non_null > 0:
-                        sample = race_df[col].dropna().head(2).tolist()
-                        print(f"   Sample: {sample}")
-                else:
-                    print(f"❌ {col}: NOT FOUND")
-
-            # Show first few rows with key columns
-            key_cols = ['numero', 'cheval'] + [col for col in critical_cols if col in race_df.columns]
-            available_key_cols = [col for col in key_cols if col in race_df.columns]
-            if available_key_cols:
-                print(f"\n=== SAMPLE RACE DATA (first 3 horses) ===")
-                sample_data = race_df[available_key_cols].head(3)
-                for i, (idx, row) in enumerate(sample_data.iterrows()):
-                    print(f"Horse {i+1}: {dict(row)}")
-
-            print(f"=== END RACE DATA DEBUG ===\n")
 
         # Step 8: Use competitive analysis enhanced blending
         step_start = time.time()
@@ -1092,6 +1645,59 @@ class RacePredictor:
         result_df = race_df.copy()
         result_df['predicted_position'] = final_predictions
 
+        # Add individual model predictions for storage
+        if rf_predictions is not None:
+            result_df['predicted_position_rf'] = rf_predictions
+        if tabnet_predictions is not None:
+            result_df['predicted_position_tabnet'] = tabnet_predictions
+
+        # Add blend weights for storage
+        result_df['ensemble_weight_rf'] = rf_weight
+        result_df['ensemble_weight_tabnet'] = tabnet_weight
+
+        # Step 10.5: Apply bias-based calibration (general model)
+        from core.calibration.prediction_calibrator import PredictionCalibrator
+        from pathlib import Path as CalibPath
+
+        calibration_path = CalibPath('models/calibration/general_calibration.json')
+        if calibration_path.exists():
+            try:
+                calibrator = PredictionCalibrator(calibration_path)
+
+                # Prepare DataFrame for calibration - build it properly
+                calib_df = result_df[['predicted_position', 'numero']].copy()
+
+                # Add cotedirect column (with default if missing)
+                if 'cotedirect' in result_df.columns:
+                    calib_df['cotedirect'] = result_df['cotedirect'].values
+                else:
+                    calib_df['cotedirect'] = 5.0  # Broadcast to all rows
+
+                # Add race characteristics (broadcast scalars to all rows)
+                calib_df['distance'] = race_metadata.get('distance', race_metadata.get('dist', 1600))
+                calib_df['typec'] = race_metadata.get('typec', 'P')
+                calib_df['partant'] = race_metadata.get('field_size', len(result_df))
+
+                if self.verbose:
+                    print(f"\nBefore calibration: {result_df['predicted_position'].head().values}")
+
+                # Apply bias calibration
+                calibrated_df = calibrator.transform(calib_df)
+                result_df['predicted_position_uncalibrated'] = result_df['predicted_position'].values
+                result_df['predicted_position'] = calibrated_df['calibrated_prediction'].values
+
+                if self.verbose:
+                    print(f"After calibration: {result_df['predicted_position'].head().values}")
+                    print(f"✓ Applied general bias calibration")
+
+            except Exception as e:
+                if self.verbose:
+                    print(f"⚠ Bias calibration failed: {e}")
+                    import traceback
+                    traceback.print_exc()
+        elif self.verbose:
+            print(f"⚠ No general bias calibration available")
+
         # Sort by predicted position (lower is better)
         result_df = result_df.sort_values('predicted_position')
         result_df['predicted_rank'] = range(1, len(result_df) + 1)
@@ -1100,6 +1706,13 @@ class RacePredictor:
         numeros_ordered = result_df['numero'].astype(str).tolist()
         predicted_arriv = '-'.join(numeros_ordered)
         result_df['predicted_arriv'] = predicted_arriv
+
+        # Clear cached features and cleanup memory
+        self._cached_tabnet_features = None
+
+        # Free memory from large intermediate objects
+        del embedded_df, X_rf
+        # Don't delete predictions yet - they're in the result_df
 
         if self.verbose:
             print("Prediction complete")
@@ -1137,7 +1750,7 @@ class RacePredictor:
         try:
             # Get races to re-blend
             if race_id:
-                # Specific race only
+                # Specific race only (now includes quinté races)
                 race_query = """
                     SELECT DISTINCT comp, typec, partant, dist
                     FROM daily_race
@@ -1145,7 +1758,7 @@ class RacePredictor:
                 """
                 races = pd.read_sql_query(race_query, conn, params=(race_id,))
             elif all_races:
-                # All races that have predictions
+                # All races that have predictions (now includes quinté races)
                 race_query = """
                     SELECT DISTINCT dr.comp, dr.typec, dr.partant, dr.dist
                     FROM daily_race dr
@@ -1153,7 +1766,7 @@ class RacePredictor:
                 """
                 races = pd.read_sql_query(race_query, conn)
             elif date:
-                # Specific date
+                # Specific date (now includes quinté races)
                 race_query = """
                     SELECT DISTINCT comp, typec, partant, dist
                     FROM daily_race
@@ -1161,7 +1774,7 @@ class RacePredictor:
                 """
                 races = pd.read_sql_query(race_query, conn, params=(date,))
             else:
-                # Default to all races with predictions
+                # Default to all races with predictions (now includes quinté races)
                 race_query = """
                     SELECT DISTINCT dr.comp, dr.typec, dr.partant, dr.dist
                     FROM daily_race dr
@@ -1201,7 +1814,7 @@ class RacePredictor:
                     print(f"\nRace {race_comp}: typec={race_row['typec']}, partant={race_row['partant']}, dist={race_row['dist']}")
                     print(f"  Dynamic weights: RF={rf_weight:.2f}, TabNet={tabnet_weight:.2f}")
 
-                # Get existing predictions for this race
+                # Get existing predictions for this race (now includes quinté)
                 pred_query = """
                     SELECT id, horse_id, rf_prediction, tabnet_prediction,
                            ensemble_weight_rf, ensemble_weight_tabnet
@@ -1215,50 +1828,46 @@ class RacePredictor:
                         print(f"  No predictions found for race {race_comp}, skipping")
                     continue
 
-                # Re-blend predictions with new weights
-                updates = []
-                for _, pred_row in predictions.iterrows():
-                    rf_pred = pred_row['rf_prediction']
-                    tabnet_pred = pred_row['tabnet_prediction']
+                # Re-blend predictions with new weights - VECTORIZED (much faster!)
+                # Filter out rows with missing predictions
+                valid_preds = predictions.dropna(subset=['rf_prediction', 'tabnet_prediction'])
 
-                    # Skip if either prediction is missing
-                    if pd.isna(rf_pred) or pd.isna(tabnet_pred):
-                        continue
+                if len(valid_preds) == 0:
+                    if verbose:
+                        print(f"  No valid predictions for race {race_comp}, skipping")
+                    continue
 
-                    # Calculate new ensemble prediction
-                    new_ensemble_pred = rf_pred * rf_weight + tabnet_pred * tabnet_weight
+                # Vectorized calculation (no loop!)
+                valid_preds['ensemble_prediction'] = (
+                    valid_preds['rf_prediction'] * rf_weight +
+                    valid_preds['tabnet_prediction'] * tabnet_weight
+                )
+                valid_preds['final_prediction'] = valid_preds['ensemble_prediction']
+                valid_preds['ensemble_weight_rf'] = rf_weight
+                valid_preds['ensemble_weight_tabnet'] = tabnet_weight
 
-                    # Store update info
-                    updates.append({
-                        'id': pred_row['id'],
-                        'ensemble_weight_rf': rf_weight,
-                        'ensemble_weight_tabnet': tabnet_weight,
-                        'ensemble_prediction': new_ensemble_pred,
-                        'final_prediction': new_ensemble_pred  # Update final too
-                    })
-
-                # Apply updates to race_predictions
+                # Batch update to database (much faster than individual updates!)
                 cursor = conn.cursor()
-                for update in updates:
-                    cursor.execute("""
-                        UPDATE race_predictions
-                        SET ensemble_weight_rf = ?,
-                            ensemble_weight_tabnet = ?,
-                            ensemble_prediction = ?,
-                            final_prediction = ?
-                        WHERE id = ?
-                    """, (
-                        update['ensemble_weight_rf'],
-                        update['ensemble_weight_tabnet'],
-                        update['ensemble_prediction'],
-                        update['final_prediction'],
-                        update['id']
-                    ))
+
+                # Convert to list of tuples efficiently (no iterrows!)
+                update_columns = ['ensemble_weight_rf', 'ensemble_weight_tabnet',
+                                  'ensemble_prediction', 'final_prediction', 'id']
+                update_data = [tuple(row) for row in valid_preds[update_columns].values]
+
+                # Use executemany for batch update (much faster!)
+                cursor.executemany("""
+                    UPDATE race_predictions
+                    SET ensemble_weight_rf = ?,
+                        ensemble_weight_tabnet = ?,
+                        ensemble_prediction = ?,
+                        final_prediction = ?
+                    WHERE id = ?
+                """, update_data)
 
                 # Update prediction_results in daily_race using participants mapping
                 import json
 
-                # Get updated predictions ordered by final_prediction
+                # Get updated predictions ordered by final_prediction (now includes quinté)
                 cursor.execute("""
                     SELECT
                         json_extract(p.value, '$.numero') as numero,
@@ -1338,16 +1947,16 @@ class RacePredictor:
                             print(f"  Warning: Could not parse prediction_results for {race_comp}")
 
                 conn.commit()
-                total_updated += len(updates)
+                total_updated += len(update_data)
                 races_updated.append({
                     'race_id': race_comp,
-                    'horses_updated': len(updates),
+                    'horses_updated': len(update_data),
                     'rf_weight': rf_weight,
                     'tabnet_weight': tabnet_weight
                 })
 
                 if verbose:
-                    print(f"  Updated {len(updates)} horses")
+                    print(f"  Updated {len(update_data)} horses")
 
             if verbose:
                 print(f"\n✅ Re-blending complete!")
@@ -1526,6 +2135,49 @@ def re_blend_predictions_with_dynamic_weights(race_id: Optional[str] = None,
     )
 
     return result
+
+
+def predict_races_fast(race_ids: List[str] = None, date: str = None,
+                       limit: int = None, n_jobs: int = -1,
+                       chunk_size: int = 50, max_memory_mb: float = 4096,
+                       db_name: str = None, verbose: bool = True,
+                       progress_callback=None) -> List[pd.DataFrame]:
+    """
+    Fast batch prediction with memory management for 1000+ races.
+
+    Args:
+        race_ids: List of specific race IDs
+        date: Predict all races from date (YYYY-MM-DD)
+        limit: Maximum races to predict
+        n_jobs: Number of parallel workers (-1 = all cores, default: -1)
+        chunk_size: Races per chunk for memory management (default: 50)
+        max_memory_mb: Max memory in MB before cleanup (default: 4GB)
+        db_name: Database name (defaults to active_db)
+        verbose: Print progress
+        progress_callback: Optional callback(percent, message) for progress updates
+
+    Returns:
+        List of prediction DataFrames
+
+    Example:
+        # Predict 1000 races with memory management
+        results = predict_races_fast(limit=1000, n_jobs=-1, chunk_size=50)
+
+        # Predict with strict memory limit (2GB)
+        results = predict_races_fast(date='2025-10-15', n_jobs=8,
+                                     chunk_size=30, max_memory_mb=2048)
+    """
+    predictor = RacePredictor(db_name=db_name, verbose=verbose)
+    return predictor.predict_from_db(
+        race_ids=race_ids,
+        date=date,
+        limit=limit,
+        n_jobs=n_jobs,
+        chunk_size=chunk_size,
+        max_memory_mb=max_memory_mb,
+        store_to_db=True,
+        progress_callback=progress_callback
+    )
 
 
 if __name__ == "__main__":

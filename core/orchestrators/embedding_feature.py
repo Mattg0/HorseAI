@@ -1126,20 +1126,40 @@ class FeatureEmbeddingOrchestrator:
 
         return embedded_df
 
-    def prepare_complete_dataset(self, df, use_cache=True):
+    def prepare_complete_dataset(self, df, use_cache=True, use_temporal=False):
         """
         Prepare complete dataset with all features for both RF and LSTM models.
 
         Args:
             df: DataFrame with race and participant data
             use_cache: Whether to use cached results
+            use_temporal: If True, use temporal calculator for career stats (prevents data leakage)
 
         Returns:
             DataFrame with all possible features (embeddings, static, sequence info)
         """
-        # Apply all feature engineering and embeddings
-        complete_df = self.prepare_features(df)
-        complete_df = self.apply_embeddings(complete_df)
+        # Step 0: Calculate standard racing features using FeatureCalculator
+        # This includes: cotedirect, recence, numero, and all derived features
+        # Only calculate if key features are missing
+        key_features = ['cotedirect', 'recence', 'numero', 'ratio_victoires', 'ratio_places']
+        missing_features = [f for f in key_features if f not in df.columns]
+
+        if missing_features:
+            self.log_info(f"Calculating standard racing features using FeatureCalculator (missing {len(missing_features)} key features)...")
+            from core.calculators.static_feature_calculator import FeatureCalculator
+
+            df = FeatureCalculator.calculate_all_features(
+                df,
+                use_temporal=use_temporal,
+                db_path=self.sqlite_path if use_temporal else None
+            )
+            self.log_info(f"Standard features calculated: {len(df.columns)} columns")
+        else:
+            self.log_info("Standard features already present, skipping FeatureCalculator")
+
+        # Step 2: Apply all feature engineering and embeddings
+        complete_df = self.prepare_features(df, use_cache=use_cache)
+        complete_df = self.apply_embeddings(complete_df, use_cache=use_cache)
 
         return complete_df
 
@@ -2168,25 +2188,116 @@ class FeatureEmbeddingOrchestrator:
             self.log_info(f"Error loading batch: {e}")
             return pd.DataFrame()
     
-    def prepare_complete_dataset_batched(self, df: pd.DataFrame, use_cache=True) -> pd.DataFrame:
+    def prepare_complete_dataset_batched(self, df: pd.DataFrame, use_cache=True, use_temporal=False) -> pd.DataFrame:
         """
         Prepare complete dataset using batch processing for memory efficiency.
+
+    # REMOVED DUPLICATE prepare_tabnet_features - using the one at line 856 instead
+
+    # ===============================
+    # MEMORY MONITORING AND BATCH PROCESSING
+    # ===============================
+    
+    def _init_memory_monitor(self):
+        """Initialize memory monitoring."""
+        if self.memory_monitor is None:
+            self.memory_monitor = MemoryMonitor(self.verbose)
+        return self.memory_monitor
+        
+    def _log_memory(self, stage: str, details: str = ""):
+        """Log memory usage at a specific stage."""
+        if self.memory_monitor:
+            self.memory_monitor.log_memory(stage, details)
+    
+    def _force_cleanup(self, stage: str = ""):
+        """Force garbage collection and log memory."""
+        if self.memory_monitor:
+            self.memory_monitor.force_cleanup(stage)
+        else:
+            gc.collect()
+            
+    def get_total_record_count(self, race_filter=None, date_filter=None) -> int:
+        """Get total number of records that would be processed."""
+        try:
+            with sqlite3.connect(self.sqlite_path) as conn:
+                query = """
+                    SELECT COUNT(*) as total
+                    FROM historical_races hr
+                """
+                
+                where_clauses = []
+                if race_filter:
+                    where_clauses.append(f"hr.typec = '{race_filter}'")
+                if date_filter:
+                    where_clauses.append(date_filter)
+                
+                if where_clauses:
+                    query += " WHERE " + " AND ".join(where_clauses)
+                
+                result = pd.read_sql_query(query, conn)
+                return int(result['total'].iloc[0])
+                
+        except Exception as e:
+            self.log_info(f"Error counting records: {e}")
+            return 0
+            
+    def should_use_batch_processing(self, total_records: int) -> bool:
+        """Determine if batch processing should be used."""
+        return (self.enable_batch_processing and 
+                total_records > self.batch_threshold)
+    
+    def create_temp_batch_dir(self) -> Path:
+        """Create temporary directory for batch files."""
+        if self.temp_batch_dir is None:
+            self.temp_batch_dir = Path(tempfile.mkdtemp(prefix="horse_ai_batch_"))
+        return self.temp_batch_dir
+    
+    def cleanup_temp_batch_dir(self):
+        """Clean up temporary batch directory."""
+        if self.temp_batch_dir and self.temp_batch_dir.exists():
+            import shutil
+            shutil.rmtree(self.temp_batch_dir)
+            self.temp_batch_dir = None
+            self.log_info("Cleaned up temporary batch directory")
+    
+    def load_historical_races_batched(self, 
+                                    limit=None, 
+                                    race_filter=None, 
+                                    date_filter=None, 
+                                    include_results=True,
+                                    use_cache=True) -> pd.DataFrame:
+        """
+        Load historical race data using batch processing for large datasets.
         
         Args:
             df: DataFrame with race and participant data
             use_cache: Whether to use cached results
-            
+            use_temporal: If True, use temporal calculator for career stats (prevents data leakage)
+
         Returns:
             DataFrame with all processed features
         """
         # Initialize memory monitoring
         monitor = self._init_memory_monitor()
         monitor.log_memory("PREP_START", "Starting dataset preparation")
-        
+
+        # Step 0: Calculate standard racing features using FeatureCalculator
+        # This includes: cotedirect, recence, numero, and all derived features
+        self.log_info("Calculating standard racing features using FeatureCalculator...")
+        from core.calculators.static_feature_calculator import FeatureCalculator
+
+        df = FeatureCalculator.calculate_all_features(
+            df,
+            use_temporal=use_temporal,
+            db_path=self.sqlite_path if use_temporal else None
+        )
+        self.log_info(f"Standard features calculated: {len(df.columns)} columns")
+        monitor.log_memory("FEATURES_DONE", "Standard features calculated")
+
         # Check if we should use batch processing
         if not self.should_use_batch_processing(len(df)):
             self.log_info("Using standard dataset preparation (below batch threshold)")
-            return self.prepare_complete_dataset(df, use_cache)
+            return self.prepare_complete_dataset(df, use_cache=use_cache, use_temporal=False)  # Already applied temporal
         
         self.log_info(f"Using batch processing for dataset preparation")
         

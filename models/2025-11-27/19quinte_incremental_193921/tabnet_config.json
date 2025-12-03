@@ -1,0 +1,49 @@
+{
+  "feature_columns": [
+    "handicapDistance",
+    "gainsAnneeEnCours",
+    "age",
+    "victoirescheval",
+    "placescheval",
+    "pourcPlaceChevalHippo",
+    "coursescheval",
+    "ratio_places",
+    "perf_cheval_hippo",
+    "che_weighted_avg_pos",
+    "che_weighted_recent_perf",
+    "joc_weighted_avg_pos",
+    "joc_weighted_recent_perf",
+    "class_drop_pct",
+    "purse_ratio",
+    "speed_figure_proxy",
+    "market_confidence_shift",
+    "trainer_change",
+    "distance_comfort",
+    "recence_x_class_drop",
+    "dist",
+    "temperature",
+    "recence_log",
+    "career_strike_rate",
+    "distance_consistency"
+  ],
+  "incremental_training": true,
+  "baseline_metrics": {
+    "total_races": 61,
+    "quinte_desordre_rate": 0.0,
+    "bonus_4_rate": 0.0,
+    "bonus_3_rate": 0.0,
+    "avg_mae": 0.0
+  },
+  "improved_metrics": {
+    "total_races": 61,
+    "quinte_desordre_rate": 0.0,
+    "bonus_4_rate": 0.0,
+    "bonus_3_rate": 0.0,
+    "avg_mae": 0.0
+  },
+  "improvement": {
+    "quinte_desordre": 0.0,
+    "bonus_4": 0.0,
+    "bonus_3": 0.0
+  }
+}

@@ -1,0 +1,6 @@
+2025-10-24 08:36:15,050 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251024.log
+2025-10-24 08:36:15,052 - RaceArchiver - INFO - Database structure verified
+2025-10-24 08:45:33,445 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): aspiturf.com:443
+2025-10-24 08:45:35,634 - urllib3.connectionpool - DEBUG - https://aspiturf.com:443 "GET /api/api/jour?uid=EhBCnKDamDfLkYJJjhWLf47xT7j1&jour=2025-10-25 HTTP/11" 200 None
+2025-10-24 08:45:40,993 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): aspiturf.com:443
+2025-10-24 08:45:41,841 - urllib3.connectionpool - DEBUG - https://aspiturf.com:443 "GET /api/api/jour?uid=EhBCnKDamDfLkYJJjhWLf47xT7j1&jour=2025-10-24 HTTP/11" 200 None

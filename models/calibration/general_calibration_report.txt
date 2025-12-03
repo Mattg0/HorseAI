@@ -1,0 +1,47 @@
+CALIBRATION REPORT
+================================================================================
+
+Model: general
+Date: 2025-11-20T13:30:36.490967
+Training samples: 23952
+Validation samples: 5989
+
+DETECTED BIASES:
+--------------------------------------------------------------------------------
+
+ODDS:
+  Severity: HIGH
+  Impact: 12.259 MAE
+  Description: Model systematically biased across 5 odds ranges
+
+POST_POSITION:
+  Severity: MEDIUM
+  Impact: 12.491 MAE
+  Description: Post position bias detected
+
+FIELD_SIZE:
+  Severity: MEDIUM
+  Impact: 11.732 MAE
+  Description: Field size bias detected
+
+DISTANCE:
+  Severity: LOW
+  Impact: 10.828 MAE
+  Description: Distance bias detected
+
+TYPEC:
+  Severity: MEDIUM
+  Impact: 11.608 MAE
+  Description: Race type bias detected
+
+SYSTEMATIC:
+  Severity: HIGH
+  Impact: 12.520 MAE
+  Description: Systematic over-predicting by 12.52
+
+
+VALIDATION RESULTS:
+--------------------------------------------------------------------------------
+MAE before calibration: 13.589
+MAE after calibration: 5.770
+Improvement: +7.819 (+57.5%)

@@ -21,12 +21,12 @@ class ModelManager:
         return self.get_model_path_by_type('rf')
         
     def get_model_path_by_type(self, model_type='rf'):
-        """Get the path of the latest model by type (rf, tabnet, feedforward)."""
+        """Get the path of the latest model by type (rf, tabnet, rf_quinte, tabnet_quinte)."""
         try:
             with open("config.yaml", 'r') as f:
                 config_data = yaml.safe_load(f)
 
-            # Check new format first (latest_models with rf, tabnet entries)
+            # Check new format first (latest_models with rf, tabnet, rf_quinte, tabnet_quinte entries)
             if 'models' in config_data and 'latest_models' in config_data['models']:
                 latest_models = config_data['models']['latest_models']
                 if model_type in latest_models and latest_models[model_type]:
@@ -51,7 +51,7 @@ class ModelManager:
     def get_all_model_paths(self):
         """Get paths for all available model types."""
         paths = {}
-        for model_type in ['rf', 'tabnet']:
+        for model_type in ['rf', 'tabnet', 'rf_quinte', 'tabnet_quinte']:
             path = self.get_model_path_by_type(model_type)
             if path:
                 paths[model_type] = path
@@ -83,8 +83,20 @@ class ModelManager:
 
         return sorted(timestamp_dirs)[-1]
 
-    def save_models(self, rf_model=None, lstm_model=None, feature_state=None, blend_weight=None):
-        """Save models with simple date/db based path."""
+    def save_models(self, rf_model=None, lstm_model=None, feature_state=None, blend_weight=None,
+                    model_suffix='', is_quinte=False, rf_feature_columns=None, tabnet_feature_columns=None):
+        """Save models with simple date/db based path.
+
+        Args:
+            rf_model: Random Forest model to save
+            lstm_model: TabNet model to save (legacy param name)
+            feature_state: Feature engineering state
+            blend_weight: Optional blend weight
+            model_suffix: Optional suffix for model directory name
+            is_quinte: Whether this is a quinte model
+            rf_feature_columns: List of feature names used by RF model
+            tabnet_feature_columns: List of feature names used by TabNet model
+        """
         # Ensure models directory exists
         self.model_dir.mkdir(parents=True, exist_ok=True)
 
@@ -93,8 +105,11 @@ class ModelManager:
         timestamp_str = datetime.now().strftime('%H%M%S')
         db_type = self.config._config.base.active_db
 
-        # Create path: models/YYYY-MM-DD/db_HHMMSS
-        save_path = self.model_dir / date_str / f"{db_type}_{timestamp_str}"
+        # Add suffix for quinté models
+        suffix = f"_{model_suffix}" if model_suffix else ""
+
+        # Create path: models/YYYY-MM-DD/db_HHMMSS_suffix
+        save_path = self.model_dir / date_str / f"{db_type}_{timestamp_str}{suffix}"
         save_path.mkdir(parents=True, exist_ok=True)
 
         saved_files = {}
@@ -105,11 +120,27 @@ class ModelManager:
             joblib.dump(rf_model, rf_path)
             saved_files['rf_model'] = rf_path
 
+            # Save RF feature columns if provided
+            if rf_feature_columns:
+                feature_path = save_path / "feature_columns.json"
+                with open(feature_path, 'w') as f:
+                    json.dump(rf_feature_columns, f, indent=2)
+                saved_files['feature_columns'] = feature_path
+                print(f"  ✅ Saved {len(rf_feature_columns)} RF feature names to feature_columns.json")
+
         # Save TabNet model (no hybrid prefix)
         if lstm_model is not None:  # Note: parameter name lstm_model but used for TabNet
             tabnet_path = save_path / "tabnet_model.keras"
             lstm_model.save(tabnet_path)
             saved_files['tabnet_model'] = tabnet_path
+
+            # Save TabNet feature columns if provided
+            if tabnet_feature_columns:
+                tabnet_feature_path = save_path / "tabnet_feature_columns.json"
+                with open(tabnet_feature_path, 'w') as f:
+                    json.dump(tabnet_feature_columns, f, indent=2)
+                saved_files['tabnet_feature_columns'] = tabnet_feature_path
+                print(f"  ✅ Saved {len(tabnet_feature_columns)} TabNet feature names to tabnet_feature_columns.json")
 
         # Save feature engineering state if provided (no hybrid prefix)
         if feature_state is not None:
@@ -120,7 +151,10 @@ class ModelManager:
         # Save minimal config
         config_data = {
             'db_type': db_type,
-            'created_at': datetime.now().isoformat()
+            'created_at': datetime.now().isoformat(),
+            'is_quinte': is_quinte,
+            'model_suffix': model_suffix,
+            'feature_count': len(rf_feature_columns) if rf_feature_columns else None
         }
 
         # Add blend_weight if provided
@@ -134,7 +168,14 @@ class ModelManager:
 
         # Update config.yaml with latest model
         relative_path = save_path.relative_to(self.model_dir)
-        self._update_config(str(relative_path))
+
+        # Determine model type for config update
+        if is_quinte:
+            model_type = 'rf_quinte' if rf_model is not None else 'tabnet_quinte'
+        else:
+            model_type = 'rf' if rf_model is not None else 'tabnet'
+
+        self._update_config(str(relative_path), model_type)
 
         print(f"Models saved to: {save_path}")
         return saved_files
@@ -233,7 +274,7 @@ class ModelManager:
     def _load_feedforward_models(self, model_path):
         """Load Feedforward model components."""
         models = {}
-        
+
         # Look for Feedforward model files (could be .h5, .keras, .pkl)
         for suffix in ['.h5', '.keras', '.pkl']:
             ff_model_path = model_path / f"feedforward_model{suffix}"
@@ -249,17 +290,226 @@ class ModelManager:
                     # Pickled model
                     models['feedforward_model'] = joblib.load(ff_model_path)
                 break
-                
+
         # Look for feedforward config
         ff_config_path = model_path / "feedforward_config.json"
         if ff_config_path.exists():
             with open(ff_config_path, 'r') as f:
                 models['feedforward_config'] = json.load(f)
-                
+
         return models
 
-    def _update_config(self, model_path):
-        """Update config.yaml with latest RF model."""
+    def save_quinte_models(self, rf_model=None, tabnet_model=None, tabnet_scaler=None,
+                          feature_columns=None, training_results=None, feature_selector=None):
+        """
+        Save quinté-specific models with all required components.
+
+        Args:
+            rf_model: Trained Random Forest model
+            tabnet_model: Trained TabNet model (TabNetRegressor)
+            tabnet_scaler: Fitted StandardScaler for TabNet
+            feature_columns: List of feature column names
+            training_results: Dict with training results and metadata
+            feature_selector: Optional TabNetFeatureSelector for feature selection
+
+        Returns:
+            Dict with paths to saved files
+        """
+        # Ensure models directory exists
+        self.model_dir.mkdir(parents=True, exist_ok=True)
+
+        # Get current date and db type
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        timestamp_str = datetime.now().strftime('%H%M%S')
+        db_type = self.config._config.base.active_db
+
+        saved_files = {}
+
+        # Save RF quinté model
+        if rf_model is not None:
+            rf_path = self.model_dir / date_str / f"{db_type}_{timestamp_str}_quinte_rf"
+            rf_path.mkdir(parents=True, exist_ok=True)
+
+            # Save RF model
+            rf_model_path = rf_path / "rf_model.joblib"
+            joblib.dump(rf_model, rf_model_path)
+            saved_files['rf_model'] = str(rf_model_path)
+
+            # Save feature columns
+            if feature_columns:
+                feature_path = rf_path / "feature_columns.json"
+                with open(feature_path, 'w') as f:
+                    json.dump(feature_columns, f, indent=2)
+                saved_files['rf_features'] = str(feature_path)
+
+            # Save config
+            rf_config = {
+                'model_type': 'RF_Quinté',
+                'db_type': db_type,
+                'created_at': datetime.now().isoformat(),
+                'is_quinte': True,
+                'training_results': training_results.get('rf_results') if training_results else None
+            }
+            config_path = rf_path / "model_config.json"
+            with open(config_path, 'w') as f:
+                json.dump(rf_config, f, indent=2)
+            saved_files['rf_config'] = str(config_path)
+
+            # Update config.yaml
+            relative_path = rf_path.relative_to(self.model_dir)
+            self._update_config(str(relative_path), 'rf_quinte')
+
+            print(f"✅ RF Quinté model saved to: {rf_path}")
+
+        # Save TabNet quinté model
+        if tabnet_model is not None:
+            tabnet_path = self.model_dir / date_str / f"{db_type}_{timestamp_str}_quinte_tabnet"
+            tabnet_path.mkdir(parents=True, exist_ok=True)
+
+            # Save TabNet model (TabNet automatically adds .zip extension)
+            tabnet_model_path = tabnet_path / "tabnet_model"
+            tabnet_model.save_model(str(tabnet_model_path))
+            # The actual saved file will be tabnet_model.zip
+            saved_files['tabnet_model'] = str(tabnet_model_path) + ".zip"
+
+            # Save feature selector if provided (from automatic feature selection)
+            if feature_selector is not None:
+                try:
+                    feature_selector_path = tabnet_path / "feature_selector.json"
+                    feature_selector.save(str(feature_selector_path))
+                    saved_files['feature_selector'] = str(feature_selector_path)
+                    print(f"  ✅ Feature selector saved: {feature_selector_path}")
+                except Exception as e:
+                    print(f"  ⚠️  Warning: Could not save feature selector: {e}")
+
+            # Save scaler
+            if tabnet_scaler is not None:
+                scaler_path = tabnet_path / "tabnet_scaler.joblib"
+                joblib.dump(tabnet_scaler, scaler_path)
+                saved_files['tabnet_scaler'] = str(scaler_path)
+
+            # Save feature columns
+            if feature_columns:
+                feature_path = tabnet_path / "feature_columns.json"
+                with open(feature_path, 'w') as f:
+                    json.dump(feature_columns, f, indent=2)
+                saved_files['tabnet_features'] = str(feature_path)
+
+            # Save config
+            tabnet_config = {
+                'model_type': 'TabNet_Quinté',
+                'db_type': db_type,
+                'created_at': datetime.now().isoformat(),
+                'is_quinte': True,
+                'training_results': training_results.get('tabnet_results') if training_results else None,
+                'full_training_results': training_results
+            }
+            config_path = tabnet_path / "tabnet_config.json"
+            with open(config_path, 'w') as f:
+                json.dump(tabnet_config, f, indent=2, default=str)
+            saved_files['tabnet_config'] = str(config_path)
+
+            # Update config.yaml
+            relative_path = tabnet_path.relative_to(self.model_dir)
+            self._update_config(str(relative_path), 'tabnet_quinte')
+
+            print(f"✅ TabNet Quinté model saved to: {tabnet_path}")
+
+        print(f"\n{'='*60}")
+        print("QUINTÉ MODELS SAVED SUCCESSFULLY")
+        print(f"{'='*60}")
+        for model_name, path in saved_files.items():
+            print(f"  {model_name}: {path}")
+
+        return saved_files
+
+    def load_quinte_model(self, model_type='rf'):
+        """
+        Load a specific quinté model by short type name.
+
+        Args:
+            model_type: 'rf' or 'tabnet' (automatically adds _quinte suffix)
+
+        Returns:
+            Dict with loaded model components and path
+        """
+        # Map short names to full config keys
+        full_model_type = f"{model_type}_quinte"
+
+        model_path = self.get_model_path_by_type(full_model_type)
+
+        if model_path is None:
+            print(f"No {model_type} quinté model found")
+            return None
+
+        print(f"Loading {model_type} quinté model from: {model_path}")
+
+        result = {'path': model_path}
+
+        if model_type == 'rf':
+            # Load RF model
+            rf_model_path = model_path / "rf_model.joblib"
+            if rf_model_path.exists():
+                result['model'] = joblib.load(rf_model_path)
+
+            # Load feature columns
+            feature_path = model_path / "feature_columns.json"
+            if feature_path.exists():
+                with open(feature_path, 'r') as f:
+                    result['feature_columns'] = json.load(f)
+
+            # Load config
+            config_path = model_path / "model_config.json"
+            if config_path.exists():
+                with open(config_path, 'r') as f:
+                    result['config'] = json.load(f)
+
+        elif model_type == 'tabnet':
+            # Load TabNet model
+            tabnet_model_path = model_path / "tabnet_model.zip"
+            if tabnet_model_path.exists():
+                from pytorch_tabnet.tab_model import TabNetRegressor
+                tabnet_model = TabNetRegressor()
+                tabnet_model.load_model(str(tabnet_model_path))
+                result['model'] = tabnet_model
+
+            # Load scaler
+            scaler_path = model_path / "tabnet_scaler.joblib"
+            if scaler_path.exists():
+                result['scaler'] = joblib.load(scaler_path)
+
+            # Load feature columns
+            feature_path = model_path / "feature_columns.json"
+            if feature_path.exists():
+                with open(feature_path, 'r') as f:
+                    result['feature_columns'] = json.load(f)
+
+            # Load config
+            config_path = model_path / "tabnet_config.json"
+            if config_path.exists():
+                with open(config_path, 'r') as f:
+                    result['config'] = json.load(f)
+
+        print(f"✅ Loaded {model_type} quinté model components: {list(result.keys())}")
+
+        return result
+
+    def load_quinte_models(self, model_type='rf_quinte'):
+        """
+        Load quinté-specific models (legacy method - use load_quinte_model instead).
+
+        Args:
+            model_type: 'rf_quinte' or 'tabnet_quinte'
+
+        Returns:
+            Dict with loaded model components
+        """
+        # Extract short type
+        short_type = model_type.replace('_quinte', '')
+        return self.load_quinte_model(short_type)
+
+    def _update_config(self, model_path, model_type='rf'):
+        """Update config.yaml with latest model path for specified type."""
         try:
             with open("config.yaml", 'r') as f:
                 config_data = yaml.safe_load(f)
@@ -267,10 +517,10 @@ class ModelManager:
             if 'models' not in config_data:
                 config_data['models'] = {}
 
-            # Update new format (RF + TabNet only)
+            # Update new format (RF + TabNet + Quinté models)
             if 'latest_models' not in config_data['models']:
                 config_data['models']['latest_models'] = {}
-            config_data['models']['latest_models']['rf'] = model_path
+            config_data['models']['latest_models'][model_type] = model_path
 
             with open("config.yaml", 'w') as f:
                 yaml.dump(config_data, f, default_flow_style=False, indent=2)

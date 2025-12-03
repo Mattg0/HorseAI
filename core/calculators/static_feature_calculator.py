@@ -759,12 +759,321 @@ class FeatureCalculator:
         return features
 
     @staticmethod
-    def calculate_all_features(df):
+    def calculate_trainer_stats(participant: Dict) -> Dict:
+        """
+        Calculate trainer performance statistics.
+
+        Args:
+            participant: Participant data
+
+        Returns:
+            Dict with trainer features
+        """
+        features = {}
+
+        # Basic trainer stats (use safe numeric conversion)
+        trainer_victoires = FeatureCalculator.safe_numeric(participant.get('victoireent', 0))
+        trainer_places = FeatureCalculator.safe_numeric(participant.get('placeent', 0))
+        trainer_courses = FeatureCalculator.safe_numeric(participant.get('courseent', 0))
+
+        features['trainer_victoires'] = trainer_victoires
+        features['trainer_places'] = trainer_places
+        features['trainer_courses'] = trainer_courses
+
+        # Trainer win rate
+        if trainer_courses > 0:
+            features['trainer_winrate'] = trainer_victoires / trainer_courses
+            features['trainer_placerate'] = trainer_places / trainer_courses
+        else:
+            features['trainer_winrate'] = 0.0
+            features['trainer_placerate'] = 0.0
+
+        # Trainer quality score (normalized by number of races)
+        if trainer_courses > 0:
+            # Score based on success rate with confidence weighting
+            confidence_weight = min(1.0, trainer_courses / 50)  # Full confidence at 50+ races
+            quality = (trainer_victoires * 3 + trainer_places) / trainer_courses
+            features['trainer_quality_score'] = quality * confidence_weight
+        else:
+            features['trainer_quality_score'] = 0.0
+
+        # Trainer experience level
+        if trainer_courses >= 200:
+            features['trainer_experience_level'] = 3  # Experienced
+        elif trainer_courses >= 50:
+            features['trainer_experience_level'] = 2  # Moderate
+        elif trainer_courses > 0:
+            features['trainer_experience_level'] = 1  # Beginner
+        else:
+            features['trainer_experience_level'] = 0  # No data
+
+        return features
+
+    @staticmethod
+    def calculate_handicap_weight_features(participant: Dict) -> Dict:
+        """
+        Calculate handicap and weight-related features.
+
+        Args:
+            participant: Participant data
+
+        Returns:
+            Dict with handicap/weight features
+        """
+        features = {}
+
+        # Current handicap value (use safe numeric conversion)
+        handicap_poids = FeatureCalculator.safe_numeric(participant.get('handicappoids', 0))
+        handicap_dist = FeatureCalculator.safe_numeric(participant.get('handicapdist', 0))
+
+        features['handicap_poids'] = handicap_poids
+        features['handicap_dist'] = handicap_dist
+
+        # Previous handicap
+        prec_handicap_poids = FeatureCalculator.safe_numeric(participant.get('handicappoidsprec', 0))
+        prec_handicap_dist = FeatureCalculator.safe_numeric(participant.get('handicapdistprec', 0))
+
+        features['prec_handicap_poids'] = prec_handicap_poids
+        features['prec_handicap_dist'] = prec_handicap_dist
+
+        # Handicap changes (important for performance prediction)
+        if prec_handicap_poids > 0:
+            features['handicap_poids_change'] = handicap_poids - prec_handicap_poids
+            features['handicap_poids_increased'] = float(handicap_poids > prec_handicap_poids)
+            features['handicap_poids_decreased'] = float(handicap_poids < prec_handicap_poids)
+        else:
+            features['handicap_poids_change'] = 0.0
+            features['handicap_poids_increased'] = 0.0
+            features['handicap_poids_decreased'] = 0.0
+
+        if prec_handicap_dist > 0:
+            features['handicap_dist_change'] = handicap_dist - prec_handicap_dist
+            features['handicap_dist_increased'] = float(handicap_dist > prec_handicap_dist)
+            features['handicap_dist_decreased'] = float(handicap_dist < prec_handicap_dist)
+        else:
+            features['handicap_dist_change'] = 0.0
+            features['handicap_dist_increased'] = 0.0
+            features['handicap_dist_decreased'] = 0.0
+
+        # Combined handicap severity score
+        total_handicap = handicap_poids + handicap_dist
+        features['total_handicap'] = total_handicap
+
+        # Handicap momentum (negative = getting easier, positive = getting harder)
+        handicap_momentum = features['handicap_poids_change'] + features['handicap_dist_change']
+        features['handicap_momentum'] = handicap_momentum
+
+        return features
+
+    @staticmethod
+    def encode_corde(corde_value) -> float:
+        """
+        Encode post position (corde) to numeric value.
+
+        Args:
+            corde_value: Post position (can be number or text like 'gauche')
+
+        Returns:
+            Numeric encoding
+        """
+        if corde_value is None or corde_value == '':
+            return 0.0
+
+        # Try numeric first
+        try:
+            return float(corde_value)
+        except (ValueError, TypeError):
+            pass
+
+        # Handle text values
+        corde_str = str(corde_value).lower().strip()
+        if corde_str in ['gauche', 'left']:
+            return -1.0  # Special value for inside rail
+        elif corde_str in ['droite', 'right']:
+            return 99.0  # Special value for far outside
+        elif corde_str in ['milieu', 'middle', 'centre', 'center']:
+            return 50.0  # Middle position
+        else:
+            return 0.0  # Unknown
+
+    @staticmethod
+    def calculate_last_race_comparison_features(participant: Dict) -> Dict:
+        """
+        Calculate features comparing current race to last race.
+
+        Args:
+            participant: Participant data
+
+        Returns:
+            Dict with last race comparison features
+        """
+        features = {}
+
+        # Current race info (use safe numeric conversion for text values)
+        current_dist = FeatureCalculator.safe_numeric(participant.get('dist', 0))
+        current_corde = FeatureCalculator.encode_corde(participant.get('corde', 0))
+
+        # Last race info
+        last_dist = FeatureCalculator.safe_numeric(participant.get('derniere_dist', 0))
+        last_place = FeatureCalculator.safe_numeric(participant.get('derniere_place', 0))
+
+        features['last_race_position'] = last_place
+        features['last_race_distance'] = last_dist
+
+        # Distance change analysis
+        if last_dist > 0:
+            dist_change = current_dist - last_dist
+            features['distance_change'] = dist_change
+            features['distance_change_pct'] = (dist_change / last_dist) * 100
+            features['distance_increased'] = float(dist_change > 0)
+            features['distance_decreased'] = float(dist_change < 0)
+            features['same_distance'] = float(abs(dist_change) < 50)  # Within 50m
+        else:
+            features['distance_change'] = 0.0
+            features['distance_change_pct'] = 0.0
+            features['distance_increased'] = 0.0
+            features['distance_decreased'] = 0.0
+            features['same_distance'] = 0.0
+
+        # Post position change
+        last_corde = FeatureCalculator.encode_corde(participant.get('derniere_corde', 0))
+        if last_corde != 0.0:
+            corde_change = current_corde - last_corde
+            features['corde_change'] = corde_change
+            features['corde_improved'] = float(corde_change < 0)  # Lower is better
+            features['corde_worsened'] = float(corde_change > 0)
+        else:
+            features['corde_change'] = 0.0
+            features['corde_improved'] = 0.0
+            features['corde_worsened'] = 0.0
+
+        # Last race performance quality
+        if last_place > 0:
+            if last_place <= 3:
+                features['last_race_top3'] = 1.0
+            else:
+                features['last_race_top3'] = 0.0
+
+            if last_place == 1:
+                features['last_race_won'] = 1.0
+            else:
+                features['last_race_won'] = 0.0
+        else:
+            features['last_race_top3'] = 0.0
+            features['last_race_won'] = 0.0
+
+        return features
+
+    @staticmethod
+    def calculate_advanced_musique_momentum(che_musique_stats: Dict, joc_musique_stats: Dict) -> Dict:
+        """
+        Calculate advanced momentum features from musique statistics.
+
+        Args:
+            che_musique_stats: Horse musique statistics
+            joc_musique_stats: Jockey musique statistics
+
+        Returns:
+            Dict with advanced momentum features
+        """
+        features = {}
+
+        # Horse form momentum
+        che_global = che_musique_stats['global']
+        che_weighted = che_musique_stats['weighted']
+
+        # Recent vs average performance comparison (negative = improving)
+        if che_global['nb_courses'] >= 3:
+            features['che_form_momentum'] = che_global['avg_pos'] - che_global['recent_perf']
+            features['che_improving_form'] = float(features['che_form_momentum'] > 0)
+            features['che_declining_form'] = float(features['che_form_momentum'] < -1)
+        else:
+            features['che_form_momentum'] = 0.0
+            features['che_improving_form'] = 0.0
+            features['che_declining_form'] = 0.0
+
+        # Consistency scoring (lower std = more predictable)
+        if che_global['consistency'] < 2.0:
+            features['che_high_consistency'] = 1.0
+        elif che_global['consistency'] < 3.0:
+            features['che_high_consistency'] = 0.5
+        else:
+            features['che_high_consistency'] = 0.0
+
+        # Recent performance quality
+        if che_global['nb_courses'] >= 3:
+            if che_global['recent_perf'] <= 3:
+                features['che_recent_quality'] = 1.0  # Excellent recent form
+            elif che_global['recent_perf'] <= 5:
+                features['che_recent_quality'] = 0.7  # Good recent form
+            elif che_global['recent_perf'] <= 8:
+                features['che_recent_quality'] = 0.4  # Average recent form
+            else:
+                features['che_recent_quality'] = 0.1  # Poor recent form
+        else:
+            features['che_recent_quality'] = 0.0
+
+        # Win/place rate quality indicators
+        features['che_elite_performer'] = float(che_global['pct_top3'] >= 0.33)  # Top 3 in 33%+ of races
+        features['che_regular_placer'] = float(che_global['pct_top3'] >= 0.20)  # Top 3 in 20%+ of races
+
+        # Jockey form momentum (same logic)
+        joc_global = joc_musique_stats['global']
+
+        if joc_global['nb_courses'] >= 3:
+            features['joc_form_momentum'] = joc_global['avg_pos'] - joc_global['recent_perf']
+            features['joc_improving_form'] = float(features['joc_form_momentum'] > 0)
+        else:
+            features['joc_form_momentum'] = 0.0
+            features['joc_improving_form'] = 0.0
+
+        if joc_global['consistency'] < 2.0:
+            features['joc_high_consistency'] = 1.0
+        elif joc_global['consistency'] < 3.0:
+            features['joc_high_consistency'] = 0.5
+        else:
+            features['joc_high_consistency'] = 0.0
+
+        features['joc_elite_performer'] = float(joc_global['pct_top3'] >= 0.25)  # Jockey places 25%+ of time
+
+        # Combined horse-jockey momentum synergy
+        both_improving = features['che_improving_form'] and features['joc_improving_form']
+        features['synergy_both_improving'] = float(both_improving)
+
+        both_consistent = (features['che_high_consistency'] >= 0.5 and
+                          features['joc_high_consistency'] >= 0.5)
+        features['synergy_both_consistent'] = float(both_consistent)
+
+        both_elite = features['che_elite_performer'] and features['joc_elite_performer']
+        features['synergy_both_elite'] = float(both_elite)
+
+        # Overall momentum score (0-5 scale)
+        momentum_score = 0
+        if features['che_improving_form']:
+            momentum_score += 1
+        if features['joc_improving_form']:
+            momentum_score += 1
+        if features['che_high_consistency'] >= 0.5:
+            momentum_score += 1
+        if features['che_recent_quality'] >= 0.7:
+            momentum_score += 1
+        if features['synergy_both_elite']:
+            momentum_score += 1
+
+        features['overall_momentum_score'] = float(momentum_score)
+        features['high_momentum'] = float(momentum_score >= 3)
+
+        return features
+
+    @staticmethod
+    def calculate_all_features(df, use_temporal=False, db_path=None):
         """
         Calcule toutes les features dérivées pour chaque participant dans le DataFrame.
 
         Args:
             df: DataFrame contenant les données brutes des participants
+            use_temporal: If True, use temporal calculator for career stats
+            db_path: Database path for temporal calculations
 
         Returns:
             DataFrame avec toutes les features calculées ajoutées
@@ -788,25 +1097,90 @@ class FeatureCalculator:
         if len(result_df) > 0:
             print(f"🏇 Field mean earnings per race: {field_mean:,.0f} (from {len(participants_list)} horses)")
 
+        # Apply temporal calculations FIRST (batch mode - super fast!)
+        if use_temporal and db_path:
+            from core.calculators.temporal_feature_calculator import TemporalFeatureCalculator
+            temporal_calc = TemporalFeatureCalculator(db_path)
+            print(f"  🔄 Using temporal calculations (no data leakage mode)")
+            # For prediction: preserve existing database values instead of recalculating
+            preserve_existing = 'victoirescheval' in result_df.columns and result_df['victoirescheval'].notna().any()
+            result_df = temporal_calc.batch_calculate_all_horses(result_df, preserve_existing=preserve_existing)
+
+        # Apply comprehensive data cleaning for TabNet compatibility
+        cleaner = TabNetDataCleaner()
+        result_df = cleaner.comprehensive_data_cleaning(result_df, verbose=False)
+
+        # Calculate field mean earnings for confidence weighting
+        # This helps prevent extreme outliers from breaking TabNet scaling
+        participants_list = result_df.to_dict('records')
+        field_mean = FeatureCalculator.calculate_field_mean_earnings(participants_list)
+
+        if len(result_df) > 0:
+            print(f"🏇 Field mean earnings per race: {field_mean:,.0f} (from {len(participants_list)} horses)")
+
+        # Progress tracking
+        total_rows = len(result_df)
+        print(f"  📊 Processing {total_rows} horses for feature calculation...")
+
         # Itérer sur chaque ligne du DataFrame
-        for index, participant_row in result_df.iterrows():
+        for idx, (index, participant_row) in enumerate(result_df.iterrows()):
+            if idx % 5000 == 0 and idx > 0:
+                print(f"  ⏳ Progress: {idx}/{total_rows} horses ({idx/total_rows*100:.1f}%)")
             # Extraire le participant comme un dictionnaire
             participant = participant_row.to_dict()
 
+            # Temporal stats already applied in batch mode above - skip per-horse calculation
+
+            # Collect all features in a single dictionary to avoid DataFrame fragmentation
+            row_features = {}
+
             # Calculer les ratios de performance avec pondération par confiance
             ratios = FeatureCalculator.calculate_performance_ratios(participant, field_mean)
-            for key, value in ratios.items():
-                result_df.at[index, key] = value
+            row_features.update(ratios)
 
             # Calculer les statistiques de couple
             couple_stats = FeatureCalculator.calculate_couple_stats(participant)
-            for key, value in couple_stats.items():
-                result_df.at[index, key] = value
+            row_features.update(couple_stats)
 
             # Calculer les statistiques d'hippodrome
             hippo_stats = FeatureCalculator.calculate_hippo_stats(participant)
-            for key, value in hippo_stats.items():
-                result_df.at[index, key] = value
+            row_features.update(hippo_stats)
+
+            # Calculer les statistiques d'entraîneur
+            trainer_stats = FeatureCalculator.calculate_trainer_stats(participant)
+            row_features.update(trainer_stats)
+
+            # Calculer les features de handicap et poids
+            handicap_features = FeatureCalculator.calculate_handicap_weight_features(participant)
+            row_features.update(handicap_features)
+
+            # Calculer les features de comparaison dernière course
+            last_race_comparison = FeatureCalculator.calculate_last_race_comparison_features(participant)
+            row_features.update(last_race_comparison)
+
+            # Calculer les features d'équipement (blinkers)
+            blinkers_features = FeatureCalculator.calculate_blinkers_features(participant)
+            row_features.update(blinkers_features)
+
+            # Calculer les features d'équipement (shoeing)
+            shoeing_features = FeatureCalculator.calculate_shoeing_features(participant)
+            row_features.update(shoeing_features)
+
+            # Calculer les features d'impact combiné d'équipement
+            equipment_impact_features = FeatureCalculator.calculate_equipment_impact_features(participant)
+            row_features.update(equipment_impact_features)
+
+            # Phase 1: Calculer les features de carrière avec pondération par confiance
+            phase1_career_features = FeatureCalculator.calculate_phase1_career_features(participant, field_mean)
+            row_features.update(phase1_career_features)
+
+            # Phase 1: Calculer les features de dernière course
+            phase1_last_race_features = FeatureCalculator.calculate_phase1_last_race_features(participant)
+            row_features.update(phase1_last_race_features)
+
+            # Phase 1: Calculer les features de rating/classification
+            phase1_rating_features = FeatureCalculator.calculate_phase1_rating_features(participant)
+            row_features.update(phase1_rating_features)
 
             # Calculer les features d'équipement (blinkers)
             blinkers_features = FeatureCalculator.calculate_blinkers_features(participant)
@@ -840,23 +1214,25 @@ class FeatureCalculator:
 
             # Extraire les features de la musique cheval
             cheval_musique_extractor = MusiqueFeatureExtractor()
-            che_musique_stats = cheval_musique_extractor.extract_features(participant['musiqueche'], df.at[index, 'typec'])
+            musique_che = participant.get('musiqueche', '')
+            race_type = result_df.at[index, 'typec']
+            che_musique_stats = cheval_musique_extractor.extract_features(musique_che, race_type)
 
             # Correct way to access nested dictionaries
             # Add 'global' features
             for key, value in che_musique_stats['global'].items():
                 column_name = f"che_global_{key}"  # Create prefixed column name
-                result_df.at[index, column_name] = value
+                row_features[column_name] = value
 
             # Add 'weighted' features
             for key, value in che_musique_stats['weighted'].items():
                 column_name = f"che_weighted_{key}"  # Create prefixed column name
-                result_df.at[index, column_name] = value
+                row_features[column_name] = value
 
-            # Add 'by_type' features if any exist
-            for type_key, type_values in che_musique_stats['by_type'].items():
-                column_name = f"che_bytype_{type_key}"
-                result_df.at[index, column_name] = type_values
+            # Add 'by_type' features (flat dictionary for current race type)
+            for key, value in che_musique_stats['by_type'].items():
+                column_name = f"che_bytype_{key}"
+                row_features[column_name] = value
             # Extraire les features de la musique jockey
             jockey_musique_extractor = MusiqueFeatureExtractor()
             # Use jockey musique field if available, fallback to horse musique
@@ -868,17 +1244,23 @@ class FeatureCalculator:
             # Add 'global' features
             for key, value in joc_musique_stats['global'].items():
                         column_name = f"joc_global_{key}"  # Create prefixed column name
-                        result_df.at[index, column_name] = value
+                        row_features[column_name] = value
 
                     # Add 'weighted' features
             for key, value in joc_musique_stats['weighted'].items():
                 column_name = f"joc_weighted_{key}"  # Create prefixed column name
-                result_df.at[index, column_name] = value
+                row_features[column_name] = value
 
-                # Add 'by_type' features if any exist
-            for type_key, type_values in joc_musique_stats['by_type'].items():
-                column_name = f"joc_bytype_{type_key}"
-                result_df.at[index, column_name] = type_values
+                # Add 'by_type' features (flat dictionary for current race type)
+            for key, value in joc_musique_stats['by_type'].items():
+                column_name = f"joc_bytype_{key}"
+                row_features[column_name] = value
+
+            # Calculate advanced musique momentum features
+            momentum_features = FeatureCalculator.calculate_advanced_musique_momentum(
+                che_musique_stats, joc_musique_stats
+            )
+            row_features.update(momentum_features)
 
             # Advanced derived features
             race_info = {
@@ -890,27 +1272,29 @@ class FeatureCalculator:
 
             # Calculate advanced features
             class_features = FeatureCalculator.calculate_class_movement_features(participant, race_info)
-            for key, value in class_features.items():
-                result_df.at[index, key] = value
+            row_features.update(class_features)
 
             speed_features = FeatureCalculator.calculate_speed_figure_features(participant, race_info)
-            for key, value in speed_features.items():
-                result_df.at[index, key] = value
+            row_features.update(speed_features)
 
             form_features = FeatureCalculator.calculate_form_context_features(participant, race_info)
-            for key, value in form_features.items():
-                result_df.at[index, key] = value
+            row_features.update(form_features)
 
             connection_features = FeatureCalculator.calculate_connection_features(participant)
-            for key, value in connection_features.items():
-                result_df.at[index, key] = value
+            row_features.update(connection_features)
 
             competition_features = FeatureCalculator.calculate_competition_context_features(participant, race_info)
-            for key, value in competition_features.items():
-                result_df.at[index, key] = value
+            row_features.update(competition_features)
 
             interaction_features = FeatureCalculator.calculate_interaction_features(participant, race_info)
-            for key, value in interaction_features.items():
-                result_df.at[index, key] = value
+            row_features.update(interaction_features)
+
+            # Update the DataFrame row once with all collected features to avoid fragmentation
+            # CRITICAL: Don't overwrite existing raw data fields that models expect
+            preserve_fields = {'victoirescheval', 'placescheval', 'coursescheval', 'recence', 'cotedirect'}
+            for key, value in row_features.items():
+                # Only update if not a preserve field, or if field doesn't exist yet
+                if key not in preserve_fields or pd.isna(result_df.at[index, key]):
+                    result_df.at[index, key] = value
 
         return result_df

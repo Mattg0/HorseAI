@@ -4,13 +4,15 @@ import pandas as pd
 from core.connectors.mysql_connector import connect_to_mysql
 
 
-def fetch_race_data(conn=None, close_conn=False):
+def fetch_race_data(conn=None, close_conn=False, quinte=False, target_table='historical_races'):
     """
     Fetch race data from MySQL database.
 
     Args:
         conn: MySQL connection (will create one if None)
         close_conn: Whether to close the connection after fetching
+        quinte: If True, only fetch quinte races (where quinte = 1)
+        target_table: Target SQLite table name ('historical_races' or 'historical_quinte')
 
     Returns:
         DataFrame containing race data
@@ -19,22 +21,25 @@ def fetch_race_data(conn=None, close_conn=False):
         conn = connect_to_mysql()
         close_conn = True
 
-    mysql_query = """
-    SELECT caractrap.id, caractrap.jour, caractrap.reun, caractrap.prix, caractrap.partant, 
+    # Build WHERE clause for quinte filter
+    where_clause = "WHERE caractrap.quinte = 1" if quinte else ""
+
+    mysql_query = f"""
+    SELECT caractrap.id, caractrap.jour, caractrap.reun, caractrap.prix, caractrap.partant,
            caractrap.quinte, caractrap.hippo, caractrap.meteo, caractrap.dist,
            caractrap.corde, caractrap.natpis, caractrap.pistegp, caractrap.typec,
            caractrap.temperature, caractrap.forceVent, caractrap.directionVent,
            caractrap.nebulositeLibelleCourt, caractrap.handi,
            -- Phase 2: Additional race-level fields
            caractrap.cheque, caractrap.reclam, caractrap.groupe, caractrap.sex, caractrap.tempscourse,
-           cachedate.idche, cachedate.cheval, cachedate.cl, 
+           cachedate.idche, cachedate.cheval, cachedate.cl,
            cachedate.cotedirect, cachedate.coteprob, cachedate.numero, cachedate.handicapDistance,
-           cachedate.handicapPoids, 
-           cachedate.poidmont, cachedate.recence, cachedate.gainsAnneeEnCours, 
-           cachedate.musiqueche, cachedate.idJockey, musiquejoc, cachedate.idEntraineur,cachedate.proprietaire, 
-           cachedate.age, cachedate.nbVictCouple, cachedate.nbPlaceCouple, 
+           cachedate.handicapPoids,
+           cachedate.poidmont, cachedate.recence, cachedate.gainsAnneeEnCours,
+           cachedate.musiqueche, cachedate.idJockey, musiquejoc, cachedate.idEntraineur,cachedate.proprietaire,
+           cachedate.age, cachedate.nbVictCouple, cachedate.nbPlaceCouple,
            cachedate.victoirescheval, cachedate.placescheval, cachedate.TxVictCouple,
-           cachedate.pourcVictChevalHippo, cachedate.pourcPlaceChevalHippo, 
+           cachedate.pourcVictChevalHippo, cachedate.pourcPlaceChevalHippo,
            cachedate.pourcVictJockHippo, cachedate.pourcPlaceJockHippo, cachedate.coursescheval,
            cachedate.oeil, cachedate.dernierOeil, cachedate.oeilFirstTime,
            cachedate.defoeil, cachedate.defoeilPrec, cachedate.defFirstTime,
@@ -43,7 +48,8 @@ def fetch_race_data(conn=None, close_conn=False):
            cachedate.txreclam, cachedate.dernieredist, cachedate.derniernbpartants, cachedate.recordG,
            cachedate.entraineur, cachedate.dernierEnt, cachedate.ecar
     FROM caractrap
-    INNER JOIN cachedate ON caractrap.id = cachedate.comp 
+    INNER JOIN cachedate ON caractrap.id = cachedate.comp
+    {where_clause}
     """
 
     cursor = conn.cursor()

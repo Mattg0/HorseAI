@@ -1,0 +1,23 @@
+{
+  "created_at": "2025-11-27T19:39:21.434768",
+  "model_type": "quinte_incremental",
+  "baseline_metrics": {
+    "total_races": 61,
+    "quinte_desordre_rate": 0.0,
+    "bonus_4_rate": 0.0,
+    "bonus_3_rate": 0.0,
+    "avg_mae": 0.0
+  },
+  "improved_metrics": {
+    "total_races": 61,
+    "quinte_desordre_rate": 0.0,
+    "bonus_4_rate": 0.0,
+    "bonus_3_rate": 0.0,
+    "avg_mae": 0.0
+  },
+  "training_results": {
+    "status": "success",
+    "training_samples": 762,
+    "validation_samples": 191
+  }
+}

@@ -1,0 +1,48 @@
+2025-11-09 15:11:59,577 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:11:59,578 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:21,128 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:21,133 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:22,104 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:22,108 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:24,741 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:24,743 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:25,833 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:25,836 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:26,408 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:26,410 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:30,279 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:30,281 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:30,957 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:30,959 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:32,282 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:32,283 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:33,826 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:33,827 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:36,065 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:36,068 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:36,482 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:36,484 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:12:38,731 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:12:38,733 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:14:05,597 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 15:14:05,602 - RaceArchiver - INFO - Database structure verified
+2025-11-09 15:31:14,983 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 92.9% missing values', 'Feature che_by_type_recent_perf has 92.9% missing values', 'Feature che_by_type_consistency has 92.9% missing values', 'Feature che_by_type_trend has 92.9% missing values', 'Feature che_by_type_pct_top3 has 92.9% missing values', 'Feature che_by_type_nb_courses has 92.9% missing values', 'Feature che_by_type_total_races has 92.9% missing values', 'Feature che_by_type_dnf_rate has 92.9% missing values']
+2025-11-09 15:32:29,183 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 92.9% missing values', 'Feature che_by_type_recent_perf has 92.9% missing values', 'Feature che_by_type_consistency has 92.9% missing values', 'Feature che_by_type_trend has 92.9% missing values', 'Feature che_by_type_pct_top3 has 92.9% missing values', 'Feature che_by_type_nb_courses has 92.9% missing values', 'Feature che_by_type_total_races has 92.9% missing values', 'Feature che_by_type_dnf_rate has 92.9% missing values']
+2025-11-09 15:32:39,461 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 92.9% missing values', 'Feature che_by_type_recent_perf has 92.9% missing values', 'Feature che_by_type_consistency has 92.9% missing values', 'Feature che_by_type_trend has 92.9% missing values', 'Feature che_by_type_pct_top3 has 92.9% missing values', 'Feature che_by_type_nb_courses has 92.9% missing values', 'Feature che_by_type_total_races has 92.9% missing values', 'Feature che_by_type_dnf_rate has 92.9% missing values']
+2025-11-09 15:32:40,747 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 92.9% missing values', 'Feature che_by_type_recent_perf has 92.9% missing values', 'Feature che_by_type_consistency has 92.9% missing values', 'Feature che_by_type_trend has 92.9% missing values', 'Feature che_by_type_pct_top3 has 92.9% missing values', 'Feature che_by_type_nb_courses has 92.9% missing values', 'Feature che_by_type_total_races has 92.9% missing values', 'Feature che_by_type_dnf_rate has 92.9% missing values']
+2025-11-09 15:45:16,429 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 92.9% missing values', 'Feature che_by_type_recent_perf has 92.9% missing values', 'Feature che_by_type_consistency has 92.9% missing values', 'Feature che_by_type_trend has 92.9% missing values', 'Feature che_by_type_pct_top3 has 92.9% missing values', 'Feature che_by_type_nb_courses has 92.9% missing values', 'Feature che_by_type_total_races has 92.9% missing values', 'Feature che_by_type_dnf_rate has 92.9% missing values']
+2025-11-09 15:50:38,425 - UnifiedDataPipeline - WARNING - ⚠️  Feature consistency validation failed for daily_sync: ['Feature che_by_type_avg_pos has 92.9% missing values', 'Feature che_by_type_recent_perf has 92.9% missing values', 'Feature che_by_type_consistency has 92.9% missing values', 'Feature che_by_type_trend has 92.9% missing values', 'Feature che_by_type_pct_top3 has 92.9% missing values', 'Feature che_by_type_nb_courses has 92.9% missing values', 'Feature che_by_type_total_races has 92.9% missing values', 'Feature che_by_type_dnf_rate has 92.9% missing values']
+2025-11-09 16:44:36,748 - model_training.features.couple_embedding - INFO - Epoch 1/4 - Train Loss: 0.5933 - Valid Loss: 0.5954 - Train Acc: 0.7238 - Valid Acc: 0.7234
+2025-11-09 16:44:37,637 - model_training.features.couple_embedding - INFO - Epoch 2/4 - Train Loss: 0.5886 - Valid Loss: 0.5917 - Train Acc: 0.7238 - Valid Acc: 0.7234
+2025-11-09 16:44:38,526 - model_training.features.couple_embedding - INFO - Epoch 3/4 - Train Loss: 0.5848 - Valid Loss: 0.5926 - Train Acc: 0.7238 - Valid Acc: 0.7234
+2025-11-09 16:44:39,410 - model_training.features.couple_embedding - INFO - Epoch 4/4 - Train Loss: 0.5770 - Valid Loss: 0.5983 - Train Acc: 0.7238 - Valid Acc: 0.7234
+2025-11-09 16:48:38,698 - core.orchestrators.feature_selector - INFO - RF features: 110 domain features (no embeddings)
+2025-11-09 16:48:39,457 - core.orchestrators.feature_selector - INFO - Dropped 118 features for rf model
+2025-11-09 16:48:39,497 - core.orchestrators.feature_selector - INFO - RF features: 110 domain features (no embeddings)
+2025-11-09 16:51:01,027 - core.orchestrators.feature_selector - INFO - RF features: 110 domain features (no embeddings)
+2025-11-09 17:11:08,244 - core.orchestrators.feature_selector - INFO - TabNet features: 37 optimized domain features
+2025-11-09 17:11:08,513 - core.orchestrators.feature_selector - INFO - Dropped 191 features for tabnet model
+2025-11-09 17:11:08,541 - core.orchestrators.feature_selector - INFO - TabNet features: 37 optimized domain features
+2025-11-09 17:13:13,301 - core.orchestrators.feature_selector - INFO - TabNet features: 37 optimized domain features
+2025-11-09 17:45:03,306 - RaceArchiver - INFO - Logging initialized to logs/race_archiver_20251109.log
+2025-11-09 17:45:03,310 - RaceArchiver - INFO - Database structure verified

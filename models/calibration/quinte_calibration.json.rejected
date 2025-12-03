@@ -1,0 +1,49 @@
+{
+  "version": "2025-11-19T13:53:59.002691",
+  "corrections": {
+    "odds": {
+      "second_choice": 1.0378378125337453,
+      "mid_odds": 2.24133841941754,
+      "long_shot": 2.371887531196862,
+      "extreme": 2.93215806072295
+    },
+    "post_position": {
+      "inside": 2.919869710040349,
+      "mid_inside": 2.3687535114185785,
+      "mid_outside": 3.216955519491626,
+      "outside": 2.315400124982346
+    },
+    "field_size": {
+      "medium": 2.2996012967886386,
+      "large": 2.7686543888859934
+    },
+    "distance": {
+      "sprint": 3.0729877054691315,
+      "mile": 3.1793914635976157,
+      "middle": 2.8368812749318986,
+      "long": 1.8893795378746525
+    },
+    "typec": {
+      "Attel\u00e9": 2.4351751804351807,
+      "Haies": 2.9678734439484615,
+      "Plat": 3.031626878927151
+    },
+    "systematic_offset": 2.6742598869493888
+  },
+  "validation": {},
+  "history": [
+    {
+      "timestamp": "2025-11-19T13:53:59.002752",
+      "n_samples": 482,
+      "biases_detected": [
+        "odds",
+        "post_position",
+        "field_size",
+        "distance",
+        "typec",
+        "systematic"
+      ],
+      "calibration_version": "2025-11-19T13:53:59.002691"
+    }
+  ]
+}

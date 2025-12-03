@@ -1,0 +1,27 @@
+CALIBRATION REPORT
+================================================================================
+
+Model: quinte
+Date: 2025-11-13T14:58:45.274390
+Training samples: 572
+Validation samples: 143
+
+DETECTED BIASES:
+--------------------------------------------------------------------------------
+
+ODDS:
+  Severity: MEDIUM
+  Impact: 1.703 MAE
+  Description: Model systematically biased across 2 odds ranges
+
+TYPEC:
+  Severity: MEDIUM
+  Impact: 0.485 MAE
+  Description: Race type bias detected
+
+
+VALIDATION RESULTS:
+--------------------------------------------------------------------------------
+MAE before calibration: 3.425
+MAE after calibration: 3.352
+Improvement: +0.073 (+2.1%)

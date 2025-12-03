@@ -130,17 +130,20 @@ class SimplePredictionStorage:
                         cursor.execute("""
                             INSERT OR REPLACE INTO race_predictions (
                                 race_id, horse_id, prediction_date,
+                                raw_rf_prediction, raw_tabnet_prediction,
                                 rf_prediction, tabnet_prediction,
                                 ensemble_weight_rf, ensemble_weight_tabnet, ensemble_prediction,
                                 competitive_adjustment, primary_advantage_type, advantage_strength,
                                 final_prediction
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, (
                             race_id,
                             horse_data.get('horse_id'),
                             current_time,
-                            horse_data.get('rf_prediction'),
-                            horse_data.get('tabnet_prediction'),
+                            horse_data.get('raw_rf_prediction'),  # NEW: Raw predictions
+                            horse_data.get('raw_tabnet_prediction'),  # NEW: Raw predictions
+                            horse_data.get('rf_prediction'),  # Calibrated
+                            horse_data.get('tabnet_prediction'),  # Calibrated
                             horse_data.get('ensemble_weight_rf'),
                             horse_data.get('ensemble_weight_tabnet'),
                             horse_data.get('ensemble_prediction'),

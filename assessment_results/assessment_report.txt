@@ -1,0 +1,173 @@
+PERFORMANCE ASSESSMENT REPORT - ALL 4 MODELS
+================================================================================
+
+QUINTE MODEL (Quinte+ races only)
+--------------------------------------------------------------------------------
+avg_top3_overlap: 1.1515151515151516
+avg_top5_overlap: 2.393939393939394
+mae: 4.441588785046729
+median_error: 4.0
+n_predictions: 428
+n_races: 33
+rmse: 5.5283889255505105
+top3_exact: 0.0
+top5_exact: 0.06060606060606061
+winner_accuracy: 0.09090909090909091
+
+GENERAL MODEL (All race types)
+--------------------------------------------------------------------------------
+avg_top3_overlap: 0.937424789410349
+avg_top5_overlap: 2.6780986762936223
+mae: 4.205204596582964
+median_error: 4.0
+n_predictions: 16447
+n_races: 1662
+rmse: 5.296963478750343
+top3_exact: 0.023465703971119134
+top5_exact: 0.0740072202166065
+winner_accuracy: 0.11492178098676294
+
+================================================================================
+FEATURE COUNTS - ALL 4 MODELS
+================================================================================
+Quinte RF:      92 features
+Quinte TabNet:  92 features
+General RF:     115 features
+General TabNet: 46 features
+
+================================================================================
+COMPARISON 1: RF MODELS (Quinte RF vs General RF)
+================================================================================
+Shared features: 42
+In Quinte RF only: 50
+  - Quinte-specific: 10
+  - Non-quinte missing from General: 40
+In General RF only: 73
+
+Quinte-specific features (expected):
+  avg_quinte_position
+  days_since_last_quinte
+  is_handicap_quinte
+  quinte_career_starts
+  quinte_conditions_specialist
+  quinte_handicap_specialist
+  quinte_large_field_ability
+  quinte_top5_rate
+  quinte_track_condition_fit
+  quinte_win_rate
+
+Non-quinte features MISSING from General RF:
+  che_bytype_total_races
+  che_global_avg_pos
+  che_global_consistency
+  che_global_dnf_rate
+  che_global_nb_courses
+  che_global_pct_top3
+  che_global_recent_perf
+  che_global_total_races
+  che_global_trend
+  che_weighted_nb_courses
+  che_weighted_trend
+  efficacite_couple
+  field_size_category
+  handicap_division
+  joc_bytype_total_races
+  joc_global_avg_pos
+  joc_global_consistency
+  joc_global_dnf_rate
+  joc_global_nb_courses
+  joc_global_pct_top3
+  joc_global_recent_perf
+  joc_global_total_races
+  joc_global_trend
+  joc_weighted_nb_courses
+  joc_weighted_trend
+  numero
+  perf_jockey_hippo
+  post_position_bias
+  post_position_track_bias
+  progression_couple
+  purse_level_category
+  ratio_victoires
+  regularite_couple
+  track_condition_DUR
+  track_condition_PH
+  track_condition_PS
+  track_condition_PSF
+  weather_clear
+  weather_cloudy
+  weather_rain
+
+General RF-only features:
+  TxVictCouple
+  back_shod_only
+  barefoot
+  barefoot_to_shod
+  blinkers_added
+  blinkers_any_change
+  blinkers_first_time
+  blinkers_high_impact_change
+  blinkers_removed
+  blinkers_type_changed
+  bounce_risk
+  career_strike_rate
+  cheque
+  claiming_tax_trend
+  class_drop_pct
+  class_shock_indicator
+  class_stability
+  competition_level_shift
+  connection_stability
+  coteprob
+  dernierealloc
+  dernierecote
+  dernieredist
+  derniereplace
+  derniernbpartants
+  distance_change_x_recence
+  distance_comfort
+  distance_consistency
+  earnings_per_race
+  earnings_trend
+  equipment_momentum_score
+  equipment_optimization_score
+  field_size_change
+  front_shod_only
+  fully_shod
+  gainsAnneeEnCours
+  gainsCarriere
+  handicapDistance
+  handicapPoids
+  handicap_level_change
+  has_australian_blinkers
+  has_blinkers
+  has_standard_blinkers
+  high_equipment_momentum
+  last_race_field_size_factor
+  last_race_improvement
+  last_race_odds_normalized
+  last_race_position_normalized
+  layoff_distance_interaction
+  major_shoeing_change
+  ... and 23 more
+
+================================================================================
+COMPARISON 2: TABNET MODELS (Quinte TabNet vs General TabNet)
+================================================================================
+Shared features: 17
+In Quinte TabNet only: 75
+In General TabNet only: 29
+
+================================================================================
+COMPARISON 3: QUINTE MODELS (RF vs TabNet)
+================================================================================
+Shared: 92
+Quinte RF only: 0
+Quinte TabNet only: 0
+
+================================================================================
+COMPARISON 4: GENERAL MODELS (RF vs TabNet)
+================================================================================
+Shared: 46
+General RF only: 69
+General TabNet only: 0

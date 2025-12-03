@@ -56,7 +56,9 @@ class PredictionOrchestrator:
         self.race_predictor = RacePredictor(
             model_path=None,  # Let RacePredictor find the model
             db_name=db_name,
-            verbose=verbose
+            verbose=verbose,
+            enable_feature_export=True,  # Enable X feature export for analysis
+            feature_export_min_races=5   # Export after 5 races
         )
 
         self._setup_logging()

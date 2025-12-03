@@ -1,0 +1,323 @@
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+🚀 Starting batch prediction job: batch_20251114_105656
+   Total races: 32
+   Workers: 3
+   Chunk size: 50
+   Memory limit: 4096.0MB
+   Database: 2years
+
+✓ Loaded 25 selected features from models/2025-11-13/2years_144333/feature_selector.json
+[5%] Loading races from database...
+[15%] Loaded 32 races, starting predictions...
+[20%] Processing chunk 1/1 (Mem: 703MB)...
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+/Users/mattg0/miniconda3/envs/HorseAIv2/lib/python3.11/site-packages/pytorch_tabnet/abstract_model.py:82: UserWarning: Device used : cpu
+  warnings.warn(f"Device used : {self.device}")
+2025-11-14 10:57:10,515 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:10,515 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:57:10,515 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:10,518 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:10,522 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:10,522 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:57:10,522 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:10,524 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:10,524 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:57:10,524 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:10,525 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:10,527 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:28,837 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:28,838 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:57:28,838 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:28,841 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:28,852 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:28,853 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:57:28,853 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:28,853 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:28,854 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:57:28,854 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:28,857 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:28,858 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:53,715 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:53,716 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:57:53,717 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:53,718 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:53,718 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:57:53,718 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:53,720 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:53,722 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:53,722 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:53,723 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:57:53,723 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:57:53,726 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:15,395 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:15,396 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:15,396 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:58:15,396 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:15,396 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:58:15,396 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:15,399 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:15,399 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:15,408 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:15,408 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:58:15,408 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:15,411 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:35,629 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:35,630 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:58:35,630 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:35,632 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:35,635 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:35,636 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:58:35,636 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:35,639 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:35,642 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:35,643 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:58:35,643 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:35,646 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:56,051 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:56,052 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:58:56,052 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:56,052 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:56,052 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:58:56,053 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:56,055 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:56,055 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:56,057 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:56,058 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:58:56,058 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:58:56,061 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:19,082 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:19,083 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:59:19,083 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:19,087 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:19,089 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:19,090 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:59:19,090 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:19,091 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:19,092 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:59:19,092 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:19,093 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:19,095 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:40,516 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:40,517 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:59:40,517 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:40,519 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:40,520 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:59:40,520 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:40,521 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:40,521 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:40,522 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 10:59:40,522 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:40,524 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 10:59:40,526 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:03,918 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:03,919 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 11:00:03,919 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:03,922 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:03,926 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:03,926 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:03,927 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 11:00:03,927 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:03,927 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 11:00:03,927 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:03,930 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:03,930 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:28,426 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:28,427 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 11:00:28,427 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:28,430 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:28,433 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:28,434 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 11:00:28,434 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:28,438 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:51,641 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:51,642 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 11:00:51,642 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:51,642 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:51,643 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 11:00:51,643 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:51,645 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:00:51,646 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:01:11,894 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:01:11,895 - core.orchestrators.feature_selector - INFO - Dropped 113 features for rf model
+2025-11-14 11:01:11,895 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+2025-11-14 11:01:11,898 - core.orchestrators.feature_selector - INFO - RF features: 114 domain features (no embeddings)
+✓ Loaded 25 selected features from models/2025-11-13/2years_144333/feature_selector.json
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 202,152 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 202,152 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 85,612 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 85,612 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 261,506 (from 8 horses)
+  📊 Processing 8 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 261,506 (from 8 horses)
+  📊 Processing 8 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 164,205 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 164,205 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 250,965 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 250,965 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 95,108 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 95,108 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 114,090 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 114,090 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 107,095 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 107,095 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 152,022 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 152,022 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 247,036 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 247,036 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 255,843 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 255,843 (from 13 horses)
+  📊 Processing 13 horses for feature calculation...
+✓ Loaded 25 selected features from models/2025-11-13/2years_144333/feature_selector.json
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 100,000 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 100,000 (from 9 horses)
+  📊 Processing 9 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 128,667 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 128,667 (from 11 horses)
+  📊 Processing 11 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 129,546 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 129,546 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 239,782 (from 18 horses)
+  📊 Processing 18 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 239,782 (from 18 horses)
+  📊 Processing 18 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 165,965 (from 17 horses)
+  📊 Processing 17 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 165,965 (from 17 horses)
+  📊 Processing 17 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 137,892 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 137,892 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 159,053 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 159,053 (from 15 horses)
+  📊 Processing 15 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 274,329 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 274,329 (from 14 horses)
+  📊 Processing 14 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 276,720 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 276,720 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 259,017 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 259,017 (from 16 horses)
+  📊 Processing 16 horses for feature calculation...
+  🔄 Using temporal calculations (no data leakage mode)
+  ✅ Preserving existing career stats from database (prediction mode)
+🏇 Field mean earnings per race: 123,844 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+Feature cleanup: 253 → 228 (25 removed)
+🏇 Field mean earnings per race: 123,844 (from 12 horses)
+  📊 Processing 12 horses for feature calculation...
+[95%] Storing predictions to database...
+[100%] Complete! Processed 32 races in 269.2s
+
+============================================================
+✅ BATCH PREDICTION COMPLETE
+============================================================
+  Job ID: batch_20251114_105656
+  Total races: 32
+  Successful: 32
+  Failed: 0
+  Total time: 269.40s
+  Throughput: 0.1 races/second
+============================================================

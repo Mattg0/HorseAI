@@ -1,0 +1,418 @@
+Index: race_prediction/race_predict.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import os\nimport numpy as np\nimport pandas as pd\nimport json\nimport joblib\nfrom pathlib import Path\nfrom typing import Dict, List, Union, Any, Optional, Tuple\nimport logging\nfrom datetime import datetime\n\n# Import from existing code\nfrom utils.env_setup import AppConfig, get_sqlite_dbpath\nfrom core.orchestrators.embedding_feature import FeatureEmbeddingOrchestrator\nfrom model_training.regressions.isotonic_calibration import CalibratedRegressor\n\n\nclass RacePredictor:\n    \"\"\"\n    Race predictor that loads trained models and applies them to new race data.\n    Handles both static models (Random Forest) and sequence models (LSTM) if available.\n    \"\"\"\n\n    def __init__(self, model_path: str = None, db_name: str = None,\n                 use_latest_base: bool = False, verbose: bool = False):\n        \"\"\"\n        Initialize the race predictor.\n\n        Args:\n            model_path: Path to saved model directory (use None with use_latest_base=True to use latest from config)\n            db_name: Database configuration name from config\n            use_latest_base: Whether to use the latest base model from config\n            verbose: Whether to print verbose output\n        \"\"\"\n        # Initialize config\n        self.config = AppConfig()\n\n        # If use_latest_base is True, try to get latest model from config\n        if use_latest_base:\n            try:\n                if hasattr(self.config._config.models, 'latest_base_model'):\n                    latest_model = self.config._config.models.latest_base_model\n                    # Construct full path to model\n                    base_model_dir = os.path.join(\n                        self.config._config.models.model_dir,\n                        'hybrid'  # Default model name\n                    )\n                    self.model_path = Path(base_model_dir) / latest_model\n                    print(f\"Using latest base model from config: {self.model_path}\")\n                else:\n                    # Fall back to provided model_path\n                    self.model_path = Path(model_path) if model_path else None\n                    print(\"No latest_base_model found in config, using specified model path\")\n            except (AttributeError, TypeError) as e:\n                print(f\"Error loading latest_base_model from config: {str(e)}\")\n                self.model_path = Path(model_path) if model_path else None\n        else:\n            # Use specified model path\n            self.model_path = Path(model_path) if model_path else None\n\n        # Check if model path exists\n        if self.model_path is None:\n            raise ValueError(\"No model path provided and couldn't get latest_base_model from config\")\n\n        if not self.model_path.exists():\n            raise FileNotFoundError(f\"Model path {self.model_path} does not exist\")\n\n        self.verbose = verbose\n        # Get database path from config\n        self.db_path = get_sqlite_dbpath(db_name)\n\n        # Initialize orchestrator for feature embedding\n        self.orchestrator = FeatureEmbeddingOrchestrator(\n            sqlite_path=self.db_path,\n            verbose=verbose\n        )\n\n        # Set up logging with proper verbose control\n        self._setup_logging()\n\n        # Load models and configuration\n        self._load_models()\n\n        if self.verbose:\n            self.log_info(f\"Race predictor initialized with model at {self.model_path}\")\n            self.log_info(f\"Using database: {self.db_path}\")\n\n    def _setup_logging(self):\n        \"\"\"Set up logging with proper verbose control.\"\"\"\n        # Create logs directory if it doesn't exist\n        log_dir = self.model_path / \"logs\"\n        log_dir.mkdir(parents=True, exist_ok=True)\n\n        # Get or create logger\n        self.logger = logging.getLogger(\"RacePredictor\")\n\n        # Remove any existing handlers to avoid duplicates\n        for handler in list(self.logger.handlers):\n            self.logger.removeHandler(handler)\n\n        # Set level based on verbose flag\n        self.logger.setLevel(logging.INFO if self.verbose else logging.WARNING)\n\n        # Add file handler (always log to file)\n        log_file = log_dir / f\"race_predictor_{datetime.now().strftime('%Y%m%d')}.log\"\n        file_handler = logging.FileHandler(log_file)\n        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))\n        self.logger.addHandler(file_handler)\n\n        # Add console handler only if verbose is True\n        if self.verbose:\n            console_handler = logging.StreamHandler()\n            console_handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))\n            self.logger.addHandler(console_handler)\n\n    def log_info(self, message):\n        \"\"\"Log an info message.\"\"\"\n        if hasattr(self, 'logger'):\n            self.logger.info(message)\n        elif self.verbose:  # Only print if verbose when logger not initialized\n            print(message)\n\n    def log_error(self, message):\n        \"\"\"Log an error message.\"\"\"\n        if hasattr(self, 'logger'):\n            self.logger.error(message)\n        else:  # Always print errors even without logger\n            print(f\"ERROR: {message}\")\n    def _load_models(self):\n        # Get model manager\n        from utils.model_manager import get_model_manager\n        model_manager = get_model_manager()\n\n        # Load models\n        artifacts = model_manager.load_model_artifacts(\n            base_path=self.model_path,\n            load_rf=True,\n            load_lstm=True,\n            load_feature_config=True\n        )\n\n        # Set model attributes from loaded artifacts\n        if 'rf_model' in artifacts:\n            self.rf_model = artifacts['rf_model']\n            self.log_info(f\"Loaded RF model\")\n        else:\n            self.rf_model = None\n            self.log_info(\"RF model not available\")\n\n        if 'lstm_model' in artifacts:\n            self.lstm_model = artifacts['lstm_model']\n            self.log_info(f\"Loaded LSTM model\")\n        else:\n            self.lstm_model = None\n            self.log_info(\"LSTM model not available\")\n\n        if 'feature_config' in artifacts:\n            self.feature_config = artifacts['feature_config']\n            self.log_info(f\"Loaded feature configuration\")\n        else:\n            self.feature_config = {}\n\n        if 'model_config' in artifacts:\n            self.model_config = artifacts['model_config']\n            self.log_info(f\"Loaded model configuration\")\n\n    def prepare_race_data(self, race_df: pd.DataFrame) -> Tuple[\n        pd.DataFrame, Optional[np.ndarray], Optional[np.ndarray]]:\n        \"\"\"\n        Prepare race data for prediction by applying feature engineering and embeddings.\n        \"\"\"\n        # Prepare RF features\n        X = self._prepare_rf_features(race_df)  # Extract current RF preparation logic to this method\n\n        # Prepare LSTM features if the model is available\n        X_seq, X_static = None, None\n        if self.lstm_model is not None:\n            X_seq, X_static = self.prepare_lstm_race_data(race_df)\n\n        return X, X_seq, X_static\n    def _prepare_rf_features(self, race_df: pd.DataFrame) -> Tuple[\n        pd.DataFrame, Optional[np.ndarray], Optional[np.ndarray]]:\n        \"\"\"\n        Prepare race data for prediction by applying feature engineering and embeddings.\n\n        Args:\n            race_df: DataFrame with race and participant data\n\n        Returns:\n            Tuple of (processed features DataFrame, sequence features, static features)\n        \"\"\"\n        # Make a copy to avoid modifying the original\n        df = race_df.copy()\n\n        # Add missing columns that are expected by the feature engineering pipeline\n        missing_cols = []\n        expected_cols = ['idche', 'idJockey', 'cheval', 'cotedirect', 'numero']\n\n        for col in expected_cols:\n            if col not in df.columns:\n                missing_cols.append(col)\n                df[col] = None\n\n        if missing_cols:\n            self.log_info(f\"Added missing columns for feature engineering: {missing_cols}\")\n\n        # Convert numeric fields\n        numeric_fields = [\n            'age', 'cotedirect', 'coteprob', 'pourcVictChevalHippo',\n            'pourcPlaceChevalHippo', 'pourcVictJockHippo', 'pourcPlaceJockHippo',\n            'victoirescheval', 'placescheval', 'coursescheval', 'gainsCarriere',\n            'gainsAnneeEnCours', 'nbCourseCouple', 'nbVictCouple', 'nbPlaceCouple',\n            'TxVictCouple', 'recence', 'dist', 'temperature', 'forceVent',\n            'ratio_victoires', 'ratio_places', 'gains_par_course',\n            'efficacite_couple', 'regularite_couple', 'progression_couple',\n            'perf_cheval_hippo', 'perf_jockey_hippo'\n        ]\n\n        for field in numeric_fields:\n            if field in df.columns and not pd.api.types.is_numeric_dtype(df[field]):\n                df[field] = pd.to_numeric(df[field], errors='coerce')\n\n        # Prepare features using orchestrator\n        self.log_info(\"Preparing features...\")\n\n        # First apply feature calculator for static features\n        try:\n            from core.calculators.static_feature_calculator import FeatureCalculator\n            df = FeatureCalculator.calculate_all_features(df)\n            self.log_info(f\"Applied static feature calculations\")\n        except Exception as e:\n            self.log_error(f\"Error applying static feature calculations: {str(e)}\")\n\n        # Apply embeddings\n        try:\n            df = self.orchestrator.apply_embeddings(df, clean_after_embedding=False)\n            self.log_info(f\"Applied embeddings\")\n        except Exception as e:\n            self.log_error(f\"Error applying embeddings: {str(e)}\")\n\n        # Clean up features for RF model\n        X = self.orchestrator.drop_embedded_raw_features(df)\n        self.log_info(f\"Prepared {len(X)} samples with {X.shape[1]} features for RF model\")\n\n        # Prepare sequence data for LSTM model if available\n        X_seq = None\n        X_static = None\n\n        if self.lstm_model is not None and hasattr(self.orchestrator, 'prepare_sequence_data'):\n            try:\n                # Get sequence length from model config or use default\n                sequence_length = self.feature_config.get('sequence_length', 5) if self.feature_config else 5\n\n                self.log_info(f\"Preparing sequence data with length {sequence_length}...\")\n                X_seq, X_static, _ = self.orchestrator.prepare_sequence_data(\n                    df, sequence_length=sequence_length\n                )\n                self.log_info(\n                    f\"Prepared sequence data with shape {X_seq.shape} and static data with shape {X_static.shape}\")\n            except Exception as e:\n                self.log_error(f\"Error preparing sequence data: {str(e)}\")\n                X_seq = None\n                X_static = None\n        self.log_info(f\"X shape: {X.shape if X is not None else 'None'}\")\n        self.log_info(f\"X_seq shape: {X_seq.shape if X_seq is not None else 'None'}\")\n        self.log_info(f\"X_static shape: {X_static.shape if X_static is not None else 'None'}\")\n        self.log_info(f\"LSTM model available: {self.lstm_model is not None}\")\n        return X, X_seq, X_static\n\n    def fetch_horse_sequences(self, race_df, sequence_length=None):\n        \"\"\"\n        Fetch historical race sequences for all horses in a race to enable LSTM prediction.\n\n        Args:\n            race_df: DataFrame with the current race data (containing horses to predict)\n            sequence_length: Length of sequence to retrieve (uses default if None)\n\n        Returns:\n            Tuple of (X_seq, X_static, horse_ids) for sequence prediction\n        \"\"\"\n        if sequence_length is None:\n            sequence_length = self.feature_config.get('sequence_length', 5) if self.feature_config else 5\n\n        self.log_info(f\"Fetching historical sequences of length {sequence_length} for horses in race\")\n\n        # Get all horse IDs from the race\n        horse_ids = []\n        if 'idche' in race_df.columns:\n            # Filter out missing or invalid IDs\n            horse_ids = [int(h) for h in race_df['idche'] if pd.notna(h)]\n\n        if not horse_ids:\n            self.log_error(\"No valid horse IDs found in race data\")\n            return None, None, None\n\n        self.log_info(f\"Found {len(horse_ids)} horses to fetch sequences for\")\n\n        # Connect to the database\n        try:\n            conn = sqlite3.connect(self.db_path)\n            conn.row_factory = sqlite3.Row  # This enables column access by name\n            cursor = conn.cursor()\n\n            # Define sequence and static features (match training configuration)\n            # These should match what was used in training\n            sequential_features = [\n                'final_position', 'cotedirect', 'dist',\n                # Include embeddings if available\n                'horse_emb_0', 'horse_emb_1', 'horse_emb_2',\n                'jockey_emb_0', 'jockey_emb_1', 'jockey_emb_2',\n                # Add musique-derived features\n                'che_global_avg_pos', 'che_global_recent_perf', 'che_global_consistency', 'che_global_pct_top3',\n                'che_weighted_avg_pos', 'che_weighted_recent_perf', 'che_weighted_consistency', 'che_weighted_pct_top3'\n            ]\n\n            static_features = [\n                'age', 'temperature', 'natpis', 'typec', 'meteo', 'corde',\n                'couple_emb_0', 'couple_emb_1', 'couple_emb_2',\n                'course_emb_0', 'course_emb_1', 'course_emb_2'\n            ]\n\n            # Prepare containers for sequences\n            all_sequences = []\n            all_static_features = []\n            all_horse_ids = []\n\n            # For each horse, retrieve its historical races\n            for horse_id in horse_ids:\n                self.log_info(f\"Processing historical data for horse {horse_id}\")\n\n                # Fetch historical races for this horse\n                # Note: SQL query filters races before the current race date\n                # to prevent data leakage\n\n                # First get the current race date to use as a cutoff\n                current_race_date = None\n                if 'jour' in race_df.columns:\n                    # Try to get the date from the current race data\n                    current_race_date = race_df['jour'].iloc[0] if len(race_df) > 0 else None\n\n                # Determine SQL date filter based on current race date\n                date_filter = \"\"\n                if current_race_date:\n                    # Convert to proper date format if needed\n                    if isinstance(current_race_date, str):\n                        date_filter = f\" AND hr.jour < '{current_race_date}'\"\n                    else:\n                        # Try to format as a date string\n                        try:\n                            date_str = current_race_date.strftime('%Y-%m-%d')\n                            date_filter = f\" AND hr.jour < '{date_str}'\"\n                        except:\n                            # If formatting fails, don't use a date filter\n                            pass\n\n                # Create query to find races with this horse\n                query = f\"\"\"\n                SELECT hr.* \n                FROM historical_races hr\n                WHERE hr.participants LIKE ?\n                {date_filter}\n                ORDER BY hr.jour DESC\n                LIMIT 20\n                \"\"\"\n\n                # Execute query\n                cursor.execute(query, (f'%\"idche\": {horse_id}%',))\n                horse_races = cursor.fetchall()\n\n                if not horse_races:\n                    self.log_info(f\"No historical races found for horse {horse_id}\")\n                    continue\n\n                self.log_info(f\"Found {len(horse_races)} historical races for horse {horse_id}\")\n\n                # Extract and process participant data for this horse\n                horse_data = []\n                for race in horse_races:\n                    try:\n                        # Parse participant JSON\n                        participants = json.loads(race['participants'])\n\n                        # Find this horse in the participants\n                        horse_entry = next((p for p in participants if int(p.get('idche', 0)) == horse_id), None)\n\n                        if horse_entry:\n                            # Add race attributes to horse entry\n                            for key in ['jour', 'hippo', 'dist', 'typec', 'temperature', 'natpis', 'meteo', 'corde']:\n                                if key in race:\n                                    horse_entry[key] = race[key]\n\n                            # If there's a race result, try to get the final position for this horse\n                            if 'ordre_arrivee' in race and race['ordre_arrivee']:\n                                try:\n                                    results = json.loads(race['ordre_arrivee'])\n                                    # Find this horse's position\n                                    horse_result = next((r for r in results if int(r.get('cheval', 0)) == horse_id),\n                                                        None)\n                                    if horse_result:\n                                        horse_entry['final_position'] = horse_result.get('narrivee')\n                                except:\n                                    # If we can't parse results, skip\n                                    pass\n\n                            horse_data.append(horse_entry)\n                    except:\n                        # If we can't parse participants, skip this race\n                        continue\n\n                # Convert to DataFrame for easier processing\n                if not horse_data:\n                    self.log_info(f\"No historical data could be extracted for horse {horse_id}\")\n                    continue\n\n                horse_df = pd.DataFrame(horse_data)\n\n                # Sort by date\n                if 'jour' in horse_df.columns:\n                    horse_df['jour'] = pd.to_datetime(horse_df['jour'], errors='coerce')\n                    horse_df = horse_df.sort_values('jour', ascending=False)\n\n                # Apply feature engineering to get embeddings\n                try:\n                    # Use orchestrator to process features\n                    processed_df = self.orchestrator.prepare_features(horse_df)\n                    embedded_df = self.orchestrator.apply_embeddings(processed_df, clean_after_embedding=False)\n\n                    # Check if we have enough races for a sequence\n                    if len(embedded_df) >= sequence_length:\n                        # Extract sequential features (only keep those that exist in the DataFrame)\n                        seq_features = [f for f in sequential_features if f in embedded_df.columns]\n\n                        if not seq_features:\n                            self.log_info(f\"No sequential features found for horse {horse_id}\")\n                            continue\n\n                        # Get sequence data (take first sequence_length races)\n                        seq_data = embedded_df[seq_features].head(sequence_length).values.astype(np.float32)\n\n                        # Make sure we have the right sequence length\n                        if len(seq_data) < sequence_length:\n                            # Pad with zeros if needed\n                            padding = np.zeros((sequence_length - len(seq_data), len(seq_features)), dtype=np.float32)\n                            seq_data = np.vstack([seq_data, padding])\n\n                        # Get static features from current race for this horse\n                        current_horse = race_df[race_df['idche'] == horse_id]\n\n                        if len(current_horse) > 0:\n                            # Start with empty array for static features\n                            static_data = np.zeros(len(static_features), dtype=np.float32)\n\n                            # Fill in available static features from current race\n                            for i, feature in enumerate(static_features):\n                                if feature in current_horse.columns:\n                                    try:\n                                        val = current_horse[feature].iloc[0]\n                                        if pd.notna(val):\n                                            static_data[i] = float(val)\n                                    except:\n                                        pass\n\n                            # Add to output containers\n                            all_sequences.append(seq_data)\n                            all_static_features.append(static_data)\n                            all_horse_ids.append(horse_id)\n\n                            self.log_info(f\"Successfully created sequence for horse {horse_id}\")\n                        else:\n                            self.log_info(f\"Horse {horse_id} not found in current race data\")\n                    else:\n                        self.log_info(\n                            f\"Not enough historical races for horse {horse_id} (found {len(embedded_df)}, need {sequence_length})\")\n                except Exception as e:\n                    self.log_error(f\"Error processing horse {horse_id}: {str(e)}\")\n                    import traceback\n                    self.log_error(traceback.format_exc())\n\n            conn.close()\n\n            # Convert to numpy arrays\n            if not all_sequences:\n                self.log_info(f\"No valid sequences could be created for any horse\")\n                return None, None, None\n\n            X_sequences = np.array(all_sequences, dtype=np.float32)\n            X_static = np.array(all_static_features, dtype=np.float32)\n            sequence_horse_ids = np.array(all_horse_ids)\n\n            self.log_info(f\"Created {len(X_sequences)} sequences for {len(np.unique(sequence_horse_ids))} horses\")\n            self.log_info(f\"Sequence shape: {X_sequences.shape}, Static shape: {X_static.shape}\")\n\n            return X_sequences, X_static, sequence_horse_ids\n\n        except Exception as e:\n            self.log_error(f\"Error in fetch_horse_sequences: {str(e)}\")\n            import traceback\n            self.log_error(traceback.format_exc())\n            return None, None, None\n\n    def prepare_lstm_race_data(self, race_df: pd.DataFrame) -> Tuple[\n        Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]:\n        \"\"\"\n        Prepare race data specifically for LSTM prediction.\n        Enhanced to fetch historical sequences for horses.\n\n        Args:\n            race_df: DataFrame with race and participant data\n\n        Returns:\n            Tuple of (sequence features, static features, horse_ids)\n        \"\"\"\n        # Make a copy to avoid modifying the original\n        df = race_df.copy()\n\n        # Apply basic feature engineering but preserve 'jour' and 'idche'\n        df = self.orchestrator.apply_embeddings(df, clean_after_embedding=True, keep_identifiers=True)\n\n        # Try preparing sequence data using the traditional method first (for backward compatibility)\n        try:\n            # Get sequence length from model config or use default\n            sequence_length = self.feature_config.get('sequence_length', 5) if self.feature_config else 5\n\n            self.log_info(f\"Trying standard sequence preparation with length {sequence_length}...\")\n            # Note: Removed the '*' which might be a typo in your original code\n            X_seq, X_static, _ = self.orchestrator.prepare_sequence_data(\n                df, sequence_length=sequence_length\n            )\n            self.log_info(\n                f\"Successfully prepared LSTM sequence data with shape {X_seq.shape} and static data with shape {X_static.shape}\")\n\n            # This succeeded, so return the results without horse IDs (since the standard method doesn't provide them)\n            return X_seq, X_static, None\n\n        except Exception as e:\n            self.log_info(\n                f\"Standard sequence preparation failed: {str(e)} - Attempting to fetch historical horse sequences\")\n\n        # If the standard method failed, try our new approach that fetches historical data\n        try:\n            # Get sequence length from model config or use default\n            sequence_length = self.feature_config.get('sequence_length', 5) if self.feature_config else 5\n\n            self.log_info(f\"Fetching historical horse sequences with length {sequence_length}...\")\n            X_seq, X_static, horse_ids = self.fetch_horse_sequences(df, sequence_length=sequence_length)\n\n            if X_seq is not None and X_static is not None:\n                self.log_info(\n                    f\"Successfully fetched LSTM sequence data with shape {X_seq.shape} and static data with shape {X_static.shape}\")\n                return X_seq, X_static, horse_ids\n            else:\n                self.log_error(\"Could not create sequences from historical data\")\n                return None, None, None\n\n        except Exception as e:\n            self.log_error(f\"Error preparing LSTM sequence data: {str(e)}\")\n            import traceback\n            self.log_error(traceback.format_exc())\n            return None, None, None\n\n    def predict_with_rf(self, X: pd.DataFrame) -> np.ndarray:\n        \"\"\"\n        Make predictions using the Random Forest model with feature name alignment.\n        \"\"\"\n        if self.rf_model is None:\n            self.log_error(\"Random Forest model not loaded\")\n            return np.zeros(len(X))\n\n        try:\n            # Check if we have feature names from training\n            expected_features = None\n\n            # Try to get expected feature names from different places\n            if hasattr(self.feature_config,\n                       'preprocessing_params') and 'feature_columns' in self.feature_config.preprocessing_params:\n                expected_features = self.feature_config.preprocessing_params['feature_columns']\n                self.log_info(f\"Found {len(expected_features)} expected feature columns from config\")\n            elif hasattr(self.rf_model, 'feature_names_in_'):\n                expected_features = self.rf_model.feature_names_in_\n                self.log_info(f\"Found {len(expected_features)} feature names from model\")\n            elif hasattr(self.rf_model, 'base_regressor') and hasattr(self.rf_model.base_regressor,\n                                                                      'feature_names_in_'):\n                expected_features = self.rf_model.base_regressor.feature_names_in_\n                self.log_info(f\"Found {len(expected_features)} feature names from base_regressor\")\n\n            # If we have expected features, align the input data\n            if expected_features is not None:\n                # Create a DataFrame with expected feature columns filled with zeros\n                aligned_X = pd.DataFrame(0, index=range(len(X)), columns=expected_features)\n\n                # Copy values for columns that exist in both DataFrames\n                common_features = set(X.columns) & set(expected_features)\n                self.log_info(f\"Found {len(common_features)} common features out of {len(expected_features)} expected\")\n\n                for feature in common_features:\n                    aligned_X[feature] = X[feature].values\n\n                # Use the aligned DataFrame for prediction\n                X_for_prediction = aligned_X\n            else:\n                # No expected features found, use original data (will likely fail)\n                self.log_info(\"No expected feature list found, using original features\")\n                X_for_prediction = X\n\n            # Make prediction with appropriate model\n            preds = self.rf_model.predict(X_for_prediction)\n            self.log_info(f\"Generated predictions for {len(X)} samples\")\n            return preds\n\n        except Exception as e:\n            self.log_error(f\"Error generating RF predictions: {str(e)}\")\n            import traceback\n            self.log_error(traceback.format_exc())\n            return np.zeros(len(X))\n\n    def predict_with_lstm(self, X_seq: np.ndarray, X_static: np.ndarray) -> np.ndarray:\n        \"\"\"\n        Make predictions using the LSTM model.\n\n        Args:\n            X_seq: Sequence features\n            X_static: Static features\n\n        Returns:\n            NumPy array with predictions\n        \"\"\"\n        if self.lstm_model is None:\n            self.log_error(\"LSTM model not loaded\")\n            return np.zeros(len(X_seq))\n\n        if X_seq is None or X_static is None:\n            self.log_error(\"Sequence data not available\")\n            return np.zeros(len(X_seq) if X_seq is not None else 0)\n\n        try:\n            preds = self.lstm_model.predict([X_seq, X_static], verbose=0)\n\n            # Flatten predictions if needed\n            if len(preds.shape) > 1:\n                preds = preds.flatten()\n\n            self.log_info(f\"Generated LSTM predictions for {len(preds)} samples\")\n            return preds\n        except Exception as e:\n            self.log_error(f\"Error generating LSTM predictions: {str(e)}\")\n            return np.zeros(len(X_seq))\n\n    def predict(self, X: pd.DataFrame, X_seq: Optional[np.ndarray] = None,\n                X_static: Optional[np.ndarray] = None, blend_weight: float = 0.7) -> np.ndarray:\n        \"\"\"\n        Make predictions using available models, optionally blending results.\n\n        Args:\n            X: Feature DataFrame for RF model\n            X_seq: Sequence features for LSTM model (optional)\n            X_static: Static features for LSTM model (optional)\n            blend_weight: Weight for RF model in blended predictions (0-1)\n\n        Returns:\n            NumPy array with predictions\n        \"\"\"\n        # Get RF predictions\n        if self.lstm_model is None:\n            self.log_info(\"LSTM model is None, no blending will occur\")\n        if X_seq is None:\n            self.log_info(\"X_seq is None, no blending will occur\")\n        if X_static is None:\n            self.log_info(\"X_static is None, no blending will occur\")\n\n        rf_preds = self.predict_with_rf(X)\n\n        # Get LSTM predictions if possible\n        lstm_preds = None\n        if self.lstm_model is not None and X_seq is not None and X_static is not None:\n            lstm_preds = self.predict_with_lstm(X_seq, X_static)\n            self.log_info(f\"lstm prediction is {lstm_preds}\")\n\n            # Make sure shapes match\n            if len(lstm_preds) != len(rf_preds):\n                self.log_error(f\"Shape mismatch: RF {len(rf_preds)}, LSTM {len(lstm_preds)}\")\n                lstm_preds = None\n\n        # Blend predictions if both models are available\n        if lstm_preds is not None:\n            self.log_info(f\"Blending predictions with weight {blend_weight} for RF\")\n            final_preds = rf_preds * blend_weight + lstm_preds * (1 - blend_weight)\n            self.log_info(f\"Predict before blending: RF= {rf_preds} | LSTM={lstm_preds} and after: {final_preds} with weight {blend_weight}\")\n        else:\n            final_preds = rf_preds\n\n        return final_preds\n\n    def predict_race(self, race_df: pd.DataFrame, blend_weight: float = 0.7) -> pd.DataFrame:\n        \"\"\"\n        Predict race outcome with arrival string format.\n\n        Args:\n            race_df: DataFrame with race data\n            blend_weight: Weight for RF model in blended predictions (0-1)\n\n        Returns:\n            DataFrame with predictions\n        \"\"\"\n        # Prepare data for prediction\n        X, X_seq, X_static = self.prepare_race_data(race_df)\n\n        # Make predictions\n        predictions = self.predict(X, X_seq, X_static, blend_weight)\n\n        # Add predictions to original data\n        result_df = race_df.copy()\n        result_df['predicted_position'] = predictions\n\n        # Sort by predicted position (ascending, better positions first)\n        result_df = result_df.sort_values('predicted_position')\n\n        # Add rank column\n        result_df['predicted_rank'] = range(1, len(result_df) + 1)\n\n        # Create arrival string format (numero-numero-numero)\n        # This follows the same format as 'arriv' in actual results\n        numeros_ordered = result_df['numero'].astype(str).tolist()\n        predicted_arriv = '-'.join(numeros_ordered)\n\n        # Add the predicted_arriv as a column to each row\n        result_df['predicted_arriv'] = predicted_arriv\n\n        return result_df
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/race_prediction/race_predict.py b/race_prediction/race_predict.py
+--- a/race_prediction/race_predict.py	(revision 0d88e73ffd4a3899fde119bb4ed28c1bf49fab9b)
++++ b/race_prediction/race_predict.py	(date 1746104538455)
+@@ -7,6 +7,7 @@
+ from typing import Dict, List, Union, Any, Optional, Tuple
+ import logging
+ from datetime import datetime
++import time
+ 
+ # Import from existing code
+ from utils.env_setup import AppConfig, get_sqlite_dbpath
+@@ -83,6 +84,7 @@
+         if self.verbose:
+             self.log_info(f"Race predictor initialized with model at {self.model_path}")
+             self.log_info(f"Using database: {self.db_path}")
++         self.prediction_cache = {}  # Cache for prediction results
+ 
+     def _setup_logging(self):
+         """Set up logging with proper verbose control."""
+@@ -166,17 +168,28 @@
+     def prepare_race_data(self, race_df: pd.DataFrame) -> Tuple[
+         pd.DataFrame, Optional[np.ndarray], Optional[np.ndarray]]:
+         """
+-        Prepare race data for prediction by applying feature engineering and embeddings.
++        Prepare race data for prediction, returning processed dataframes for both RF and LSTM models.
++
++        Args:
++            race_df: DataFrame with race data
++
++        Returns:
++            Tuple of (rf_features, sequence_features, static_features)
+         """
+-        # Prepare RF features
+-        X = self._prepare_rf_features(race_df)  # Extract current RF preparation logic to this method
++        # Prepare features for RF model
++        rf_features = self.prepare_rf_features(race_df)
+ 
+-        # Prepare LSTM features if the model is available
+-        X_seq, X_static = None, None
++        # Prepare data for LSTM model if available
++        lstm_seq_features = None
++        lstm_static_features = None
++
+         if self.lstm_model is not None:
+-            X_seq, X_static = self.prepare_lstm_race_data(race_df)
++            try:
++                lstm_seq_features, lstm_static_features = self.prepare_lstm_race_data(race_df)
++            except Exception as e:
++                self.log_error(f"Error preparing LSTM features: {str(e)}")
+ 
+-        return X, X_seq, X_static
++        return rf_features, lstm_seq_features, lstm_static_features
+     def _prepare_rf_features(self, race_df: pd.DataFrame) -> Tuple[
+         pd.DataFrame, Optional[np.ndarray], Optional[np.ndarray]]:
+         """
+@@ -692,6 +705,7 @@
+     def predict_race(self, race_df: pd.DataFrame, blend_weight: float = 0.7) -> pd.DataFrame:
+         """
+         Predict race outcome with arrival string format.
++        Enhanced with caching for efficient re-blending.
+ 
+         Args:
+             race_df: DataFrame with race data
+@@ -700,15 +714,76 @@
+         Returns:
+             DataFrame with predictions
+         """
+-        # Prepare data for prediction
+-        X, X_seq, X_static = self.prepare_race_data(race_df)
++        # Generate a cache key from race DataFrame
++        comp = race_df['comp'].iloc[0] if 'comp' in race_df.columns else None
++        cache_key = str(comp) if comp else race_df['cheval'].astype(str).sum()
++
++        # Check if we have cached predictions for this race
++        if cache_key in self.prediction_cache:
++            cache_entry = self.prediction_cache[cache_key]
++
++            # Check if we have the raw predictions needed for reblending
++            if 'rf_predictions' in cache_entry and 'lstm_predictions' in cache_entry:
++                self.log_info(f"Using cached predictions with blend_weight={blend_weight}")
++
++                # Get raw predictions from cache
++                rf_predictions = cache_entry['rf_predictions']
++                lstm_predictions = cache_entry['lstm_predictions']
++
++                # Apply blending with new weight
++                if lstm_predictions is not None and len(lstm_predictions) == len(rf_predictions):
++                    final_predictions = rf_predictions * blend_weight + lstm_predictions * (1 - blend_weight)
++                    self.log_info(
++                        f"Reblended predictions with weight {blend_weight} for RF, {1 - blend_weight} for LSTM")
++                else:
++                    final_predictions = rf_predictions
++                    self.log_info("Using only RF predictions (LSTM not available)")
++
++                # Use the cached DataFrame for results
++                result_df = cache_entry['result_df'].copy()
++
++                # Update with new blended predictions
++                result_df['predicted_position'] = final_predictions
++
++                # Re-sort by the new predictions
++                result_df = result_df.sort_values('predicted_position')
++
++                # Re-calculate ranks
++                result_df['predicted_rank'] = range(1, len(result_df) + 1)
++
++                # Recreate arrival string
++                numeros_ordered = result_df['numero'].astype(str).tolist()
++                predicted_arriv = '-'.join(numeros_ordered)
++                result_df['predicted_arriv'] = predicted_arriv
++
++                return result_df
+ 
+-        # Make predictions
+-        predictions = self.predict(X, X_seq, X_static, blend_weight)
++        # If no cache hit or incomplete cache, proceed with normal prediction
++        start_time = time.time()
+ 
+-        # Add predictions to original data
++        # Step 1: Prepare data for both models
++        rf_features, lstm_seq, lstm_static = self.prepare_race_data(race_df)
++
++        # Step 2: Predict with RF model
++        rf_predictions = self.predict_with_rf(rf_features)
++
++        # Step 3: Predict with LSTM model if available
++        lstm_predictions = None
++        if self.lstm_model is not None and lstm_seq is not None and lstm_static is not None:
++            try:
++                lstm_predictions = self.predict_with_lstm(lstm_seq, lstm_static)
++            except Exception as e:
++                self.log_error(f"Error in LSTM prediction: {str(e)}")
++
++        # Step 4: Blend predictions if both models produced results
++        final_predictions = rf_predictions
++        if lstm_predictions is not None and len(lstm_predictions) == len(rf_predictions):
++            self.log_info(f"Blending predictions with weight {blend_weight} for RF, {1 - blend_weight} for LSTM")
++            final_predictions = rf_predictions * blend_weight + lstm_predictions * (1 - blend_weight)
++
++        # Step 5: Add predictions to result DataFrame and format
+         result_df = race_df.copy()
+-        result_df['predicted_position'] = predictions
++        result_df['predicted_position'] = final_predictions
+ 
+         # Sort by predicted position (ascending, better positions first)
+         result_df = result_df.sort_values('predicted_position')
+@@ -717,11 +792,21 @@
+         result_df['predicted_rank'] = range(1, len(result_df) + 1)
+ 
+         # Create arrival string format (numero-numero-numero)
+-        # This follows the same format as 'arriv' in actual results
+         numeros_ordered = result_df['numero'].astype(str).tolist()
+         predicted_arriv = '-'.join(numeros_ordered)
+ 
+         # Add the predicted_arriv as a column to each row
+         result_df['predicted_arriv'] = predicted_arriv
+ 
++        # Store in cache for future reblending
++        self.prediction_cache[cache_key] = {
++            'rf_predictions': rf_predictions,
++            'lstm_predictions': lstm_predictions,
++            'result_df': result_df,  # Store a copy of the result DataFrame
++            'time': time.time()
++        }
++
++        prediction_time = time.time() - start_time
++        self.log_info(f"Generated predictions in {prediction_time:.3f} seconds")
++
+         return result_df
+\ No newline at end of file
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"43ec0894-de26-497b-a8fc-a968059a9170\" name=\"Changes\" comment=\"ModelManager\">\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/config.yaml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/config.yaml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/core/connectors/api_daily_sync.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/core/connectors/api_daily_sync.py\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/model_training/historical/train_race_model.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/model_training/historical/train_race_model.py\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/model_training/regressions/regression_enhancement.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/model_training/regressions/regression_enhancement.py\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/race_prediction/race_predict.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/race_prediction/race_predict.py\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/utils/model_manager.py\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/utils/model_manager.py\" afterDir=\"false\" />\n    </list>\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"FileTemplateManagerImpl\">\n    <option name=\"RECENT_TEMPLATES\">\n      <list>\n        <option value=\"Python Script\" />\n      </list>\n    </option>\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_BRANCH_BY_REPOSITORY\">\n      <map>\n        <entry key=\"$PROJECT_DIR$\" value=\"LightGBM\" />\n      </map>\n    </option>\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n  </component>\n  <component name=\"GitHubPullRequestSearchHistory\">{\n  &quot;lastFilter&quot;: {\n    &quot;state&quot;: &quot;OPEN&quot;,\n    &quot;assignee&quot;: &quot;Mattg0&quot;\n  }\n}</component>\n  <component name=\"GithubPullRequestsUISettings\">{\n  &quot;selectedUrlAndAccountId&quot;: {\n    &quot;url&quot;: &quot;https://github.com/Mattg0/HorseAI.git&quot;,\n    &quot;accountId&quot;: &quot;aee67ed6-2c23-4be9-a632-2459e76288ac&quot;\n  }\n}</component>\n  <component name=\"ProjectColorInfo\">{\n  &quot;associatedIndex&quot;: 4\n}</component>\n  <component name=\"ProjectId\" id=\"2tOCkYF0cZhZtRPomssp0yLhNGU\" />\n  <component name=\"ProjectLevelVcsManager\" settingsEditedManually=\"true\" />\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\"><![CDATA[{\n  \"keyToString\": {\n    \"Python.api_daily_sync.executor\": \"Run\",\n    \"Python.embedding_feature.executor\": \"Run\",\n    \"Python.env_setup.executor\": \"Run\",\n    \"Python.horse_embedding.executor\": \"Run\",\n    \"Python.musique_calculation.executor\": \"Debug\",\n    \"Python.mysql_connector.executor\": \"Run\",\n    \"Python.mysql_sqlite_sync.executor\": \"Run\",\n    \"Python.mysql_to_sqlite.executor\": \"Run\",\n    \"Python.predict_daily_races.executor\": \"Run\",\n    \"Python.prediction_orchestrator.executor\": \"Run\",\n    \"Python.regression_enhancement.executor\": \"Run\",\n    \"Python.test.executor\": \"Debug\",\n    \"Python.train_model.executor\": \"Debug\",\n    \"Python.train_race_model.executor\": \"Run\",\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\n    \"RunOnceActivity.git.unshallow\": \"true\",\n    \"git-widget-placeholder\": \"main\"\n  }\n}]]></component>\n  <component name=\"RecentsManager\">\n    <key name=\"MoveFile.RECENT_KEYS\">\n      <recent name=\"$PROJECT_DIR$/core/connectors\" />\n    </key>\n  </component>\n  <component name=\"RunManager\" selected=\"Python.train_race_model\">\n    <configuration name=\"api_daily_sync\" type=\"PythonConfigurationType\" factoryName=\"Python\" temporary=\"true\" nameIsGenerated=\"true\">\n      <module name=\"HorseAIv2\" />\n      <option name=\"ENV_FILES\" value=\"\" />\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\n      <option name=\"PARENT_ENVS\" value=\"true\" />\n      <envs>\n        <env name=\"PYTHONUNBUFFERED\" value=\"1\" />\n      </envs>\n      <option name=\"SDK_HOME\" value=\"\" />\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/\" />\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\n      <option name=\"SCRIPT_NAME\" value=\"$PROJECT_DIR$/core/connectors/api_daily_sync.py\" />\n      <option name=\"PARAMETERS\" value=\"\" />\n      <option name=\"SHOW_COMMAND_LINE\" value=\"false\" />\n      <option name=\"EMULATE_TERMINAL\" value=\"false\" />\n      <option name=\"MODULE_MODE\" value=\"false\" />\n      <option name=\"REDIRECT_INPUT\" value=\"false\" />\n      <option name=\"INPUT_FILE\" value=\"\" />\n      <method v=\"2\" />\n    </configuration>\n    <configuration name=\"predict_daily_races\" type=\"PythonConfigurationType\" factoryName=\"Python\" temporary=\"true\" nameIsGenerated=\"true\">\n      <module name=\"HorseAIv2\" />\n      <option name=\"ENV_FILES\" value=\"\" />\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\n      <option name=\"PARENT_ENVS\" value=\"true\" />\n      <envs>\n        <env name=\"PYTHONUNBUFFERED\" value=\"1\" />\n      </envs>\n      <option name=\"SDK_HOME\" value=\"\" />\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/\" />\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\n      <option name=\"SCRIPT_NAME\" value=\"$PROJECT_DIR$/race_prediction/predict_daily_races.py\" />\n      <option name=\"PARAMETERS\" value=\"\" />\n      <option name=\"SHOW_COMMAND_LINE\" value=\"false\" />\n      <option name=\"EMULATE_TERMINAL\" value=\"false\" />\n      <option name=\"MODULE_MODE\" value=\"false\" />\n      <option name=\"REDIRECT_INPUT\" value=\"false\" />\n      <option name=\"INPUT_FILE\" value=\"\" />\n      <method v=\"2\" />\n    </configuration>\n    <configuration name=\"prediction_orchestrator\" type=\"PythonConfigurationType\" factoryName=\"Python\" temporary=\"true\" nameIsGenerated=\"true\">\n      <module name=\"HorseAIv2\" />\n      <option name=\"ENV_FILES\" value=\"\" />\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\n      <option name=\"PARENT_ENVS\" value=\"true\" />\n      <envs>\n        <env name=\"PYTHONUNBUFFERED\" value=\"1\" />\n      </envs>\n      <option name=\"SDK_HOME\" value=\"\" />\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/core/orchestrators\" />\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\n      <option name=\"SCRIPT_NAME\" value=\"$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py\" />\n      <option name=\"PARAMETERS\" value=\"\" />\n      <option name=\"SHOW_COMMAND_LINE\" value=\"false\" />\n      <option name=\"EMULATE_TERMINAL\" value=\"false\" />\n      <option name=\"MODULE_MODE\" value=\"false\" />\n      <option name=\"REDIRECT_INPUT\" value=\"false\" />\n      <option name=\"INPUT_FILE\" value=\"\" />\n      <method v=\"2\" />\n    </configuration>\n    <configuration name=\"regression_enhancement\" type=\"PythonConfigurationType\" factoryName=\"Python\" temporary=\"true\" nameIsGenerated=\"true\">\n      <module name=\"HorseAIv2\" />\n      <option name=\"ENV_FILES\" value=\"\" />\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\n      <option name=\"PARENT_ENVS\" value=\"true\" />\n      <envs>\n        <env name=\"PYTHONUNBUFFERED\" value=\"1\" />\n      </envs>\n      <option name=\"SDK_HOME\" value=\"\" />\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/\" />\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\n      <option name=\"SCRIPT_NAME\" value=\"$PROJECT_DIR$/model_training/regressions/regression_enhancement.py\" />\n      <option name=\"PARAMETERS\" value=\"\" />\n      <option name=\"SHOW_COMMAND_LINE\" value=\"false\" />\n      <option name=\"EMULATE_TERMINAL\" value=\"false\" />\n      <option name=\"MODULE_MODE\" value=\"false\" />\n      <option name=\"REDIRECT_INPUT\" value=\"false\" />\n      <option name=\"INPUT_FILE\" value=\"\" />\n      <method v=\"2\" />\n    </configuration>\n    <configuration name=\"train_race_model\" type=\"PythonConfigurationType\" factoryName=\"Python\" temporary=\"true\" nameIsGenerated=\"true\">\n      <module name=\"HorseAIv2\" />\n      <option name=\"ENV_FILES\" value=\"\" />\n      <option name=\"INTERPRETER_OPTIONS\" value=\"\" />\n      <option name=\"PARENT_ENVS\" value=\"true\" />\n      <envs>\n        <env name=\"PYTHONUNBUFFERED\" value=\"1\" />\n      </envs>\n      <option name=\"SDK_HOME\" value=\"\" />\n      <option name=\"WORKING_DIRECTORY\" value=\"$PROJECT_DIR$/\" />\n      <option name=\"IS_MODULE_SDK\" value=\"true\" />\n      <option name=\"ADD_CONTENT_ROOTS\" value=\"true\" />\n      <option name=\"ADD_SOURCE_ROOTS\" value=\"true\" />\n      <option name=\"SCRIPT_NAME\" value=\"$PROJECT_DIR$/model_training/historical/train_race_model.py\" />\n      <option name=\"PARAMETERS\" value=\"\" />\n      <option name=\"SHOW_COMMAND_LINE\" value=\"false\" />\n      <option name=\"EMULATE_TERMINAL\" value=\"false\" />\n      <option name=\"MODULE_MODE\" value=\"false\" />\n      <option name=\"REDIRECT_INPUT\" value=\"false\" />\n      <option name=\"INPUT_FILE\" value=\"\" />\n      <method v=\"2\" />\n    </configuration>\n    <list>\n      <item itemvalue=\"Python.train_race_model\" />\n      <item itemvalue=\"Python.regression_enhancement\" />\n      <item itemvalue=\"Python.predict_daily_races\" />\n      <item itemvalue=\"Python.prediction_orchestrator\" />\n      <item itemvalue=\"Python.api_daily_sync\" />\n    </list>\n    <recent_temporary>\n      <list>\n        <item itemvalue=\"Python.train_race_model\" />\n        <item itemvalue=\"Python.regression_enhancement\" />\n        <item itemvalue=\"Python.api_daily_sync\" />\n        <item itemvalue=\"Python.prediction_orchestrator\" />\n        <item itemvalue=\"Python.predict_daily_races\" />\n      </list>\n    </recent_temporary>\n  </component>\n  <component name=\"SharedIndexes\">\n    <attachedChunks>\n      <set>\n        <option value=\"bundled-python-sdk-fb887030ada0-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.21565.199\" />\n      </set>\n    </attachedChunks>\n  </component>\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"43ec0894-de26-497b-a8fc-a968059a9170\" name=\"Changes\" comment=\"\" />\n      <created>1740213877566</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1740213877566</updated>\n    </task>\n    <task id=\"LOCAL-00001\" summary=\"Project Initialisiation\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1740556622361</created>\n      <option name=\"number\" value=\"00001\" />\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1740556622361</updated>\n    </task>\n    <task id=\"LOCAL-00002\" summary=\"Working MySQL connector!\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1740584410696</created>\n      <option name=\"number\" value=\"00002\" />\n      <option name=\"presentableId\" value=\"LOCAL-00002\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1740584410696</updated>\n    </task>\n    <task id=\"LOCAL-00003\" summary=\"modular mysql&lt;-&gt;sqlite sync\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1740650477583</created>\n      <option name=\"number\" value=\"00003\" />\n      <option name=\"presentableId\" value=\"LOCAL-00003\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1740650477583</updated>\n    </task>\n    <task id=\"LOCAL-00004\" summary=\"adding embeddings\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1740659886795</created>\n      <option name=\"number\" value=\"00004\" />\n      <option name=\"presentableId\" value=\"LOCAL-00004\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1740659886795</updated>\n    </task>\n    <task id=\"LOCAL-00005\" summary=\"adding cache manager\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1740693327554</created>\n      <option name=\"number\" value=\"00005\" />\n      <option name=\"presentableId\" value=\"LOCAL-00005\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1740693327554</updated>\n    </task>\n    <task id=\"LOCAL-00006\" summary=\"updating embedding feature with config approach\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1740755058414</created>\n      <option name=\"number\" value=\"00006\" />\n      <option name=\"presentableId\" value=\"LOCAL-00006\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1740755058414</updated>\n    </task>\n    <task id=\"LOCAL-00007\" summary=\"updating embedding feature with config approach\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1740920224165</created>\n      <option name=\"number\" value=\"00007\" />\n      <option name=\"presentableId\" value=\"LOCAL-00007\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1740920224165</updated>\n    </task>\n    <task id=\"LOCAL-00008\" summary=\"updating embedding feature with config approach\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1741207626289</created>\n      <option name=\"number\" value=\"00008\" />\n      <option name=\"presentableId\" value=\"LOCAL-00008\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1741207626289</updated>\n    </task>\n    <task id=\"LOCAL-00009\" summary=\"refactored_horse_embedding\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1741207970875</created>\n      <option name=\"number\" value=\"00009\" />\n      <option name=\"presentableId\" value=\"LOCAL-00009\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1741207970875</updated>\n    </task>\n    <task id=\"LOCAL-00010\" summary=\"refactored_couple_embedding\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1741208877518</created>\n      <option name=\"number\" value=\"00010\" />\n      <option name=\"presentableId\" value=\"LOCAL-00010\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1741208877518</updated>\n    </task>\n    <task id=\"LOCAL-00011\" summary=\"refactored_cache_manager\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1742135265333</created>\n      <option name=\"number\" value=\"00011\" />\n      <option name=\"presentableId\" value=\"LOCAL-00011\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1742135265333</updated>\n    </task>\n    <task id=\"LOCAL-00012\" summary=\"fixed cache_manager &amp; orchestrator\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1742200198713</created>\n      <option name=\"number\" value=\"00012\" />\n      <option name=\"presentableId\" value=\"LOCAL-00012\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1742200198713</updated>\n    </task>\n    <task id=\"LOCAL-00013\" summary=\"fixing feature storing and loading with testing\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1742201779545</created>\n      <option name=\"number\" value=\"00013\" />\n      <option name=\"presentableId\" value=\"LOCAL-00013\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1742201779545</updated>\n    </task>\n    <task id=\"LOCAL-00014\" summary=\"fixed feature embedding\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1742226900595</created>\n      <option name=\"number\" value=\"00014\" />\n      <option name=\"presentableId\" value=\"LOCAL-00014\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1742226900595</updated>\n    </task>\n    <task id=\"LOCAL-00015\" summary=\"fixed feature embedding\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1742541186315</created>\n      <option name=\"number\" value=\"00015\" />\n      <option name=\"presentableId\" value=\"LOCAL-00015\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1742541186315</updated>\n    </task>\n    <task id=\"LOCAL-00016\" summary=\"fixed feature embedding\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1742549204949</created>\n      <option name=\"number\" value=\"00016\" />\n      <option name=\"presentableId\" value=\"LOCAL-00016\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1742549204949</updated>\n    </task>\n    <task id=\"LOCAL-00017\" summary=\"fixed feature embedding\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1742825115896</created>\n      <option name=\"number\" value=\"00017\" />\n      <option name=\"presentableId\" value=\"LOCAL-00017\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1742825115896</updated>\n    </task>\n    <task id=\"LOCAL-00018\" summary=\"adding daily races sync\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1742903024757</created>\n      <option name=\"number\" value=\"00018\" />\n      <option name=\"presentableId\" value=\"LOCAL-00018\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1742903024757</updated>\n    </task>\n    <task id=\"LOCAL-00019\" summary=\"adding daily races sync\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1743020439512</created>\n      <option name=\"number\" value=\"00019\" />\n      <option name=\"presentableId\" value=\"LOCAL-00019\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1743020439512</updated>\n    </task>\n    <task id=\"LOCAL-00020\" summary=\"adding daily races sync\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1743421163636</created>\n      <option name=\"number\" value=\"00020\" />\n      <option name=\"presentableId\" value=\"LOCAL-00020\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1743421163636</updated>\n    </task>\n    <task id=\"LOCAL-00021\" summary=\"ModelManager\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1744094884798</created>\n      <option name=\"number\" value=\"00021\" />\n      <option name=\"presentableId\" value=\"LOCAL-00021\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1744094884798</updated>\n    </task>\n    <task id=\"LOCAL-00022\" summary=\"ModelManager\">\n      <option name=\"closed\" value=\"true\" />\n      <created>1744176790455</created>\n      <option name=\"number\" value=\"00022\" />\n      <option name=\"presentableId\" value=\"LOCAL-00022\" />\n      <option name=\"project\" value=\"LOCAL\" />\n      <updated>1744176790455</updated>\n    </task>\n    <option name=\"localTasksCounter\" value=\"23\" />\n    <servers />\n  </component>\n  <component name=\"VcsManagerConfiguration\">\n    <MESSAGE value=\"Project Initialisiation\" />\n    <MESSAGE value=\"Working MySQL connector!\" />\n    <MESSAGE value=\"modular mysql&lt;-&gt;sqlite sync\" />\n    <MESSAGE value=\"adding embeddings\" />\n    <MESSAGE value=\"adding cache manager\" />\n    <MESSAGE value=\"updating embedding feature with config approach\" />\n    <MESSAGE value=\"refactored_horse_embedding\" />\n    <MESSAGE value=\"refactored_couple_embedding\" />\n    <MESSAGE value=\"refactored_cache_manager\" />\n    <MESSAGE value=\"fixed cache_manager &amp; orchestrator\" />\n    <MESSAGE value=\"fixing feature storing and loading with testing\" />\n    <MESSAGE value=\"fixed feature embedding\" />\n    <MESSAGE value=\"adding daily races sync\" />\n    <MESSAGE value=\"ModelManager\" />\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"ModelManager\" />\n  </component>\n  <component name=\"XDebuggerManager\">\n    <breakpoint-manager>\n      <breakpoints>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>\n          <line>55</line>\n          <option name=\"timeStamp\" value=\"27\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>\n          <line>56</line>\n          <option name=\"timeStamp\" value=\"28\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>\n          <line>57</line>\n          <option name=\"timeStamp\" value=\"29\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>\n          <line>169</line>\n          <option name=\"timeStamp\" value=\"30\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/core/transformers/historical_race_transformer.py</url>\n          <line>84</line>\n          <option name=\"timeStamp\" value=\"55\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>\n          <line>315</line>\n          <option name=\"timeStamp\" value=\"97\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/race_prediction/predict_daily_races.py</url>\n          <line>127</line>\n          <option name=\"timeStamp\" value=\"98\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>\n          <line>1595</line>\n          <option name=\"timeStamp\" value=\"114\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>\n          <line>966</line>\n          <option name=\"timeStamp\" value=\"116\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>\n          <line>450</line>\n          <option name=\"timeStamp\" value=\"126\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>\n          <line>457</line>\n          <option name=\"timeStamp\" value=\"127\" />\n        </line-breakpoint>\n        <line-breakpoint enabled=\"true\" suspend=\"THREAD\" type=\"python-line\">\n          <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>\n          <line>465</line>\n          <option name=\"timeStamp\" value=\"128\" />\n        </line-breakpoint>\n      </breakpoints>\n      <default-breakpoints>\n        <breakpoint type=\"python-exception\">\n          <properties notifyOnTerminate=\"true\" exception=\"BaseException\">\n            <option name=\"notifyOnTerminate\" value=\"true\" />\n          </properties>\n        </breakpoint>\n      </default-breakpoints>\n    </breakpoint-manager>\n    <watches-manager>\n      <configuration name=\"PythonConfigurationType\">\n        <watch expression=\"race_type['course_info']\" language=\"Python\" />\n        <watch expression=\"musique_stats.race_types.__len__()\" />\n        <watch expression=\"musique_stats.__len__()\" />\n      </configuration>\n    </watches-manager>\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision 0d88e73ffd4a3899fde119bb4ed28c1bf49fab9b)
++++ b/.idea/workspace.xml	(date 1746133211378)
+@@ -6,14 +6,7 @@
+   <component name="ChangeListManager">
+     <list default="true" id="43ec0894-de26-497b-a8fc-a968059a9170" name="Changes" comment="ModelManager">
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config.yaml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/connectors/api_daily_sync.py" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" beforeDir="false" afterPath="$PROJECT_DIR$/core/orchestrators/prediction_orchestrator.py" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/model_training/historical/train_race_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/historical/train_race_model.py" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" beforeDir="false" afterPath="$PROJECT_DIR$/model_training/regressions/regression_enhancement.py" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/race_prediction/race_predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/race_prediction/race_predict.py" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/utils/model_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/model_manager.py" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+@@ -30,7 +23,7 @@
+   <component name="Git.Settings">
+     <option name="RECENT_BRANCH_BY_REPOSITORY">
+       <map>
+-        <entry key="$PROJECT_DIR$" value="LightGBM" />
++        <entry key="$PROJECT_DIR$" value="data_processingV2" />
+       </map>
+     </option>
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+@@ -56,33 +49,33 @@
+     <option name="hideEmptyMiddlePackages" value="true" />
+     <option name="showLibraryContents" value="true" />
+   </component>
+-  <component name="PropertiesComponent"><![CDATA[{
+-  "keyToString": {
+-    "Python.api_daily_sync.executor": "Run",
+-    "Python.embedding_feature.executor": "Run",
+-    "Python.env_setup.executor": "Run",
+-    "Python.horse_embedding.executor": "Run",
+-    "Python.musique_calculation.executor": "Debug",
+-    "Python.mysql_connector.executor": "Run",
+-    "Python.mysql_sqlite_sync.executor": "Run",
+-    "Python.mysql_to_sqlite.executor": "Run",
+-    "Python.predict_daily_races.executor": "Run",
+-    "Python.prediction_orchestrator.executor": "Run",
+-    "Python.regression_enhancement.executor": "Run",
+-    "Python.test.executor": "Debug",
+-    "Python.train_model.executor": "Debug",
+-    "Python.train_race_model.executor": "Run",
+-    "RunOnceActivity.ShowReadmeOnStart": "true",
+-    "RunOnceActivity.git.unshallow": "true",
+-    "git-widget-placeholder": "main"
++  <component name="PropertiesComponent">{
++  &quot;keyToString&quot;: {
++    &quot;Python.api_daily_sync.executor&quot;: &quot;Run&quot;,
++    &quot;Python.embedding_feature.executor&quot;: &quot;Run&quot;,
++    &quot;Python.env_setup.executor&quot;: &quot;Run&quot;,
++    &quot;Python.horse_embedding.executor&quot;: &quot;Run&quot;,
++    &quot;Python.musique_calculation.executor&quot;: &quot;Debug&quot;,
++    &quot;Python.mysql_connector.executor&quot;: &quot;Run&quot;,
++    &quot;Python.mysql_sqlite_sync.executor&quot;: &quot;Run&quot;,
++    &quot;Python.mysql_to_sqlite.executor&quot;: &quot;Run&quot;,
++    &quot;Python.predict_daily_races.executor&quot;: &quot;Run&quot;,
++    &quot;Python.prediction_orchestrator.executor&quot;: &quot;Run&quot;,
++    &quot;Python.regression_enhancement.executor&quot;: &quot;Run&quot;,
++    &quot;Python.test.executor&quot;: &quot;Debug&quot;,
++    &quot;Python.train_model.executor&quot;: &quot;Debug&quot;,
++    &quot;Python.train_race_model.executor&quot;: &quot;Run&quot;,
++    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
++    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
++    &quot;git-widget-placeholder&quot;: &quot;main&quot;
+   }
+-}]]></component>
++}</component>
+   <component name="RecentsManager">
+     <key name="MoveFile.RECENT_KEYS">
+       <recent name="$PROJECT_DIR$/core/connectors" />
+     </key>
+   </component>
+-  <component name="RunManager" selected="Python.train_race_model">
++  <component name="RunManager" selected="Python.predict_orchestrator_cli">
+     <configuration name="api_daily_sync" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+       <module name="HorseAIv2" />
+       <option name="ENV_FILES" value="" />
+@@ -105,7 +98,7 @@
+       <option name="INPUT_FILE" value="" />
+       <method v="2" />
+     </configuration>
+-    <configuration name="predict_daily_races" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
++    <configuration name="predict_orchestrator_cli" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+       <module name="HorseAIv2" />
+       <option name="ENV_FILES" value="" />
+       <option name="INTERPRETER_OPTIONS" value="" />
+@@ -118,7 +111,7 @@
+       <option name="IS_MODULE_SDK" value="true" />
+       <option name="ADD_CONTENT_ROOTS" value="true" />
+       <option name="ADD_SOURCE_ROOTS" value="true" />
+-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/race_prediction/predict_daily_races.py" />
++      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/race_prediction/predict_orchestrator_cli.py" />
+       <option name="PARAMETERS" value="" />
+       <option name="SHOW_COMMAND_LINE" value="false" />
+       <option name="EMULATE_TERMINAL" value="false" />
+@@ -194,19 +187,19 @@
+       <method v="2" />
+     </configuration>
+     <list>
+-      <item itemvalue="Python.train_race_model" />
+-      <item itemvalue="Python.regression_enhancement" />
+-      <item itemvalue="Python.predict_daily_races" />
+-      <item itemvalue="Python.prediction_orchestrator" />
+       <item itemvalue="Python.api_daily_sync" />
++      <item itemvalue="Python.prediction_orchestrator" />
++      <item itemvalue="Python.regression_enhancement" />
++      <item itemvalue="Python.train_race_model" />
++      <item itemvalue="Python.predict_orchestrator_cli" />
+     </list>
+     <recent_temporary>
+       <list>
+-        <item itemvalue="Python.train_race_model" />
+-        <item itemvalue="Python.regression_enhancement" />
+         <item itemvalue="Python.api_daily_sync" />
+         <item itemvalue="Python.prediction_orchestrator" />
+-        <item itemvalue="Python.predict_daily_races" />
++        <item itemvalue="Python.regression_enhancement" />
++        <item itemvalue="Python.train_race_model" />
++        <item itemvalue="Python.predict_orchestrator_cli" />
+       </list>
+     </recent_temporary>
+   </component>
+@@ -427,21 +420,6 @@
+       <breakpoints>
+         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+           <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
+-          <line>55</line>
+-          <option name="timeStamp" value="27" />
+-        </line-breakpoint>
+-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+-          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
+-          <line>56</line>
+-          <option name="timeStamp" value="28" />
+-        </line-breakpoint>
+-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+-          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
+-          <line>57</line>
+-          <option name="timeStamp" value="29" />
+-        </line-breakpoint>
+-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+-          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
+           <line>169</line>
+           <option name="timeStamp" value="30" />
+         </line-breakpoint>
+@@ -449,21 +427,11 @@
+           <url>file://$PROJECT_DIR$/core/transformers/historical_race_transformer.py</url>
+           <line>84</line>
+           <option name="timeStamp" value="55" />
+-        </line-breakpoint>
+-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+-          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
+-          <line>315</line>
+-          <option name="timeStamp" value="97" />
+         </line-breakpoint>
+         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+           <url>file://$PROJECT_DIR$/race_prediction/predict_daily_races.py</url>
+-          <line>127</line>
++          <line>125</line>
+           <option name="timeStamp" value="98" />
+-        </line-breakpoint>
+-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+-          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
+-          <line>1595</line>
+-          <option name="timeStamp" value="114" />
+         </line-breakpoint>
+         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+           <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>
+@@ -484,6 +452,61 @@
+           <url>file://$PROJECT_DIR$/model_training/historical/train_race_model.py</url>
+           <line>465</line>
+           <option name="timeStamp" value="128" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
++          <line>288</line>
++          <option name="timeStamp" value="137" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
++          <line>292</line>
++          <option name="timeStamp" value="138" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
++          <line>93</line>
++          <option name="timeStamp" value="139" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/calculators/static_feature_calculator.py</url>
++          <line>155</line>
++          <option name="timeStamp" value="140" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/transformers/daily_race_transformer.py</url>
++          <line>298</line>
++          <option name="timeStamp" value="142" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/race_prediction/predict_daily_races.py</url>
++          <line>54</line>
++          <option name="timeStamp" value="166" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
++          <line>1448</line>
++          <option name="timeStamp" value="167" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
++          <line>1407</line>
++          <option name="timeStamp" value="168" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/orchestrators/embedding_feature.py</url>
++          <line>1572</line>
++          <option name="timeStamp" value="169" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
++          <line>573</line>
++          <option name="timeStamp" value="174" />
++        </line-breakpoint>
++        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
++          <url>file://$PROJECT_DIR$/core/connectors/api_daily_sync.py</url>
++          <line>578</line>
++          <option name="timeStamp" value="175" />
+         </line-breakpoint>
+       </breakpoints>
+       <default-breakpoints>
