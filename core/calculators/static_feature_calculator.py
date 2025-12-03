@@ -1080,6 +1080,22 @@ class FeatureCalculator:
         """
         # Créer une copie du DataFrame pour éviter de modifier l'original
         result_df = df.copy()
+        
+        # Apply comprehensive data cleaning for TabNet compatibility
+        cleaner = TabNetDataCleaner()
+        result_df = cleaner.comprehensive_data_cleaning(result_df, verbose=False)
+
+        # Apply comprehensive data cleaning for TabNet compatibility
+        cleaner = TabNetDataCleaner()
+        result_df = cleaner.comprehensive_data_cleaning(result_df, verbose=False)
+
+        # Calculate field mean earnings for confidence weighting
+        # This helps prevent extreme outliers from breaking TabNet scaling
+        participants_list = result_df.to_dict('records')
+        field_mean = FeatureCalculator.calculate_field_mean_earnings(participants_list)
+
+        if len(result_df) > 0:
+            print(f"🏇 Field mean earnings per race: {field_mean:,.0f} (from {len(participants_list)} horses)")
 
         # Apply temporal calculations FIRST (batch mode - super fast!)
         if use_temporal and db_path:
@@ -1165,6 +1181,36 @@ class FeatureCalculator:
             # Phase 1: Calculer les features de rating/classification
             phase1_rating_features = FeatureCalculator.calculate_phase1_rating_features(participant)
             row_features.update(phase1_rating_features)
+
+            # Calculer les features d'équipement (blinkers)
+            blinkers_features = FeatureCalculator.calculate_blinkers_features(participant)
+            for key, value in blinkers_features.items():
+                result_df.at[index, key] = value
+
+            # Calculer les features d'équipement (shoeing)
+            shoeing_features = FeatureCalculator.calculate_shoeing_features(participant)
+            for key, value in shoeing_features.items():
+                result_df.at[index, key] = value
+
+            # Calculer les features d'impact combiné d'équipement
+            equipment_impact_features = FeatureCalculator.calculate_equipment_impact_features(participant)
+            for key, value in equipment_impact_features.items():
+                result_df.at[index, key] = value
+
+            # Phase 1: Calculer les features de carrière avec pondération par confiance
+            phase1_career_features = FeatureCalculator.calculate_phase1_career_features(participant, field_mean)
+            for key, value in phase1_career_features.items():
+                result_df.at[index, key] = value
+
+            # Phase 1: Calculer les features de dernière course
+            phase1_last_race_features = FeatureCalculator.calculate_phase1_last_race_features(participant)
+            for key, value in phase1_last_race_features.items():
+                result_df.at[index, key] = value
+
+            # Phase 1: Calculer les features de rating/classification
+            phase1_rating_features = FeatureCalculator.calculate_phase1_rating_features(participant)
+            for key, value in phase1_rating_features.items():
+                result_df.at[index, key] = value
 
             # Extraire les features de la musique cheval
             cheval_musique_extractor = MusiqueFeatureExtractor()

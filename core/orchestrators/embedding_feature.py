@@ -2192,6 +2192,83 @@ class FeatureEmbeddingOrchestrator:
         """
         Prepare complete dataset using batch processing for memory efficiency.
 
+    # REMOVED DUPLICATE prepare_tabnet_features - using the one at line 856 instead
+
+    # ===============================
+    # MEMORY MONITORING AND BATCH PROCESSING
+    # ===============================
+    
+    def _init_memory_monitor(self):
+        """Initialize memory monitoring."""
+        if self.memory_monitor is None:
+            self.memory_monitor = MemoryMonitor(self.verbose)
+        return self.memory_monitor
+        
+    def _log_memory(self, stage: str, details: str = ""):
+        """Log memory usage at a specific stage."""
+        if self.memory_monitor:
+            self.memory_monitor.log_memory(stage, details)
+    
+    def _force_cleanup(self, stage: str = ""):
+        """Force garbage collection and log memory."""
+        if self.memory_monitor:
+            self.memory_monitor.force_cleanup(stage)
+        else:
+            gc.collect()
+            
+    def get_total_record_count(self, race_filter=None, date_filter=None) -> int:
+        """Get total number of records that would be processed."""
+        try:
+            with sqlite3.connect(self.sqlite_path) as conn:
+                query = """
+                    SELECT COUNT(*) as total
+                    FROM historical_races hr
+                """
+                
+                where_clauses = []
+                if race_filter:
+                    where_clauses.append(f"hr.typec = '{race_filter}'")
+                if date_filter:
+                    where_clauses.append(date_filter)
+                
+                if where_clauses:
+                    query += " WHERE " + " AND ".join(where_clauses)
+                
+                result = pd.read_sql_query(query, conn)
+                return int(result['total'].iloc[0])
+                
+        except Exception as e:
+            self.log_info(f"Error counting records: {e}")
+            return 0
+            
+    def should_use_batch_processing(self, total_records: int) -> bool:
+        """Determine if batch processing should be used."""
+        return (self.enable_batch_processing and 
+                total_records > self.batch_threshold)
+    
+    def create_temp_batch_dir(self) -> Path:
+        """Create temporary directory for batch files."""
+        if self.temp_batch_dir is None:
+            self.temp_batch_dir = Path(tempfile.mkdtemp(prefix="horse_ai_batch_"))
+        return self.temp_batch_dir
+    
+    def cleanup_temp_batch_dir(self):
+        """Clean up temporary batch directory."""
+        if self.temp_batch_dir and self.temp_batch_dir.exists():
+            import shutil
+            shutil.rmtree(self.temp_batch_dir)
+            self.temp_batch_dir = None
+            self.log_info("Cleaned up temporary batch directory")
+    
+    def load_historical_races_batched(self, 
+                                    limit=None, 
+                                    race_filter=None, 
+                                    date_filter=None, 
+                                    include_results=True,
+                                    use_cache=True) -> pd.DataFrame:
+        """
+        Load historical race data using batch processing for large datasets.
+        
         Args:
             df: DataFrame with race and participant data
             use_cache: Whether to use cached results

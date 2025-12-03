@@ -579,7 +579,69 @@ class PipelineHelper:
                 'error': str(e),
                 'message': error_msg
             }
+    def reblend_with_dynamic_weights(self, date: str = None, all_races: bool = True, progress_callback=None) -> Dict[str, Any]:
+        """
+        Re-blend existing predictions with dynamic weights without re-predicting.
+        Much faster than re-running predictions.
 
+        Args:
+            date: Date to re-blend (YYYY-MM-DD). Ignored if all_races=True.
+            all_races: If True, re-blends ALL races with predictions (default).
+            progress_callback: Optional callback for progress updates
+
+        Returns:
+            Dictionary with re-blending results
+        """
+        try:
+            if progress_callback:
+                progress_callback(10, "Initializing re-blending...")
+
+            if progress_callback:
+                if all_races:
+                    progress_callback(30, "Re-calculating weights for ALL races...")
+                else:
+                    progress_callback(30, f"Re-calculating weights for {date}...")
+
+            # Execute re-blending using the imported function
+            result = reblend_predictions_func(
+                date=date,
+                all_races=all_races,
+                verbose=False  # Keep it clean for UI
+            )
+
+            if progress_callback:
+                progress_callback(90, "Finalizing...")
+
+            # Format response
+            races_processed = result.get('races_processed', 0)
+            horses_updated = result.get('horses_updated', 0)
+            races_detail = result.get('races_detail', [])
+
+            if progress_callback:
+                progress_callback(100, "Re-blending complete!")
+
+            return {
+                'success': True,
+                'races_processed': races_processed,
+                'horses_updated': horses_updated,
+                'races_detail': races_detail,
+                'message': f"Successfully re-blended {races_processed} races ({horses_updated} horses) with dynamic weights"
+            }
+
+        except Exception as e:
+            import traceback
+            error_msg = f"Error during re-blending: {str(e)}"
+            print(f"❌ {error_msg}")
+            print(f"   Traceback: {traceback.format_exc()}")
+
+            if progress_callback:
+                progress_callback(100, f"Error: {str(e)}")
+
+            return {
+                'success': False,
+                'error': str(e),
+                'message': error_msg
+            }
 
 
     def evaluate_all_predictions_comprehensive(self, progress_callback=None) -> Dict[str, Any]:

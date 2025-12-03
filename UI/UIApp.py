@@ -2167,6 +2167,35 @@ def main():
                             hide_index=True
                         )
 
+                # Re-blending section
+                st.markdown("---")
+                st.markdown("### ⚡ Quick Re-blending with Dynamic Weights")
+                st.info("Re-apply new weights to existing predictions without re-running full prediction (much faster!)")
+
+                # Show total races with predictions
+                import sqlite3
+                try:
+                    conn = sqlite3.connect(st.session_state.helper.config_path.replace('config.yaml', 'data/hippique2.db'))
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        SELECT COUNT(DISTINCT dr.comp)
+                        FROM daily_race dr
+                        JOIN race_predictions rp ON dr.comp = rp.race_id
+                    """)
+                    total_races = cursor.fetchone()[0]
+                    conn.close()
+
+                    if total_races:
+                        st.caption(f"📊 Total races with predictions: {total_races}")
+                except:
+                    pass
+
+                if st.button("⚡ Re-blend ALL Races with Dynamic Weights", key="reblend_all_btn", type="primary", help="Update ALL predictions with new weights without re-predicting"):
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    execute_re_blending(all_races=True, progress_bar=progress_bar, status_text=status_text)
+                    st.rerun()
+
                 st.markdown('</div>', unsafe_allow_html=True)
 
             elif operation == "📈 Execute Evaluation":
@@ -2589,6 +2618,220 @@ def main():
                             st.error(f"Error: {str(e)}")
                             import traceback
                             st.code(traceback.format_exc())
+
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            elif operation == "⚖️ Model Weight Analysis":
+                st.markdown('''
+                <div class="config-panel">
+                    <h3>⚖️ Automated Weight & Pattern Analysis</h3>
+                </div>
+                ''', unsafe_allow_html=True)
+
+                st.info("🤖 Automated analysis: Tests all RF/TabNet weight combinations (0.0-1.0 by 0.1), finds optimal weights, and detects patterns based on race features")
+
+                # Initialize session state for analysis results
+                if 'weight_patterns' not in st.session_state:
+                    st.session_state.weight_patterns = None
+
+                # Simple Configuration
+                st.markdown("### ⚙️ Configuration")
+
+                left, right = st.columns(2)
+
+                with left:
+                    date_from_weight = st.date_input(
+                        "Start Date:",
+                        value=(datetime.now() - timedelta(days=90)).date(),
+                        key="weight_date_from",
+                        help="Recommended: 30-90 days for reliable patterns"
+                    )
+
+                with right:
+                    date_to_weight = st.date_input(
+                        "End Date:",
+                        value=datetime.now().date(),
+                        key="weight_date_to"
+                    )
+
+                # Single-click automated analysis
+                if st.button("🚀 Run Automated Analysis", key="run_auto_analysis", help="Tests all weights and detects patterns automatically"):
+                    with st.spinner("📊 Loading race data..."):
+                        # Load data
+                        data_result = st.session_state.helper.load_weight_analysis_data(
+                            date_from=date_from_weight.strftime('%Y-%m-%d'),
+                            date_to=date_to_weight.strftime('%Y-%m-%d'),
+                            race_filters=None
+                        )
+
+                        if data_result['success']:
+                            log_output(data_result['message'], "success")
+
+                            # Run automated pattern detection
+                            with st.spinner("🔍 Testing all weight combinations (0.0-1.0 by 0.1) and detecting patterns..."):
+                                pattern_result = st.session_state.helper.detect_weight_patterns(
+                                    race_data=data_result['race_data'],
+                                    weight_step=0.1
+                                )
+
+                                if pattern_result['success']:
+                                    st.session_state.weight_patterns = pattern_result
+                                    log_output(pattern_result['message'], "success")
+                                else:
+                                    log_output(pattern_result['message'], "error")
+                        else:
+                            log_output(data_result['message'], "error")
+
+                        st.rerun()
+
+                # Display Results
+                if st.session_state.weight_patterns is not None:
+                    patterns = st.session_state.weight_patterns['patterns']
+
+                    st.markdown("### 📊 Analysis Results")
+
+                    # Summary insights
+                    st.markdown("#### 💡 Key Findings")
+                    for insight in patterns['summary']:
+                        if insight['type'] == 'no_patterns':
+                            st.success(f"✅ {insight['message']}")
+                        elif insight['type'] == 'patterns_found':
+                            st.warning(f"⚠️ {insight['message']}")
+                        else:
+                            st.info(f"📌 {insight['message']}")
+
+                    # Overall Optimal Weights
+                    overall = patterns['overall_best']
+
+                    st.markdown("#### 🎯 Overall Best Weights")
+                    tab1, tab2, tab3, tab4, tab5 = st.columns(5)
+                    with tab1:
+                        st.metric("RF Weight", f"{overall['rf_weight']:.1f}")
+                    with tab2:
+                        st.metric("TabNet Weight", f"{overall['tabnet_weight']:.1f}")
+                    with tab3:
+                        st.metric("Winner Accuracy", f"{overall['winner_accuracy']*100:.1f}%")
+                    with tab4:
+                        st.metric("Podium Accuracy", f"{overall['podium_accuracy']*100:.1f}%")
+                    with tab5:
+                        st.metric("MAE", f"{overall['mae']:.2f}")
+
+                    # Pattern-specific recommendations
+                    st.markdown("#### 🔍 Detected Patterns Requiring Custom Weights")
+
+                    # Race Type Patterns
+                    if patterns['by_race_type']:
+                        st.markdown("##### 🏇 Race Type Patterns")
+
+                        for pattern in patterns['by_race_type']:
+                            with st.expander(f"**{pattern['typec']}** - Custom weights recommended"):
+                                pcol1, pcol2, pcol3, pcol4 = st.columns(4)
+
+                                with pcol1:
+                                    st.metric("Optimal RF", f"{pattern['optimal_rf_weight']:.1f}")
+                                with pcol2:
+                                    st.metric("Optimal TabNet", f"{pattern['optimal_tabnet_weight']:.1f}")
+                                with pcol3:
+                                    st.metric("Winner Accuracy", f"{pattern['winner_accuracy']*100:.1f}%")
+                                    if pattern['improvement_vs_overall'] > 0:
+                                        st.success(f"+{pattern['improvement_vs_overall']*100:.1f}% vs overall")
+                                with pcol4:
+                                    st.metric("Races", pattern['total_races'])
+
+                                st.info(f"💡 **Recommendation:** {pattern['recommendation']}")
+                    else:
+                        st.success("✅ No significant race type patterns detected - overall weights work well")
+
+                    # Distance Range Patterns
+                    if patterns['by_distance_range']:
+                        st.markdown("##### 📏 Distance Range Patterns")
+
+                        for pattern in patterns['by_distance_range']:
+                            with st.expander(f"**{pattern['distance_range']}** - Custom weights recommended"):
+                                pcol1, pcol2, pcol3, pcol4 = st.columns(4)
+
+                                with pcol1:
+                                    st.metric("Optimal RF", f"{pattern['optimal_rf_weight']:.1f}")
+                                with pcol2:
+                                    st.metric("Optimal TabNet", f"{pattern['optimal_tabnet_weight']:.1f}")
+                                with pcol3:
+                                    st.metric("Winner Accuracy", f"{pattern['winner_accuracy']*100:.1f}%")
+                                    if pattern['improvement_vs_overall'] > 0:
+                                        st.success(f"+{pattern['improvement_vs_overall']*100:.1f}% vs overall")
+                                with pcol4:
+                                    st.metric("Races", pattern['total_races'])
+
+                                st.info(f"💡 **Recommendation:** {pattern['recommendation']}")
+                    else:
+                        st.success("✅ No significant distance patterns detected - overall weights work well")
+
+                    # Field Size Patterns
+                    if patterns['by_field_size']:
+                        st.markdown("##### 👥 Field Size Patterns")
+
+                        for pattern in patterns['by_field_size']:
+                            with st.expander(f"**{pattern['field_size']}** - Custom weights recommended"):
+                                pcol1, pcol2, pcol3, pcol4 = st.columns(4)
+
+                                with pcol1:
+                                    st.metric("Optimal RF", f"{pattern['optimal_rf_weight']:.1f}")
+                                with pcol2:
+                                    st.metric("Optimal TabNet", f"{pattern['optimal_tabnet_weight']:.1f}")
+                                with pcol3:
+                                    st.metric("Winner Accuracy", f"{pattern['winner_accuracy']*100:.1f}%")
+                                    if pattern['improvement_vs_overall'] > 0:
+                                        st.success(f"+{pattern['improvement_vs_overall']*100:.1f}% vs overall")
+                                with pcol4:
+                                    st.metric("Races", pattern['total_races'])
+
+                                st.info(f"💡 **Recommendation:** {pattern['recommendation']}")
+                    else:
+                        st.success("✅ No significant field size patterns detected - overall weights work well")
+
+                    # Weight performance visualization
+                    with st.expander("📈 View All Weight Combinations Performance"):
+                        all_results_df = pd.DataFrame(st.session_state.weight_patterns['all_weight_results'])
+
+                        # Winner accuracy line chart
+                        fig_winner = px.line(
+                            all_results_df,
+                            x='rf_weight',
+                            y='winner_accuracy',
+                            title='Winner Accuracy vs RF Weight (all tested combinations)',
+                            markers=True
+                        )
+                        fig_winner.update_yaxes(title='Winner Accuracy', tickformat='.1%')
+                        fig_winner.update_xaxes(title='RF Weight')
+                        fig_winner.update_traces(line_color='#244855', marker_color='#E64833')
+                        fig_winner.update_layout(
+                            height=400,
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)'
+                        )
+                        st.plotly_chart(fig_winner, use_container_width=True)
+
+                        # Data table
+                        st.dataframe(all_results_df, hide_index=True, use_container_width=True)
+
+                    # Export options
+                    with st.expander("💾 Export Pattern Results"):
+                        # Create comprehensive export
+                        export_data = {
+                            'overall_best': patterns['overall_best'],
+                            'race_type_patterns': patterns['by_race_type'],
+                            'distance_patterns': patterns['by_distance_range'],
+                            'field_size_patterns': patterns['by_field_size']
+                        }
+
+                        import json
+                        json_str = json.dumps(export_data, indent=2)
+
+                        st.download_button(
+                            label="📥 Download Pattern Analysis (JSON)",
+                            data=json_str,
+                            file_name=f"weight_pattern_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                            mime="application/json"
+                        )
 
                 st.markdown('</div>', unsafe_allow_html=True)
 
@@ -3403,6 +3646,81 @@ def main():
             st.metric("Last Training", last_training)
         with col_status2:
             st.metric("Model Version", model_version)
+        
+        # Alternative Models Status
+        st.markdown("### 🤖 Model Status")
+        model_info_result = st.session_state.helper.get_prediction_model_info()
+        
+        if model_info_result.get('success'):
+            prediction_info = model_info_result['prediction_info']
+        else:
+            # Use fallback information if available
+            st.warning(f"Model info error: {model_info_result.get('error', 'Unknown error')}")
+            prediction_info = model_info_result.get('fallback_info', {})
+            
+            if not prediction_info:
+                st.error("Could not retrieve any model information")
+                return
+        
+        # Display model information - simplified view
+        st.markdown("**Models:**")
+
+        # Get model paths from config
+        model_paths = prediction_info.get('model_paths', {})
+
+        # Check if models exist and their status
+        col_rf, col_tabnet = st.columns(2)
+
+        with col_rf:
+            rf_path = model_paths.get('rf', '')
+            if rf_path:
+                # Check if RF model files exist (no hybrid prefix)
+                rf_model_file = f"{rf_path}/rf_model.joblib"
+                import os
+                rf_exists = os.path.exists(rf_model_file)
+                rf_status = "✅ Ready" if rf_exists else "⚠️ Missing Files"
+
+                st.metric("Random Forest", rf_status)
+                if not rf_exists:
+                    st.caption(f"Expected: {rf_model_file}")
+            else:
+                st.metric("Random Forest", "❌ Not Configured")
+
+        with col_tabnet:
+            tabnet_path = model_paths.get('tabnet', '')
+            if tabnet_path:
+                # Check if TabNet model files exist (zip format)
+                tabnet_model_file = f"{tabnet_path}/tabnet_model.zip"
+                import os
+                tabnet_exists = os.path.exists(tabnet_model_file)
+                tabnet_status = "✅ Ready" if tabnet_exists else "⚠️ Missing Files"
+
+                st.metric("TabNet", tabnet_status)
+                if not tabnet_exists:
+                    st.caption(f"Expected: {tabnet_model_file}")
+            else:
+                st.metric("TabNet", "❌ Not Configured")
+
+        # Show blend weights
+        blend_weights = prediction_info.get('blend_weights', {})
+        if blend_weights:
+            st.markdown("**Blend Configuration:**")
+            col_w1, col_w2 = st.columns(2)
+            with col_w1:
+                st.metric("RF Weight", f"{blend_weights.get('rf_weight', 0):.1f}")
+            with col_w2:
+                st.metric("TabNet Weight", f"{blend_weights.get('tabnet_weight', 0):.1f}")
+
+        # Overall status
+        rf_ready = rf_path and os.path.exists(f"{rf_path}/rf_model.joblib") if rf_path else False
+        tabnet_ready = tabnet_path and os.path.exists(f"{tabnet_path}/tabnet_model.zip") if tabnet_path else False
+
+        if rf_ready and tabnet_ready:
+            st.success("🟢 All models ready for predictions")
+        elif rf_ready or tabnet_ready:
+            st.warning("🟡 Some models ready - partial functionality available")
+        else:
+            st.error("🔴 No models available - training required")
 
         # Training Thread Status
         if hasattr(st.session_state, 'helper'):
