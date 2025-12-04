@@ -595,6 +595,9 @@ Extra in prediction: {len(extra)} features
         # Apply competitive field analysis to enhance predictions
         result_df = self._apply_competitive_analysis(result_df)
 
+        # Apply two-stage refinement for positions 4-5 (based on failure analysis)
+        result_df = self._apply_two_stage_refinement(result_df)
+
         return result_df
 
     def _apply_competitive_analysis(self, df_predictions: pd.DataFrame) -> pd.DataFrame:
@@ -723,6 +726,193 @@ Extra in prediction: {len(extra)} features
 
         return result_df
 
+    def _apply_two_stage_refinement(self, df_predictions: pd.DataFrame) -> pd.DataFrame:
+        """
+        Apply two-stage refinement to fix positions 4-5 accuracy.
+
+        Based on failure analysis of 66 races:
+        - Positions 1-3: GOOD (74%, 69%, 51% success) - keep as-is
+        - Position 4: TERRIBLE (38% success, drift +3.21) - needs fixing
+        - Position 5: CHAOTIC (49% success, high variance) - needs fixing
+        - Root cause: Model predicts horse quality well, but positions 4-5 depend on
+          race dynamics (trips, pace) not quality. Missing longshots (odds 15-35).
+
+        Strategy:
+        - Stage 1: Keep top 3 predictions (model is good here)
+        - Stage 2: Recalculate positions 4-5 with odds-based adjustments
+          * Boost longshots (odds 15-35) that often finish 4-5 but predicted 6-12
+          * Penalize mid-odds (10-18) at predicted 4-5 that fail 62% of time
+
+        Args:
+            df_predictions: DataFrame with predictions
+
+        Returns:
+            DataFrame with refined predictions for positions 4-5
+        """
+        if self.verbose:
+            self.log_info("\n" + "="*80)
+            self.log_info("APPLYING TWO-STAGE REFINEMENT FOR POSITIONS 4-5")
+            self.log_info("="*80)
+
+        result_df = df_predictions.copy()
+
+        # Process each race separately
+        unique_races = result_df['comp'].unique()
+        refined_dfs = []
+
+        for race_comp in unique_races:
+            race_df = result_df[result_df['comp'] == race_comp].copy()
+
+            # VALIDATION: Check required columns
+            if 'cotedirect' not in race_df.columns:
+                if self.verbose:
+                    self.log_info(f"⚠ Race {race_comp}: Missing 'cotedirect' column, skipping two-stage refinement")
+                refined_dfs.append(race_df)
+                continue
+
+            if 'predicted_position' not in race_df.columns:
+                if self.verbose:
+                    self.log_info(f"⚠ Race {race_comp}: Missing 'predicted_position' column, skipping two-stage refinement")
+                refined_dfs.append(race_df)
+                continue
+
+            # VALIDATION: Check minimum horses
+            if len(race_df) < 10:
+                if self.verbose:
+                    self.log_info(f"⚠ Race {race_comp}: Too few horses ({len(race_df)}), skipping two-stage refinement")
+                refined_dfs.append(race_df)
+                continue
+
+            if self.verbose:
+                self.log_info(f"\n--- Race {race_comp} ({len(race_df)} horses) ---")
+
+            # Store original predicted position for logging
+            race_df['original_predicted_position'] = race_df['predicted_position'].copy()
+
+            # Sort by predicted position to identify top 3 and remaining horses
+            race_df = race_df.sort_values('predicted_position').reset_index(drop=True)
+
+            # STAGE 1: Keep top 3 as-is (model is good at predicting winners)
+            top3 = race_df.iloc[:3].copy()
+
+            # VALIDATION: Check we got exactly 3 horses
+            assert len(top3) == 3, f"Stage 1 failed: got {len(top3)} horses, expected 3"
+
+            if self.verbose:
+                self.log_info("\nStage 1 - Top 3 (unchanged):")
+                for idx, row in top3.iterrows():
+                    horse_name = row.get('nom', 'Unknown')[:20]
+                    odds = row.get('cotedirect', 0.0)
+                    pos = row['predicted_position']
+                    self.log_info(f"  #{row['numero']:2d}: {horse_name:20s} (odds {odds:5.1f}, pos {pos:.2f})")
+
+            # STAGE 2: Recalculate positions 4-5 from remaining horses
+            remaining = race_df.iloc[3:].copy()
+
+            if len(remaining) < 2:
+                if self.verbose:
+                    self.log_info(f"⚠ Not enough horses for positions 4-5, keeping all predictions as-is")
+                refined_dfs.append(race_df)
+                continue
+
+            # Create adjustment score (starts at 0)
+            remaining['position_adjustment'] = 0.0
+
+            # CRITICAL FIX 1: Boost longshots (odds 15-35)
+            # Analysis shows these finish in positions 4-5 but model predicts them at 6-12
+            mask_longshot = (remaining['cotedirect'] >= 15) & (remaining['cotedirect'] <= 35)
+            longshots_count = mask_longshot.sum()
+
+            if longshots_count > 0:
+                # Boost by moving them UP in ranking (subtract from position)
+                remaining.loc[mask_longshot, 'position_adjustment'] -= 2.5
+
+                if self.verbose:
+                    longshot_horses = remaining[mask_longshot]
+                    self.log_info(f"\nLongshots boosted (odds 15-35): {longshots_count} horses")
+                    for idx, row in longshot_horses.iterrows():
+                        horse_name = row.get('nom', 'Unknown')[:20]
+                        self.log_info(f"  #{row['numero']:2d}: {horse_name:20s} (odds {row['cotedirect']:5.1f}) - boosted -2.5")
+
+            # CRITICAL FIX 2: Penalize mid-odds horses currently predicted at positions 4-5
+            # Analysis shows odds 10-18 at predicted 4-5 fail 62% of time
+            mask_mid_odds = (remaining['cotedirect'] >= 10) & (remaining['cotedirect'] <= 18)
+            mask_predicted_45 = (remaining['predicted_position'] >= 4) & (remaining['predicted_position'] <= 5.5)
+            mask_penalize = mask_mid_odds & mask_predicted_45
+            penalized_count = mask_penalize.sum()
+
+            if penalized_count > 0:
+                # Penalize by moving them DOWN in ranking (add to position)
+                remaining.loc[mask_penalize, 'position_adjustment'] += 1.5
+
+                if self.verbose:
+                    penalized_horses = remaining[mask_penalize]
+                    self.log_info(f"\nMid-odds penalized (odds 10-18 at pos 4-5): {penalized_count} horses")
+                    for idx, row in penalized_horses.iterrows():
+                        horse_name = row.get('nom', 'Unknown')[:20]
+                        self.log_info(f"  #{row['numero']:2d}: {horse_name:20s} (odds {row['cotedirect']:5.1f}, pos {row['predicted_position']:.2f}) - penalized +1.5")
+
+            # Apply adjustments to predicted position
+            remaining['predicted_position'] = remaining['predicted_position'] + remaining['position_adjustment']
+
+            # Re-sort by adjusted predicted position and select new positions 4-5
+            remaining = remaining.sort_values('predicted_position').reset_index(drop=True)
+            new_45 = remaining.iloc[:2].copy()
+
+            # VALIDATION: Check we got exactly 2 horses
+            assert len(new_45) == 2, f"Stage 2 failed: got {len(new_45)} horses, expected 2"
+
+            if self.verbose:
+                self.log_info("\nStage 2 - Positions 4-5 (adjusted):")
+                for idx, row in new_45.iterrows():
+                    horse_name = row.get('nom', 'Unknown')[:20]
+                    odds = row.get('cotedirect', 0.0)
+                    old_pos = row['original_predicted_position']
+                    new_pos = row['predicted_position']
+                    adjustment = row['position_adjustment']
+                    self.log_info(f"  #{row['numero']:2d}: {horse_name:20s} (odds {odds:5.1f}) - {old_pos:.2f} → {new_pos:.2f} (adj {adjustment:+.1f})")
+
+            # Combine: top3 + new 4-5
+            final_top5 = pd.concat([top3, new_45], ignore_index=True)
+
+            # VALIDATION: Final checks
+            assert len(final_top5) == 5, f"Final top 5 has {len(final_top5)} horses, expected 5"
+            assert final_top5['numero'].duplicated().sum() == 0, f"Duplicate horses in top 5!"
+
+            # For horses not in top 5, keep their original predictions
+            not_top5_mask = ~race_df['numero'].isin(final_top5['numero'])
+            not_top5 = race_df[not_top5_mask].copy()
+
+            # Combine final top 5 with remaining horses
+            # Note: We need to reassemble the full race dataframe
+            # The top 5 horses have potentially new predicted_positions (for 4-5)
+            # The rest keep their original positions
+
+            # Create mapping of numero -> updated row
+            updated_horses = {}
+            for idx, row in final_top5.iterrows():
+                updated_horses[row['numero']] = row
+
+            # Update race_df with new predictions for top 5
+            for idx, row in race_df.iterrows():
+                if row['numero'] in updated_horses:
+                    updated_row = updated_horses[row['numero']]
+                    race_df.at[idx, 'predicted_position'] = updated_row['predicted_position']
+                    if 'position_adjustment' in updated_row.index:
+                        race_df.at[idx, 'position_adjustment'] = updated_row.get('position_adjustment', 0.0)
+
+            refined_dfs.append(race_df)
+
+        # Combine all races
+        result_df = pd.concat(refined_dfs, ignore_index=True)
+
+        if self.verbose:
+            self.log_info("\n" + "="*80)
+            self.log_info("TWO-STAGE REFINEMENT COMPLETE")
+            self.log_info("="*80 + "\n")
+
+        return result_df
+
     def format_predictions(self, df_predictions: pd.DataFrame) -> pd.DataFrame:
         """
         Format predictions for output.
@@ -741,7 +931,9 @@ Extra in prediction: {len(extra)} features
             'predicted_position', 'predicted_position_tabnet', 'predicted_position_rf',
             'predicted_position_uncalibrated',  # For calibration debugging
             'raw_rf_prediction', 'raw_tabnet_prediction',  # For debugging calibration compression
-            'predicted_position_base'  # For debugging blending
+            'predicted_position_base',  # For debugging blending
+            'original_predicted_position',  # For two-stage comparison (before refinement)
+            'position_adjustment'  # For two-stage debugging (adjustment amount)
         ]
 
         # Only include columns that exist
